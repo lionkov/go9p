@@ -38,6 +38,7 @@ const (
 
 const(
 	IOHdrSz = 24;
+	MSz = 8192+IOHdrSz; // default msize
 	Port = 564;
 )
 

@@ -8,10 +8,6 @@ import (
 	"os";
 )
 
-type P9Server interface {
-
-}
-
 func runEcho(fd net.Conn) {
 	var buf [p9.IOHdrSz]byte;
 
