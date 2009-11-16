@@ -38,7 +38,6 @@ const (
 
 const(
 	IOHdrSz = 24;
-	MSz = 8192+IOHdrSz; // default msize
 	Port = 564;
 )
 
@@ -85,7 +84,8 @@ const(
 	DMMOUNT     =0x10000000; // mode bit for mounted channel 
 	DMAUTH      =0x08000000; // mode bit for authentication file 
 	DMTMP       =0x04000000; // mode bit for non-backed-up file 
-	DMSYMLINK   =0x02000000; // mode bit for symbolic link (Unix, 9P2000.u) 
+	DMSYMLINK   =0x02000000; // mode bit for symbolic link (Unix, 9P2000.u)
+	DMLINK	    =0x01000000; // mode bit for hard link (Unix, 9P2000.u)
 	DMDEVICE    =0x00800000; // mode bit for device file (Unix, 9P2000.u) 
 	DMNAMEDPIPE =0x00200000; // mode bit for named pipe (Unix, 9P2000.u) 
 	DMSOCKET    =0x00100000; // mode bit for socket (Unix, 9P2000.u) 
@@ -101,17 +101,18 @@ const(
 	Nofid uint32	= 0xFFFFFFFF;
 	Nouid uint32	= 0xFFFFFFFF;
 	Errundef uint32 = 0xFFFFFFFF;
+	MSize uint32	= 8192+IOHdrSz;
 );
 
 type Error struct {
-	error	string;
-	nerror	os.Errno;
+	Error	string;
+	Nerror	os.Errno;
 }
 
 type Qid struct {
-	qtype	uint8;
-	version	uint32;
-	path	uint64;
+	Type	uint8;
+	Version	uint32;
+	Path	uint64;
 }
 
 //TODO: string implementations for debugging
@@ -121,62 +122,62 @@ func (s Stat) String() string {
 
 type Stat struct {
 	size	uint16;
-	stype	uint16;
-	dev	uint32;
-	qid	Qid;
-	mode	uint32;
-	atime	uint32;
-	mtime	uint32;
-	length	uint64;
-	name	string;
-	uid	string;
-	gid	string;
-	muid	string;
+	Type	uint16;
+	Dev	uint32;
+	Sqid	Qid;
+	Mode	uint32;
+	Atime	uint32;
+	Mtime	uint32;
+	Length	uint64;
+	Name	string;
+	Uid	string;
+	Gid	string;
+	Muid	string;
 
 	/* 9P2000.u extension */
-	ext	string;
-	nuid	uint32;
-	ngid	uint32;
-	nmuid	uint32;
+	Ext	string;
+	Nuid	uint32;
+	Ngid	uint32;
+	Nmuid	uint32;
 };
 
 //TODO: string implementations for debugging
-func (c Call) String() string {
+func (c Fcall) String() string {
 	return "";
 }
 
-type Call struct {
+type Fcall struct {
 	size	uint32;
-	id	uint8;
-	tag	uint16;
+	Id	uint8;
+	Tag	uint16;
 
-	fid	uint32;
-	msize	uint32;			/* Tversion, Rversion */
-	version	string;			/* Tversion, Rversion */
-	afid	uint32;			/* Tauth, Tattach */
-	uname	string;			/* Tauth, Tattach */
-	aname	string;			/* Tauth, Tattach */
-	qid	Qid;			/* Rauth, Rattach, Ropen, Rcreate */
-	error	string;			/* Rerror */
-	oldtag	uint16;			/* Tflush */
-	newfid	uint32;			/* Twalk */
-	wnames	[]string;		/* Twalk */
-	wqids	[]Qid;			/* Rwalk */
-	mode	uint8;			/* Topen, Tcreate */
-	iounit	uint32;			/* Ropen, Rcreate */
-	name	string;			/* Tcreate */
-	perm	uint32;			/* Tcreate */
-	offset	uint64;			/* Tread, Twrite */
-	count	uint32;			/* Tread, Rread, Twrite, Rwrite */
-	stat	Stat;			/* Rstat, Twstat */
-	data	[]uint8;		/* Rread, Twrite */
+	Fid	uint32;
+	Msize	uint32;			/* Tversion, Rversion */
+	Version	string;			/* Tversion, Rversion */
+	Afid	uint32;			/* Tauth, Tattach */
+	Uname	string;			/* Tauth, Tattach */
+	Aname	string;			/* Tauth, Tattach */
+	Fqid	Qid;			/* Rauth, Rattach, Ropen, Rcreate */
+	Error	string;			/* Rerror */
+	Oldtag	uint16;			/* Tflush */
+	Newfid	uint32;			/* Twalk */
+	Wnames	[]string;		/* Twalk */
+	Wqids	[]Qid;			/* Rwalk */
+	Mode	uint8;			/* Topen, Tcreate */
+	Iounit	uint32;			/* Ropen, Rcreate */
+	Name	string;			/* Tcreate */
+	Perm	uint32;			/* Tcreate */
+	Offset	uint64;			/* Tread, Twrite */
+	Count	uint32;			/* Tread, Rread, Twrite, Rwrite */
+	Fstat	Stat;			/* Rstat, Twstat */
+	Data	[]uint8;		/* Rread, Twrite */
 
 	/* 9P2000.u extensions */
-	nerror	uint32;			/* Rerror */
-	ext	string;			/* Tcreate */
-	nuname	uint32;			/* Tauth, Tattach */
+	Nerror	uint32;			/* Rerror */
+	Ext	string;			/* Tcreate */
+	Nuname	uint32;			/* Tauth, Tattach */
 
-	pkt	[]uint8;		/* raw packet data */
+	Pkt	[]uint8;		/* raw packet data */
 }
 
 var minFcsize = [...]uint32 {
@@ -257,6 +258,11 @@ func gint32(buf []byte) (uint32, []byte)
 		(uint32(buf[3])<<24), buf[4:len(buf)];
 }
 
+func Gint32(buf []byte) (uint32, []byte)
+{
+	return gint32(buf);
+}
+
 func gint64(buf []byte) (uint64, []byte)
 {
 	return uint64(buf[0])|(uint64(buf[1])<<8)|(uint64(buf[2])<<16)|
@@ -282,9 +288,9 @@ func gstr(buf []byte) (string, []byte)
 
 func gqid(buf []byte, qid *Qid) ([]byte)
 {
-	qid.qtype, buf = gint8(buf);
-	qid.version, buf = gint32(buf);
-	qid.path, buf = gint64(buf);
+	qid.Type, buf = gint8(buf);
+	qid.Version, buf = gint32(buf);
+	qid.Path, buf = gint64(buf);
 
 	return buf;
 }
@@ -292,45 +298,45 @@ func gqid(buf []byte, qid *Qid) ([]byte)
 func gstat(buf []byte, st *Stat, dotu bool) ([]byte)
 {
 	st.size, buf = gint16(buf);
-	st.stype, buf = gint16(buf);
-	st.dev, buf = gint32(buf);
-	buf = gqid(buf, &st.qid);
-	st.mode, buf = gint32(buf);
-	st.atime, buf = gint32(buf);
-	st.mtime, buf = gint32(buf);
-	st.length, buf = gint64(buf);
-	st.name, buf = gstr(buf);
+	st.Type, buf = gint16(buf);
+	st.Dev, buf = gint32(buf);
+	buf = gqid(buf, &st.Sqid);
+	st.Mode, buf = gint32(buf);
+	st.Atime, buf = gint32(buf);
+	st.Mtime, buf = gint32(buf);
+	st.Length, buf = gint64(buf);
+	st.Name, buf = gstr(buf);
 	if buf==nil {
 		return nil;
 	}
 
-	st.uid, buf = gstr(buf);
+	st.Uid, buf = gstr(buf);
 	if buf==nil {
 		return nil;
 	}
-	st.gid, buf = gstr(buf);
+	st.Gid, buf = gstr(buf);
 	if buf==nil {
 		return nil;
 	}
 
-	st.muid, buf = gstr(buf);
+	st.Muid, buf = gstr(buf);
 	if buf==nil {
 		return nil;
 	}
 
 	if dotu {
-		st.ext, buf = gstr(buf);
+		st.Ext, buf = gstr(buf);
 		if buf==nil {
 			return nil;
 		}
 
-		st.nuid, buf = gint32(buf);
-		st.ngid, buf = gint32(buf);
-		st.nmuid, buf = gint32(buf);
+		st.Nuid, buf = gint32(buf);
+		st.Ngid, buf = gint32(buf);
+		st.Nmuid, buf = gint32(buf);
 	} else {
-		st.nuid = 0xFFFFFFFF;
-		st.ngid = 0xFFFFFFFF;
-		st.nmuid = 0xFFFFFFFF;
+		st.Nuid = Nouid;
+		st.Ngid = Nouid;
+		st.Nmuid = Nouid;
 	}
 
 	return buf;
@@ -410,9 +416,9 @@ func ppstr(val string, buf []byte, pval *string) []byte
 
 func pqid(val *Qid, buf []byte) []byte
 {
-	buf = pint8(val.qtype, buf);
-	buf = pint32(val.version, buf);
-	buf = pint64(val.path, buf);
+	buf = pint8(val.Type, buf);
+	buf = pint32(val.Version, buf);
+	buf = pint64(val.Path, buf);
 
 	return buf;
 }
@@ -425,9 +431,9 @@ func ppqid(val *Qid, buf []byte, pval *Qid) []byte
 
 func statsz(st *Stat, dotu bool) int
 {
-	sz := 2+2+4+13+4+4+4+8+2+2+2+2+len(st.name)+len(st.uid)+len(st.gid)+len(st.muid);
+	sz := 2+2+4+13+4+4+4+8+2+2+2+2+len(st.Name)+len(st.Uid)+len(st.Gid)+len(st.Muid);
 	if dotu {
-		sz += 2+4+4+4+len(st.ext);
+		sz += 2+4+4+4+len(st.Ext);
 	}
 
 	return sz;
@@ -436,22 +442,22 @@ func statsz(st *Stat, dotu bool) int
 func pstat(st *Stat, buf []byte, dotu bool) []byte
 {
 	buf = pint16(uint16(statsz(st, dotu)), buf);
-	buf = pint16(st.stype, buf);
-	buf = pint32(st.dev, buf);
-	buf = pqid(&st.qid, buf);
-	buf = pint32(st.mode, buf);
-	buf = pint32(st.atime, buf);
-	buf = pint32(st.mtime, buf);
-	buf = pint64(st.length, buf);
-	buf = pstr(st.name, buf);
-	buf = pstr(st.uid, buf);
-	buf = pstr(st.gid, buf);
-	buf = pstr(st.muid, buf);
+	buf = pint16(st.Type, buf);
+	buf = pint32(st.Dev, buf);
+	buf = pqid(&st.Sqid, buf);
+	buf = pint32(st.Mode, buf);
+	buf = pint32(st.Atime, buf);
+	buf = pint32(st.Mtime, buf);
+	buf = pint64(st.Length, buf);
+	buf = pstr(st.Name, buf);
+	buf = pstr(st.Uid, buf);
+	buf = pstr(st.Gid, buf);
+	buf = pstr(st.Muid, buf);
 	if dotu {
-		buf = pstr(st.ext, buf);
-		buf = pint32(st.nuid, buf);
-		buf = pint32(st.ngid, buf);
-		buf = pint32(st.nmuid, buf);
+		buf = pstr(st.Ext, buf);
+		buf = pint32(st.Nuid, buf);
+		buf = pint32(st.Ngid, buf);
+		buf = pint32(st.Nmuid, buf);
 	}
 
 	return buf;
@@ -498,22 +504,22 @@ szerror:
 	return st, nil, buf;
 }
 
-func packCommon(fc *Call, size int, id uint8) ([]byte, *Error)
+func packCommon(fc *Fcall, size int, id uint8) ([]byte, *Error)
 {
 	size += 4+1+2; /* size[4] id[1] tag[2] */
-	if len(fc.pkt)<int(size) {
+	if len(fc.Pkt)<int(size) {
 		return nil, &Error{"buffer too small", syscall.EINVAL};
 	}
 
-	p := fc.pkt;
+	p := fc.Pkt;
 	p = ppint32(uint32(size), p, &fc.size);
-	p = ppint8(id, p, &fc.id);
-	p = ppint16(Notag, p, &fc.tag);
+	p = ppint8(id, p, &fc.Id);
+	p = ppint16(Notag, p, &fc.Tag);
 
 	return p, nil;
 }
 
-func PackTversion(fc *Call, msize uint32, version string) *Error
+func PackTversion(fc *Fcall, msize uint32, version string) *Error
 {
 	size := 4 + 2 + len(version);	/* msize[4] version[s] */
 	p, err := packCommon(fc, size, Tversion);
@@ -521,13 +527,13 @@ func PackTversion(fc *Call, msize uint32, version string) *Error
 		return err;
 	}
 
-	p = ppint32(msize, p, &fc.msize);
-	p = ppstr(version, p, &fc.version);
+	p = ppint32(msize, p, &fc.Msize);
+	p = ppstr(version, p, &fc.Version);
 
 	return nil;
 }
 
-func PackRversion(fc *Call, msize uint32, version string) *Error
+func PackRversion(fc *Fcall, msize uint32, version string) *Error
 {
 	size := 4 + 2 + len(version);	/* msize[4] version[s] */
 	p, err := packCommon(fc, size, Rversion);
@@ -535,13 +541,13 @@ func PackRversion(fc *Call, msize uint32, version string) *Error
 		return err;
 	}
 
-	p = ppint32(msize, p, &fc.msize);
-	p = ppstr(version, p, &fc.version);
+	p = ppint32(msize, p, &fc.Msize);
+	p = ppstr(version, p, &fc.Version);
 
 	return nil;
 }
 
-func PackTauth(fc *Call, fid uint32, uname string, aname string, nuname uint32, dotu bool) *Error
+func PackTauth(fc *Fcall, fid uint32, uname string, aname string, nuname uint32, dotu bool) *Error
 {
 	size := 4+2+2+len(uname)+len(aname); /* fid[4] uname[s] aname[s] */
 	if dotu {
@@ -553,28 +559,28 @@ func PackTauth(fc *Call, fid uint32, uname string, aname string, nuname uint32, 
 		return err;
 	}
 
-	p = ppint32(fid, p, &fc.fid);
-	p = ppstr(uname, p, &fc.uname);
-	p = ppstr(aname, p, &fc.aname);
+	p = ppint32(fid, p, &fc.Fid);
+	p = ppstr(uname, p, &fc.Uname);
+	p = ppstr(aname, p, &fc.Aname);
 	if dotu {
-		p = ppint32(nuname, p, &fc.nuname);
+		p = ppint32(nuname, p, &fc.Nuname);
 	}
 
 	return nil;
 }
 
-func PackRauth(fc *Call, aqid *Qid) *Error {
+func PackRauth(fc *Fcall, aqid *Qid) *Error {
 	size := 13;	/* aqid[13] */
 	p, err := packCommon(fc, size, Rauth);
 	if err!=nil {
 		return err;
 	}
 
-	p = ppqid(aqid, p, &fc.qid);
+	p = ppqid(aqid, p, &fc.Fqid);
 	return nil;
 }
 
-func PackRerror(fc *Call, error string, nerror uint32, dotu bool) *Error
+func PackRerror(fc *Fcall, error string, nerror uint32, dotu bool) *Error
 {
 	size := 2+len(error);	/* ename[s] */
 	if dotu {
@@ -586,33 +592,33 @@ func PackRerror(fc *Call, error string, nerror uint32, dotu bool) *Error
 		return err;
 	}
 
-	p = ppstr(error, p, &fc.error);
+	p = ppstr(error, p, &fc.Error);
 	if dotu {
-		p = ppint32(nerror, p, &fc.nerror);
+		p = ppint32(nerror, p, &fc.Nerror);
 	}
 
 	return nil;
 }
 
-func PackTflush(fc *Call, oldtag uint16) *Error
+func PackTflush(fc *Fcall, oldtag uint16) *Error
 {
 	p, err := packCommon(fc, 2, Tflush);
 	if err!=nil {
 		return err;
 	}
 
-	p = ppint16(oldtag, p, &fc.oldtag);
+	p = ppint16(oldtag, p, &fc.Oldtag);
 	return nil;
 }
 
-func PackRflush(fc *Call) *Error
+func PackRflush(fc *Fcall) *Error
 {
 	_, err := packCommon(fc, 0, Rflush);
 
 	return err;
 }
 
-func PackTattach(fc *Call, fid uint32, afid uint32, uname string, aname string, nuname uint32, dotu bool) *Error
+func PackTattach(fc *Fcall, fid uint32, afid uint32, uname string, aname string, nuname uint32, dotu bool) *Error
 {
 	size := 4+4+2+len(uname)+2+len(aname); /* fid[4] afid[4] uname[s] aname[s] */
 	if dotu {
@@ -624,29 +630,29 @@ func PackTattach(fc *Call, fid uint32, afid uint32, uname string, aname string, 
 		return err;
 	}
 
-	p = ppint32(fid, p, &fc.fid);
-	p = ppint32(afid, p, &fc.afid);
-	p = ppstr(uname, p, &fc.uname);
-	p = ppstr(aname, p, &fc.aname);
+	p = ppint32(fid, p, &fc.Fid);
+	p = ppint32(afid, p, &fc.Afid);
+	p = ppstr(uname, p, &fc.Uname);
+	p = ppstr(aname, p, &fc.Aname);
 	if dotu {
-		p = ppint32(nuname, p, &fc.nuname);
+		p = ppint32(nuname, p, &fc.Nuname);
 	}
 
 	return nil;
 }
 
-func PackRattach(fc *Call, aqid *Qid) *Error {
+func PackRattach(fc *Fcall, aqid *Qid) *Error {
 	size := 13;	/* aqid[13] */
 	p, err := packCommon(fc, size, Rattach);
 	if err!=nil {
 		return err;
 	}
 
-	p = ppqid(aqid, p, &fc.qid);
+	p = ppqid(aqid, p, &fc.Fqid);
 	return nil;
 }
 
-func PackTwalk(fc *Call, fid uint32, newfid uint32, wnames []string) *Error
+func PackTwalk(fc *Fcall, fid uint32, newfid uint32, wnames []string) *Error
 {
 	nwname := len(wnames);
 	size := 4+4+2+nwname*2; /* fid[4] newfid[4] nwname[2] nwname*wname[s] */
@@ -659,18 +665,18 @@ func PackTwalk(fc *Call, fid uint32, newfid uint32, wnames []string) *Error
 		return err;
 	}
 
-	p = ppint32(fid, p, &fc.fid);
-	p = ppint32(newfid, p, &fc.newfid);
+	p = ppint32(fid, p, &fc.Fid);
+	p = ppint32(newfid, p, &fc.Newfid);
 	p = pint16(uint16(nwname), p);
-	fc.wnames = make([]string, nwname);
+	fc.Wnames = make([]string, nwname);
 	for i:=0; i<nwname; i++ {
-		p = ppstr(wnames[i], p, &fc.wnames[i]);
+		p = ppstr(wnames[i], p, &fc.Wnames[i]);
 	}
 
 	return nil;
 }
 
-func PackRwalk(fc *Call, wqids []Qid) *Error
+func PackRwalk(fc *Fcall, wqids []Qid) *Error
 {
 	nwqid := len(wqids);
 	size := 2+nwqid*13; /* nwqid[2] nwname*wqid[13] */
@@ -680,15 +686,15 @@ func PackRwalk(fc *Call, wqids []Qid) *Error
 	}
 
 	p = pint16(uint16(nwqid), p);
-	fc.wqids = make([]Qid, nwqid);
+	fc.Wqids = make([]Qid, nwqid);
 	for i:=0; i<nwqid; i++ {
-		p = ppqid(&wqids[i], p, &fc.wqids[i]);
+		p = ppqid(&wqids[i], p, &fc.Wqids[i]);
 	}
 
 	return nil;
 }
 
-func PackTopen(fc *Call, fid uint32, mode uint8) *Error
+func PackTopen(fc *Fcall, fid uint32, mode uint8) *Error
 {
 	size := 4+1;	/* fid[4] mode[1] */
 	p, err := packCommon(fc, size, Topen);
@@ -696,12 +702,12 @@ func PackTopen(fc *Call, fid uint32, mode uint8) *Error
 		return err;
 	}
 
-	p = ppint32(fid, p, &fc.fid);
-	p = ppint8(mode, p, &fc.mode);
+	p = ppint32(fid, p, &fc.Fid);
+	p = ppint8(mode, p, &fc.Mode);
 	return nil;
 }
 
-func PackRopen(fc *Call, qid *Qid, iounit uint32) *Error
+func PackRopen(fc *Fcall, qid *Qid, iounit uint32) *Error
 {
 	size := 13+4;	/* qid[13] iounit[4] */
 	p, err := packCommon(fc, size, Ropen);
@@ -709,12 +715,12 @@ func PackRopen(fc *Call, qid *Qid, iounit uint32) *Error
 		return err;
 	}
 
-	p = ppqid(qid, p, &fc.qid);
-	p = ppint32(iounit, p, &fc.iounit);
+	p = ppqid(qid, p, &fc.Fqid);
+	p = ppint32(iounit, p, &fc.Iounit);
 	return nil;
 }
 
-func PackTcreate(fc *Call, fid uint32, name string, perm uint32, mode uint8, ext string, dotu bool) *Error
+func PackTcreate(fc *Fcall, fid uint32, name string, perm uint32, mode uint8, ext string, dotu bool) *Error
 {
 	size := 4+2+len(name)+4+1;	/* fid[4] name[s] perm[4] mode[1] */
 
@@ -727,19 +733,19 @@ func PackTcreate(fc *Call, fid uint32, name string, perm uint32, mode uint8, ext
 		return err;
 	}
 
-	p = ppint32(fid, p, &fc.fid);
-	p = ppstr(name, p, &fc.name);
-	p = ppint32(perm, p, &fc.perm);
-	p = ppint8(mode, p, &fc.mode);
+	p = ppint32(fid, p, &fc.Fid);
+	p = ppstr(name, p, &fc.Name);
+	p = ppint32(perm, p, &fc.Perm);
+	p = ppint8(mode, p, &fc.Mode);
 
 	if dotu {
-		p = ppstr(ext, p, &fc.ext);
+		p = ppstr(ext, p, &fc.Ext);
 	}
 
 	return nil;
 }
 
-func PackRcreate(fc *Call, qid *Qid, iounit uint32) *Error
+func PackRcreate(fc *Fcall, qid *Qid, iounit uint32) *Error
 {
 	size := 13+4;	/* qid[13] iounit[4] */
 	p, err := packCommon(fc, size, Rcreate);
@@ -747,12 +753,12 @@ func PackRcreate(fc *Call, qid *Qid, iounit uint32) *Error
 		return err;
 	}
 
-	p = ppqid(qid, p, &fc.qid);
-	p = ppint32(iounit, p, &fc.iounit);
+	p = ppqid(qid, p, &fc.Fqid);
+	p = ppint32(iounit, p, &fc.Iounit);
 	return nil;
 }
 
-func PackTread(fc *Call, fid uint32, offset uint64, count uint32) *Error
+func PackTread(fc *Fcall, fid uint32, offset uint64, count uint32) *Error
 {
 	size := 4+8+4; /* fid[4] offset[8] count[4] */
 	p, err := packCommon(fc, size, Tread);
@@ -760,13 +766,13 @@ func PackTread(fc *Call, fid uint32, offset uint64, count uint32) *Error
 		return err;
 	}
 
-	p = ppint32(fid, p, &fc.fid);
-	p = ppint64(offset, p, &fc.offset);
-	p = ppint32(count, p, &fc.count);
+	p = ppint32(fid, p, &fc.Fid);
+	p = ppint64(offset, p, &fc.Offset);
+	p = ppint32(count, p, &fc.Count);
 	return nil;
 }
 
-func InitRread(fc *Call, count uint32) *Error
+func InitRread(fc *Fcall, count uint32) *Error
 {
 	size := int(4+count); /* count[4] data[count] */
 	p, err := packCommon(fc, size, Rread);
@@ -774,20 +780,20 @@ func InitRread(fc *Call, count uint32) *Error
 		return err;
 	}
 
-	p = ppint32(count, p, &fc.count);
-	fc.data = p;
+	p = ppint32(count, p, &fc.Count);
+	fc.Data = p;
 	return nil;
 }
 
-func SetRreadCount(fc *Call, count uint32)
+func SetRreadCount(fc *Fcall, count uint32)
 {
 	/* we need to update both the packet size as well as the data count */
 	size := 4+1+2+4+count;	/* size[4] id[1] tag[2] count[4] data[count] */
-	ppint32(size, fc.pkt, &fc.size);
-	ppint32(count, fc.pkt[7:11], &fc.count);
+	ppint32(size, fc.Pkt, &fc.size);
+	ppint32(count, fc.Pkt[7:11], &fc.Count);
 }
 
-func PackRread(fc *Call, data []byte) *Error
+func PackRread(fc *Fcall, data []byte) *Error
 {
 	count := uint32(len(data));
 	err := InitRread(fc, count);
@@ -795,11 +801,11 @@ func PackRread(fc *Call, data []byte) *Error
 		return err;
 	}
 
-	bytes.Copy(fc.data, data);
+	bytes.Copy(fc.Data, data);
 	return nil;
 }
 
-func PackTwrite(fc *Call, fid uint32, offset uint64, data []byte) *Error
+func PackTwrite(fc *Fcall, fid uint32, offset uint64, data []byte) *Error
 {
 	count := len(data);
 	size := 4+8+4+count;	/* fid[4] offset[8] count[4] data[count] */
@@ -808,71 +814,71 @@ func PackTwrite(fc *Call, fid uint32, offset uint64, data []byte) *Error
 		return err;
 	}
 
-	p = ppint32(fid, p, &fc.fid);
-	p = ppint64(offset, p, &fc.offset);
-	p = ppint32(uint32(count), p, &fc.count);
-	fc.data = p;
-	bytes.Copy(fc.data, data);
+	p = ppint32(fid, p, &fc.Fid);
+	p = ppint64(offset, p, &fc.Offset);
+	p = ppint32(uint32(count), p, &fc.Count);
+	fc.Data = p;
+	bytes.Copy(fc.Data, data);
 	return nil;
 }
 
-func PackRwrite(fc *Call, count uint32) *Error
+func PackRwrite(fc *Fcall, count uint32) *Error
 {
 	p, err := packCommon(fc, 4, Rwrite);	/* count[4] */
 	if err!=nil {
 		return err;
 	}
 
-	p = ppint32(count, p, &fc.count);
+	p = ppint32(count, p, &fc.Count);
 	return nil;
 }
 
-func PackTclunk(fc *Call, fid uint32) *Error
+func PackTclunk(fc *Fcall, fid uint32) *Error
 {
 	p, err := packCommon(fc, 4, Tclunk);	/* fid[4] */
 	if err!=nil {
 		return err;
 	}
 
-	p = ppint32(fid, p, &fc.fid);
+	p = ppint32(fid, p, &fc.Fid);
 	return nil;
 }
 
-func PackRclunk(fc *Call) *Error
+func PackRclunk(fc *Fcall) *Error
 {
 	_, err := packCommon(fc, 0, Rclunk);
 	return err;
 }
 
-func PackTremove(fc *Call, fid uint32) *Error
+func PackTremove(fc *Fcall, fid uint32) *Error
 {
 	p, err := packCommon(fc, 4, Tremove);	/* fid[4] */
 	if err!=nil {
 		return err;
 	}
 
-	p = ppint32(fid, p, &fc.fid);
+	p = ppint32(fid, p, &fc.Fid);
 	return nil;
 }
 
-func PackRremove(fc *Call) *Error
+func PackRremove(fc *Fcall) *Error
 {
 	_, err := packCommon(fc, 0, Rremove);
 	return err;
 }
 
-func PackTstat(fc *Call, fid uint32) *Error
+func PackTstat(fc *Fcall, fid uint32) *Error
 {
 	p, err := packCommon(fc, 4, Tstat);	/* fid[4] */
 	if err!=nil {
 		return err;
 	}
 
-	p = ppint32(fid, p, &fc.fid);
+	p = ppint32(fid, p, &fc.Fid);
 	return nil;
 }
 
-func PackRstat(fc *Call, st *Stat, dotu bool) *Error
+func PackRstat(fc *Fcall, st *Stat, dotu bool) *Error
 {
 	stsz := statsz(st, dotu);
 	size := 2+stsz;	/* stat[n] */
@@ -882,11 +888,11 @@ func PackRstat(fc *Call, st *Stat, dotu bool) *Error
 	}
 
 	p = pint16(uint16(stsz), p);
-	p = ppstat(st, p, dotu, &fc.stat);
+	p = ppstat(st, p, dotu, &fc.Fstat);
 	return nil;
 }
 
-func PackTwstat(fc *Call, fid uint32, st *Stat, dotu bool) *Error
+func PackTwstat(fc *Fcall, fid uint32, st *Stat, dotu bool) *Error
 {
 	stsz := statsz(st, dotu);
 	size := 4+2+stsz;	/* fid[4] stat[n] */
@@ -895,121 +901,121 @@ func PackTwstat(fc *Call, fid uint32, st *Stat, dotu bool) *Error
 		return err;
 	}
 
-	p = ppint32(fid, p, &fc.fid);
-	p = ppstat(st, p, dotu, &fc.stat);
+	p = ppint32(fid, p, &fc.Fid);
+	p = ppstat(st, p, dotu, &fc.Fstat);
 	return nil;
 }
 
-func PackRwstat(fc *Call) *Error
+func PackRwstat(fc *Fcall) *Error
 {
 	_, err := packCommon(fc, 0, Rwstat);
 	return err;
 }
 
-func Unpack(buf []byte, dotu bool) (fc *Call, err *Error, rest []byte)
+func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int)
 {
 	var m uint16;
 
-	fc.fid = Nofid;
-	fc.afid = Nofid;
-	fc.newfid = Nofid;
+	fc.Fid = Nofid;
+	fc.Afid = Nofid;
+	fc.Newfid = Nofid;
 
 	p := buf;
 	fc.size, p = gint32(p);
-	fc.id, p = gint8(p);
-	fc.tag, p = gint16(p);
+	fc.Id, p = gint8(p);
+	fc.Tag, p = gint16(p);
 
 	p = p[0:fc.size-7];
-	fc.pkt = buf[0:fc.size];
-	rest = buf[fc.size:len(buf)];
-	if fc.id<Tfirst || fc.id>=Tlast {
-		return nil, &Error{"invalid id", syscall.EINVAL}, buf;
+	fc.Pkt = buf[0:fc.size];
+	fcsz = int(fc.size);
+	if fc.Id<Tfirst || fc.Id>=Tlast {
+		return nil, &Error{"invalid id", syscall.EINVAL}, 0;
 	}
 
 	var sz uint32;
 	if dotu {
-		sz = minFcsize[fc.id - Tfirst];
+		sz = minFcsize[fc.Id - Tfirst];
 	} else {
-		sz = minFcusize[fc.id - Tfirst];
+		sz = minFcusize[fc.Id - Tfirst];
 	}
 
 	if fc.size<sz {
 szerror:
-		return nil, &Error{"invalid size", syscall.EINVAL}, buf;
+		return nil, &Error{"invalid size", syscall.EINVAL}, 0;
 	}
 
 	err = nil;
-	switch fc.id {
+	switch fc.Id {
 	default:
-		return nil, &Error{"invalid message id", syscall.EINVAL}, buf;
+		return nil, &Error{"invalid message id", syscall.EINVAL}, 0;
 
 	case Tversion, Rversion:
-		fc.msize, p = gint32(p);
-		fc.version, p = gstr(p);
+		fc.Msize, p = gint32(p);
+		fc.Version, p = gstr(p);
 		if p==nil {
 			goto szerror;
 		}
 
 	case Tauth:
-		fc.afid, p = gint32(p);
-		fc.uname, p = gstr(p);
+		fc.Afid, p = gint32(p);
+		fc.Uname, p = gstr(p);
 		if p==nil {
 			goto szerror;
 		}
 
-		fc.aname, p = gstr(p);
+		fc.Aname, p = gstr(p);
 		if p==nil {
 			goto szerror;
 		}
 
 		if dotu {
-			fc.nuname, p = gint32(p);
+			fc.Nuname, p = gint32(p);
 		} else {
-			fc.nuname = Nouid;
+			fc.Nuname = Nouid;
 		}
 
 	case Rauth, Rattach:
-		p = gqid(p, &fc.qid);
+		p = gqid(p, &fc.Fqid);
 
 	case Tflush:
-		fc.oldtag, p = gint16(p);
+		fc.Oldtag, p = gint16(p);
 
 	case Tattach:
-		fc.fid, p = gint32(p);
-		fc.afid, p = gint32(p);
-		fc.uname, p = gstr(p);
+		fc.Fid, p = gint32(p);
+		fc.Afid, p = gint32(p);
+		fc.Uname, p = gstr(p);
 		if p==nil {
 			goto szerror;
 		}
 
-		fc.aname, p = gstr(p);
+		fc.Aname, p = gstr(p);
 		if p==nil {
 			goto szerror;
 		}
 
 		if dotu {
-			fc.nuname, p = gint32(p);
+			fc.Nuname, p = gint32(p);
 		}
 
 	case Rerror:
-		fc.error, p = gstr(p);
+		fc.Error, p = gstr(p);
 		if p==nil {
 			goto szerror;
 		}
 
 		if dotu {
-			fc.nerror, p = gint32(p);
+			fc.Nerror, p = gint32(p);
 		} else {
-			fc.nerror = 0;
+			fc.Nerror = 0;
 		}
 
 	case Twalk:
-		fc.fid, p = gint32(p);
-		fc.newfid, p = gint32(p);
+		fc.Fid, p = gint32(p);
+		fc.Newfid, p = gint32(p);
 		m, p = gint16(p);
-		fc.wnames = make([]string, m);
+		fc.Wnames = make([]string, m);
 		for i:=0; i<int(m); i++ {
-			fc.wnames[i], p = gstr(p);
+			fc.Wnames[i], p = gstr(p);
 			if p==nil {
 				goto szerror;
 			}
@@ -1017,70 +1023,70 @@ szerror:
 
 	case Rwalk:
 		m, p = gint16(p);
-		fc.wqids = make([]Qid, m);
+		fc.Wqids = make([]Qid, m);
 		for i:=0; i<int(m); i++ {
-			p = gqid(p, &fc.wqids[i]);
+			p = gqid(p, &fc.Wqids[i]);
 		}
 
 	case Topen:
-		fc.fid, p = gint32(p);
-		fc.mode, p = gint8(p);
+		fc.Fid, p = gint32(p);
+		fc.Mode, p = gint8(p);
 
 	case Ropen, Rcreate:
-		p = gqid(p, &fc.qid);
-		fc.iounit, p = gint32(p);
+		p = gqid(p, &fc.Fqid);
+		fc.Iounit, p = gint32(p);
 
 	case Tcreate:
-		fc.fid, p = gint32(p);
-		fc.name, p = gstr(p);
+		fc.Fid, p = gint32(p);
+		fc.Name, p = gstr(p);
 		if p==nil {
 			goto szerror;
 		}
-		fc.perm, p = gint32(p);
-		fc.mode, p = gint8(p);
+		fc.Perm, p = gint32(p);
+		fc.Mode, p = gint8(p);
 		if dotu {
-			fc.ext, p = gstr(p);
+			fc.Ext, p = gstr(p);
 			if p==nil {
 				goto szerror;
 			}
 		}
 
 	case Tread:
-		fc.fid, p = gint32(p);
-		fc.offset, p = gint64(p);
-		fc.count, p = gint32(p);
+		fc.Fid, p = gint32(p);
+		fc.Offset, p = gint64(p);
+		fc.Count, p = gint32(p);
 
 	case Rread:
-		fc.count, p = gint32(p);
-		if len(p)<int(fc.count) {
+		fc.Count, p = gint32(p);
+		if len(p)<int(fc.Count) {
 			goto szerror;
 		}
 
 	case Twrite:
-		fc.fid, p = gint32(p);
-		fc.offset, p = gint64(p);
-		fc.count, p = gint32(p);
-		if len(p)<int(fc.count) {
+		fc.Fid, p = gint32(p);
+		fc.Offset, p = gint64(p);
+		fc.Count, p = gint32(p);
+		if len(p)<int(fc.Count) {
 			goto szerror;
 		}
 
 	case Rwrite:
-		fc.count, p = gint32(p);
+		fc.Count, p = gint32(p);
 
 	case Tclunk, Tremove, Tstat:
-		fc.fid, p = gint32(p);
+		fc.Fid, p = gint32(p);
 
 	case Rstat:
 		m, p = gint16(p);
-		p = gstat(p, &fc.stat, dotu);
+		p = gstat(p, &fc.Fstat, dotu);
 		if p==nil {
 			goto szerror;
 		}
 
 	case Twstat:
-		fc.fid, p = gint32(p);
+		fc.Fid, p = gint32(p);
 		m, p = gint16(p);
-		p = gstat(p, &fc.stat, dotu);
+		p = gstat(p, &fc.Fstat, dotu);
 
 	case Rflush, Rclunk, Rremove, Rwstat:
 	}
