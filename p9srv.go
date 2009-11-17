@@ -38,25 +38,6 @@ type Auth interface {
 	Write(afid *Fid, offset uint64, data []byte) (count int, err *p9.Error);
 }
 
-type Users interface {
-	Uid2User(uid int) User;
-	Uname2User(uname string) User;
-	Gid2Group(gid int) Group;
-	Gname2Group(gname string) Group;
-}
-
-type User interface {
-	Name() string;
-	Id() int;
-	Groups() []*Group;
-}
-
-type Group interface {
-	Name() string;
-	Id() int;
-	Members() []*User;
-}
-
 type SrvImpl interface {
 	Start(*Srv, SrvImpl);
 	ConnOpened(*Conn);
@@ -83,7 +64,7 @@ type Srv struct {
 	Msize		uint32;
 	Dotu		bool;
 	Debuglevel	int;
-	Upool		Users;
+	Upool		p9.Users;
 	Auth		*Auth;
 	Maxpend		int;	/* reqin and reqout channel size */
 	Ngoroutines	int;	/* 0 -- create a goroutine for each request */
@@ -116,7 +97,7 @@ type Fid struct {
 	Omode		uint8;
 	Type		uint8;
 	Diroffset	uint64;
-	User		User;
+	User		p9.User;
 }
 
 type Req struct {
@@ -137,7 +118,7 @@ func (srv *Srv) Start(impl SrvImpl) bool
 {
 	srv.Impl = impl;
 	if srv.Upool==nil {
-		srv.Upool = OsUsers;
+		srv.Upool = p9.OsUsers;
 	}
 
 	if srv.Msize<p9.IOHdrSz {
@@ -594,7 +575,7 @@ func (srv *Srv) auth(req *Req)
 		return;
 	}
 
-	var user User = nil;
+	var user p9.User = nil;
 	if tc.Uname!="" {
 		user = srv.Upool.Uname2User(tc.Uname);
 	} else if tc.Nuname!=p9.Nouid {
@@ -651,7 +632,7 @@ func (srv *Srv) attach(req *Req)
 		}
 	}
 
-	var user User = nil;
+	var user p9.User = nil;
 	if tc.Uname!="" {
 		user = srv.Upool.Uname2User(tc.Uname);
 	} else if tc.Nuname!=p9.Nouid {
@@ -1106,104 +1087,6 @@ func listen(l net.Listener, srv *Srv)
 		newConn(srv, c);
 	}
 }
-
-type OsUser struct {
-	uid	int;
-	uname	string;
-}
-
-func (u *OsUser) Name() string
-{
-	return u.uname;
-}
-
-func (u *OsUser) Id() int
-{
-	return u.uid;
-}
-
-func (u *OsUser) Groups() []*Group
-{
-	return nil;
-}
-
-type OsGroup struct {
-	gid	int;
-	name	string;
-}
-
-func (g *OsGroup) Name() string
-{
-	return g.name;
-}
-
-func (g *OsGroup) Id() int
-{
-	return g.gid;
-}
-
-func (g *OsGroup) Members() []*User
-{
-	return nil;
-}
-
-type osUsers struct {
-	users map[int] *OsUser;
-	groups map[int] *OsGroup;
-	sync.Mutex;
-};
-
-var OsUsers *osUsers;
-
-func (up *osUsers) Uid2User(uid int) User
-{
-	OsUsers.Lock();
-	user, present := OsUsers.users[uid];
-	if present {
-		OsUsers.Unlock();
-		return user;
-	}
-
-	user = new(OsUser);
-	user.uid = uid;
-	OsUsers.users[uid] = user;
-	OsUsers.Unlock();
-	return user;
-}
-
-func (up *osUsers) Uname2User(uname string) User
-{
-	return nil;
-}
-
-func (up *osUsers) Gid2Group(gid int) Group
-{
-	OsUsers.Lock();
-	group, present := OsUsers.groups[gid];
-	if present {
-		OsUsers.Unlock();
-		return group;
-	}
-
-	group = new(OsGroup);
-	group.gid = gid;
-	OsUsers.groups[gid] = group;
-	OsUsers.Unlock();
-	return group;
-}
-
-func (up *osUsers) Gname2Group(gname string) Group
-{
-	return nil;
-}
-
-func init()
-{
-	OsUsers = new(osUsers);
-	OsUsers.users = make(map[int] *OsUser);
-	OsUsers.groups = make(map[int] *OsGroup);
-}
-
 
 /* How to create a server:
 

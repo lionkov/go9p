@@ -5,6 +5,7 @@ import "syscall"
 import "bytes"
 import "fmt"
 import "strings"
+import "sync"
 //import "log" //debugging
 
 const (
@@ -179,6 +180,25 @@ type Fcall struct {
 	Nuname	uint32;			/* Tauth, Tattach */
 
 	Pkt	[]uint8;		/* raw packet data */
+}
+
+type Users interface {
+	Uid2User(uid int) User;
+	Uname2User(uname string) User;
+	Gid2Group(gid int) Group;
+	Gname2Group(gname string) Group;
+}
+
+type User interface {
+	Name() string;
+	Id() int;
+	Groups() []*Group;
+}
+
+type Group interface {
+	Name() string;
+	Id() int;
+	Members() []*User;
 }
 
 func (fc *Fcall) String() string {
@@ -571,6 +591,19 @@ szerror:
 	}
 
 	return st, nil, buf;
+}
+
+func NewFcall(sz uint32) *Fcall
+{
+	fc := new(Fcall);
+	fc.Pkt = make([]byte, sz);
+
+	return fc;
+}
+
+func SetTag(fc *Fcall, tag uint16)
+{
+	ppint16(tag, fc.Pkt[6:len(fc.Pkt)], &fc.Tag);
 }
 
 func packCommon(fc *Fcall, size int, id uint8) ([]byte, *Error)
@@ -1167,3 +1200,101 @@ szerror:
 
 	return;
 }
+
+type OsUser struct {
+	uid	int;
+	uname	string;
+}
+
+func (u *OsUser) Name() string
+{
+	return u.uname;
+}
+
+func (u *OsUser) Id() int
+{
+	return u.uid;
+}
+
+func (u *OsUser) Groups() []*Group
+{
+	return nil;
+}
+
+type OsGroup struct {
+	gid	int;
+	name	string;
+}
+
+func (g *OsGroup) Name() string
+{
+	return g.name;
+}
+
+func (g *OsGroup) Id() int
+{
+	return g.gid;
+}
+
+func (g *OsGroup) Members() []*User
+{
+	return nil;
+}
+
+type osUsers struct {
+	users map[int] *OsUser;
+	groups map[int] *OsGroup;
+	sync.Mutex;
+};
+
+var OsUsers *osUsers;
+
+func (up *osUsers) Uid2User(uid int) User
+{
+	OsUsers.Lock();
+	user, present := OsUsers.users[uid];
+	if present {
+		OsUsers.Unlock();
+		return user;
+	}
+
+	user = new(OsUser);
+	user.uid = uid;
+	OsUsers.users[uid] = user;
+	OsUsers.Unlock();
+	return user;
+}
+
+func (up *osUsers) Uname2User(uname string) User
+{
+	return nil;
+}
+
+func (up *osUsers) Gid2Group(gid int) Group
+{
+	OsUsers.Lock();
+	group, present := OsUsers.groups[gid];
+	if present {
+		OsUsers.Unlock();
+		return group;
+	}
+
+	group = new(OsGroup);
+	group.gid = gid;
+	OsUsers.groups[gid] = group;
+	OsUsers.Unlock();
+	return group;
+}
+
+func (up *osUsers) Gname2Group(gname string) Group
+{
+	return nil;
+}
+
+func init()
+{
+	OsUsers = new(osUsers);
+	OsUsers.users = make(map[int] *OsUser);
+	OsUsers.groups = make(map[int] *OsGroup);
+}
+
