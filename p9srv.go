@@ -1001,7 +1001,6 @@ func (conn *Conn) recv()
 
 		pos += n;
 		for pos>4 {
-			log.Stderr("pos: ", pos);
 			sz, _ := p9.Gint32(buf);
 			if sz > p9.MaxMsgSz {
 				// this is as good way as any of filtering 
@@ -1026,14 +1025,12 @@ func (conn *Conn) recv()
 			req.Rc.Pkt = make([]byte, conn.Msize);
 			req.Conn = conn;
 
-log.Stderr("here...3");
 			conn.Lock();
 			if conn.reqlast!=nil {
 				conn.reqlast.next = req;
 			} else {
 				conn.reqfirst = req;
 			}
-log.Stderr("here...4");
 			req.prev = conn.reqlast;
 			conn.reqlast = req;
 			conn.Unlock();

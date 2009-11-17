@@ -5,6 +5,7 @@ import "syscall"
 import "bytes"
 import "fmt"
 //import "log" //debugging
+//import "strings"
 
 const (
 	Tfirst, Tversion uint8 = 100+iota, 100+iota;
@@ -469,6 +470,9 @@ func pstr(val string, buf []byte) []byte
 {
 	n := uint16(len(val));
 	buf = pint16(n, buf);
+	for i := 0; i < len(val); i++ {
+		buf = pint8(val[i], buf);
+	}
 	return buf[n:len(buf)];
 }
 
