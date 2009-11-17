@@ -3,6 +3,8 @@ package p9
 import "os"
 import "syscall"
 import "bytes"
+import "fmt"
+//import "log" //debugging
 
 const (
 	Tfirst, Tversion uint8 = 100+iota, 100+iota;
@@ -39,6 +41,9 @@ const (
 const(
 	IOHdrSz = 24;
 	Port = 564;
+	MaxMsgSz = 128*1024;	// should probably equal msize, for now leave it a bit larger;
+							// it's used to filter non-9p clients as any ascii string will overflow
+							// the message size buffer (first four bytes)
 )
 
 const(
@@ -76,7 +81,7 @@ const(
 	OAPPEND = 0x4000;// or'ed in, append only
 )
 
-const( 
+const(
 	// Dir.mode
 	DMDIR       =0x80000000; // mode bit for directories 
 	DMAPPEND    =0x40000000; // mode bit for append only files 
@@ -141,11 +146,6 @@ type Stat struct {
 	Nmuid	uint32;
 };
 
-//TODO: string implementations for debugging
-func (c Fcall) String() string {
-	return "";
-}
-
 type Fcall struct {
 	size	uint32;
 	Id	uint8;
@@ -179,6 +179,70 @@ type Fcall struct {
 
 	Pkt	[]uint8;		/* raw packet data */
 }
+
+func (fc *Fcall) String() string {
+	ret := "";
+	fid := fmt.Sprintf("%X", fc.Fid);
+	switch fc.Id {
+	case Tversion:
+		ret = "-"+fid+"-> Tversion: " + fc.Version + " msize: " + fmt.Sprint(fc.Msize)
+	case Rversion:
+		ret = "<-"+fid+"- Rversion: " + fc.Version + " msize: " + fmt.Sprint(fc.Msize)
+	case Tauth:
+		ret += "--> Tauth"
+	case Rauth:
+		ret += "<-- Rauth"
+	case Rattach:
+		ret += "<-- Rattach"
+	case Tattach:
+		ret += "--> Tattach"
+	case Tflush:
+		ret += "--> Tflush"
+	case Rerror:
+		ret += "<-- Rerror"
+	case Twalk:
+		ret += "--> Twalk"
+	case Rwalk:
+		ret += "<-- Rwalk"
+	case Topen:
+		ret += "--> Topen"
+	case Ropen:
+		ret += "<-- Ropen"
+	case Rcreate:
+		ret += "<-- Rcreate"
+	case Tcreate:
+		ret += "--> Tcreate"
+	case Tread:
+		ret += "--> Tread"
+	case Rread:
+		ret += "<-- Rread"
+	case Twrite:
+		ret += "--> Twrite"
+	case Rwrite:
+		ret += "<-- Rwrite"
+	case Tclunk:
+		ret += "--> Tclunk"
+	case Rclunk:
+		ret += "<-- Rclunk"
+	case Tremove:
+		ret += "--> Tremove"
+	case Tstat:
+		ret += "--> Tstat"
+	case Rstat:
+		ret += "<-- Rstat"
+	case Twstat:
+		ret += "--> Twstat"
+	case Rflush:
+		ret += "<-- Rflush"
+	case Rremove:
+		ret += "<-- Rremove"
+	case Rwstat:
+		ret += "<-- Rwstat"
+	}
+
+	return ret;
+}
+
 
 var minFcsize = [...]uint32 {
 	6,	/* Tversion msize[4] version[s] */
@@ -916,6 +980,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int)
 {
 	var m uint16;
 
+	fc = new(Fcall);
 	fc.Fid = Nofid;
 	fc.Afid = Nofid;
 	fc.Newfid = Nofid;

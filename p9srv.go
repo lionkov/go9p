@@ -160,6 +160,10 @@ func (srv *Srv) Start(impl SrvImpl) bool
 func (srv *Srv) work()
 {
 	for req:=<-srv.Reqin; req!=nil; req=<-srv.Reqin {
+		if(srv.Debuglevel > 0) {
+			log.Stderr(req.Tc)
+		}
+
 		req.Lock();
 		flushed := (req.status&reqFlush) != 0;
 		if !flushed {
@@ -178,6 +182,7 @@ func (srv *Srv) work()
 			req.status |= reqSaved;
 		}
 		req.Unlock();
+		req.Process();
 	}
 }
 
@@ -969,6 +974,7 @@ func newConn(srv *Srv, c net.Conn)
 	conn.conn = c;
 	conn.fidpool = make(map[uint32] *Fid);
 	conn.reqout = make(chan *Req, srv.Maxpend);
+	conn.done = make(chan bool);
 
 	go conn.recv();
 	go conn.send();
@@ -995,11 +1001,19 @@ func (conn *Conn) recv()
 
 		pos += n;
 		for pos>4 {
+			log.Stderr("pos: ", pos);
 			sz, _ := p9.Gint32(buf);
+			if sz > p9.MaxMsgSz {
+				// this is as good way as any of filtering 
+				// bad client connections (bots, crawlers, etc); 
+				// any ascii string they send will overflow maxmsgsz
+				log.Stderr("bad client connection: ", conn.conn.RemoteAddr());
+				conn.conn.Close();
+				goto closed;
+			}
 			if pos<int(sz) {
 				break;
 			}
-
 			fc, err, fcsize := p9.Unpack(buf, conn.Dotu);
 			if err!=nil {
 				conn.conn.Close();
@@ -1012,13 +1026,14 @@ func (conn *Conn) recv()
 			req.Rc.Pkt = make([]byte, conn.Msize);
 			req.Conn = conn;
 
+log.Stderr("here...3");
 			conn.Lock();
 			if conn.reqlast!=nil {
 				conn.reqlast.next = req;
 			} else {
 				conn.reqfirst = req;
 			}
-
+log.Stderr("here...4");
 			req.prev = conn.reqlast;
 			conn.reqlast = req;
 			conn.Unlock();
@@ -1046,6 +1061,9 @@ func (conn *Conn) send()
 			return;
 
 		case req := <-conn.reqout:
+			if(conn.Srv.Debuglevel > 0) {
+				log.Stderr(req.Rc)
+			}
 			for buf:=req.Rc.Pkt; len(buf)>0; {
 				n, err := conn.conn.Write(buf);
 				if err!=nil {
@@ -1068,7 +1086,15 @@ func StartListener(network, laddr string, srv *Srv) os.Error {
 		return err;
 	}
 
-	go listen(l, srv);
+	//go listen(l, srv);
+	for {
+		c, err := l.Accept();
+		if err != nil {
+			break
+		}
+
+		newConn(srv, c);
+	}
 	return nil;
 }
 
@@ -1188,7 +1214,7 @@ func test()
 {
 	srv := new(Srv);
 	srv.Start(srvimpl);
-	StartListener("tcp", "xxx", srv);
+	p9srv.StartListener("tcp", "xxx", srv);
 }
 
 */
