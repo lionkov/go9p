@@ -4,6 +4,7 @@ import "os"
 import "syscall"
 import "bytes"
 import "fmt"
+//import "log"
 import "strings"
 import "sync"
 //import "log" //debugging
@@ -573,9 +574,9 @@ func pstr(val string, buf []byte) []byte
 {
 	n := uint16(len(val));
 	buf = pint16(n, buf);
-	bytes := strings.Bytes(val);
-	for i := 0; i < len(bytes); i++ {
-		buf = pint8(bytes[i], buf);
+	b := strings.Bytes(val);
+	for i := 0; i < len(b); i++ {
+		buf[i] = b[i];
 	}
 	return buf[n:len(buf)];
 }
@@ -613,7 +614,8 @@ func statsz(st *Stat, dotu bool) int
 
 func pstat(st *Stat, buf []byte, dotu bool) []byte
 {
-	buf = pint16(uint16(statsz(st, dotu)), buf);
+	sz := statsz(st, dotu);
+	buf = pint16(uint16(sz), buf);
 	buf = pint16(st.Type, buf);
 	buf = pint32(st.Dev, buf);
 	buf = pqid(&st.Sqid, buf);
@@ -976,7 +978,10 @@ func SetRreadCount(fc *Fcall, count uint32)
 	/* we need to update both the packet size as well as the data count */
 	size := 4+1+2+4+count;	/* size[4] id[1] tag[2] count[4] data[count] */
 	ppint32(size, fc.Pkt, &fc.size);
-	ppint32(count, fc.Pkt[7:11], &fc.Count);
+	ppint32(count, fc.Pkt[7:len(fc.Pkt)], &fc.Count);
+	fc.Pkt = fc.Pkt[0:size];
+	fc.Data = fc.Data[0:count];
+	fc.size = size;
 }
 
 func PackRread(fc *Fcall, data []byte) *Error

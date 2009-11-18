@@ -730,7 +730,7 @@ func (srv *Srv) walk(req *Req)
 func (srv *Srv) walkPost(req *Req)
 {
 	rc := req.Rc;
-	if rc==nil || rc.Id==p9.Rwalk || req.Newfid==nil {
+	if rc==nil || rc.Id!=p9.Rwalk || req.Newfid==nil {
 		return;
 	}
 
@@ -739,7 +739,7 @@ func (srv *Srv) walkPost(req *Req)
 		req.Newfid.Type = rc.Wqids[n-1].Type;
 	}
 
-	if req.Newfid != req.Fid {
+	if req.Newfid.fid != req.Fid.fid {
 		req.Newfid.IncRef();
 	}
 }
@@ -764,7 +764,9 @@ func (srv *Srv) open(req *Req)
 
 func (srv *Srv) openPost(req *Req)
 {
-	req.Fid.opened = req.Rc!=nil && req.Rc.Id==p9.Ropen && req.Fid!=nil;
+	if req.Fid!=nil {
+		req.Fid.opened = req.Rc!=nil && req.Rc.Id==p9.Ropen;
+	}
 }
 
 func (srv *Srv) create(req *Req)
@@ -886,7 +888,7 @@ func (srv *Srv) write(req *Req)
 func (srv *Srv) clunk(req *Req)
 {
 	fid := req.Fid;
-	if (fid.Type&p9.QTDIR) != 0 {
+	if (fid.Type&p9.QTAUTH) != 0 {
 		if srv.Auth==nil {
 			req.RespondError(Enoauth);
 			return;

@@ -215,7 +215,7 @@ func (*Ufs) Walk(req *p9srv.Req) {
 
 	nfid := req.Newfid.Aux.(*Fid);
 	wqids := make([]p9.Qid, len(tc.Wnames));
-	path := "";
+	path := fid.path;
 	i := 0;
 	for ; i<len(tc.Wnames); i++ {
 		p := path + "/" + tc.Wnames[i];
