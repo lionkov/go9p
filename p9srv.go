@@ -3,6 +3,7 @@ package p9srv
 import (
 	"./p9";
 	"bytes";
+	"fmt";
 	"log";
 	"net";
 	"os";
@@ -39,12 +40,11 @@ type Auth interface {
 }
 
 type SrvImpl interface {
-	Start(*Srv, SrvImpl);
+//	Start(*Srv, SrvImpl);
 	ConnOpened(*Conn);
 	ConnClosed(*Conn);
 	FidDestroy(*Fid);
 	ReqProcess(*Req);
-	ReqDestroy(*Req);
 
 	Attach(*Req);
 	Flush(*Req);
@@ -98,6 +98,7 @@ type Fid struct {
 	Type		uint8;
 	Diroffset	uint64;
 	User		p9.User;
+	Aux		interface {};
 }
 
 type Req struct {
@@ -141,10 +142,6 @@ func (srv *Srv) Start(impl SrvImpl) bool
 func (srv *Srv) work()
 {
 	for req:=<-srv.Reqin; req!=nil; req=<-srv.Reqin {
-		if(srv.Debuglevel > 0) {
-			log.Stderr(req.Tc)
-		}
-
 		req.Lock();
 		flushed := (req.status&reqFlush) != 0;
 		if !flushed {
@@ -163,7 +160,6 @@ func (srv *Srv) work()
 			req.status |= reqSaved;
 		}
 		req.Unlock();
-		req.Process();
 	}
 }
 
@@ -175,7 +171,7 @@ func (req *Req) Process()
 
 	if tc.Fid!=p9.Nofid &&tc.Id!=p9.Tattach {
 		srv.Lock();
-		req.Fid = conn.fidGet(tc.Fid);
+		req.Fid = conn.FidGet(tc.Fid);
 		srv.Unlock();
 		if req.Fid==nil {
 			req.RespondError(Eunknownfid);
@@ -467,7 +463,7 @@ func (req *Req) RespondRwstat()
 	}
 }
 
-func (conn *Conn) fidGet(fidno uint32) *Fid
+func (conn *Conn) FidGet(fidno uint32) *Fid
 {
 	conn.Lock();
 	fid, present := conn.fidpool[fidno];
@@ -479,7 +475,7 @@ func (conn *Conn) fidGet(fidno uint32) *Fid
 	return fid;
 }
 
-func (conn *Conn) fidNew(fidno uint32) *Fid
+func (conn *Conn) FidNew(fidno uint32) *Fid
 {
 	conn.Lock();
 	_, present := conn.fidpool[fidno];
@@ -569,17 +565,17 @@ func (srv *Srv) auth(req *Req)
 		return;
 	}
 
-	req.Afid = conn.fidNew(tc.Afid);
+	req.Afid = conn.FidNew(tc.Afid);
 	if req.Afid==nil {
 		req.RespondError(Einuse);
 		return;
 	}
 
 	var user p9.User = nil;
-	if tc.Uname!="" {
-		user = srv.Upool.Uname2User(tc.Uname);
-	} else if tc.Nuname!=p9.Nouid {
+	if tc.Nuname!=p9.Nouid {
 		user = srv.Upool.Uid2User(int(tc.Nuname));
+	} else if tc.Uname!="" {
+		user = srv.Upool.Uname2User(tc.Uname);
 	}
 
 	if user==nil {
@@ -619,24 +615,24 @@ func (srv *Srv) attach(req *Req)
 		return;
 	}
 
-	req.Fid = conn.fidNew(tc.Fid);
+	req.Fid = conn.FidNew(tc.Fid);
 	if req.Fid==nil {
 		req.RespondError(Einuse);
 		return;
 	}
 
 	if tc.Afid!=p9.Nofid {
-		req.Afid = conn.fidGet(tc.Afid);
+		req.Afid = conn.FidGet(tc.Afid);
 		if req.Afid==nil {
 			req.RespondError(Eunknownfid);
 		}
 	}
 
 	var user p9.User = nil;
-	if tc.Uname!="" {
-		user = srv.Upool.Uname2User(tc.Uname);
-	} else if tc.Nuname!=p9.Nouid {
+	if tc.Nuname!=p9.Nouid {
 		user = srv.Upool.Uid2User(int(tc.Nuname));
+	} else if tc.Uname!="" {
+		user = srv.Upool.Uname2User(tc.Uname);
 	}
 
 	if user==nil {
@@ -719,7 +715,7 @@ func (srv *Srv) walk(req *Req)
 	}
 
 	if tc.Fid!=tc.Newfid {
-		req.Newfid = conn.fidNew(tc.Newfid);
+		req.Newfid = conn.FidNew(tc.Newfid);
 		if req.Newfid==nil {
 			req.RespondError(Einuse);
 			return;
@@ -1006,6 +1002,14 @@ func (conn *Conn) recv()
 			req.Rc.Pkt = make([]byte, conn.Msize);
 			req.Conn = conn;
 
+			if(conn.Srv.Debuglevel > 0) {
+				if (conn.Srv.Debuglevel > 1) {
+					log.Stderr(">-> " + fmt.Sprint(req.Tc.Pkt));
+				}
+
+				log.Stderr(">>> " + req.Tc.String())
+			}
+
 			conn.Lock();
 			if conn.reqlast!=nil {
 				conn.reqlast.next = req;
@@ -1039,9 +1043,15 @@ func (conn *Conn) send()
 			return;
 
 		case req := <-conn.reqout:
+			p9.SetTag(req.Rc, req.Tc.Tag);
 			if(conn.Srv.Debuglevel > 0) {
-				log.Stderr(req.Rc)
+				if (conn.Srv.Debuglevel > 1) {
+					log.Stderr("<-< " + fmt.Sprint(req.Rc.Pkt));
+				}
+
+				log.Stderr("<<< " + req.Rc.String());
 			}
+
 			for buf:=req.Rc.Pkt; len(buf)>0; {
 				n, err := conn.conn.Write(buf);
 				if err!=nil {

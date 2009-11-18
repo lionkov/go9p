@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log";
+//	"log";
 	"time";
     "./p9";
 	"./p9srv";
@@ -9,13 +9,6 @@ import (
 
 type TimeFs struct {
 	started string
-}
-
-func (tfs *TimeFs) Start(srv *p9srv.Srv, impl p9srv.SrvImpl) {
-	// this is never called :(
-	log.Stderr("starting at:", tfs.started);
-	tfs.started = time.LocalTime().String();
-	return;
 }
 
 func (tfs *TimeFs) ConnOpened(*p9srv.Conn) {
@@ -67,8 +60,10 @@ func (tfs *TimeFs) Wstat(req *p9srv.Req){
 
 func main() {
 	tm := new(TimeFs);
+	tm.started = time.LocalTime().String();
 	srv := new(p9srv.Srv);
-	srv.Debuglevel = 1;
+	srv.Dotu = true;
+	srv.Debuglevel = 2;
 	srv.Start(tm);
 	p9srv.StartListener("tcp", ":10000", srv);
 }

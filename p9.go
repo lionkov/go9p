@@ -76,11 +76,6 @@ const(
 	OTRUNC = 16;	// or'ed in (except for exec), truncate file first
 	OCEXEC = 32;	// or'ed in, close on exec
 	ORCLOSE = 64;	// or'ed in, remove on close
-	ODIRECT = 128;	// or'ed in, direct access
-	ONONBLOCK = 256;// or'ed in, non-blocking call
-	OEXCL = 0x1000;	// or'ed in, exclusive use (create only)
-	OLOCK = 0x2000; // or'ed in, lock after opening
-	OAPPEND = 0x4000;// or'ed in, append only
 )
 
 const(
@@ -120,11 +115,6 @@ type Qid struct {
 	Type	uint8;
 	Version	uint32;
 	Path	uint64;
-}
-
-//TODO: string implementations for debugging
-func (s Stat) String() string {
-	return "";
 }
 
 type Stat struct {
@@ -201,64 +191,157 @@ type Group interface {
 	Members() []*User;
 }
 
-func (fc *Fcall) String() string {
+func permToString(perm uint32) string {
 	ret := "";
-	fid := fmt.Sprintf("%X", fc.Fid);
+
+	if perm&DMDIR!=0 {
+		ret += "d";
+	}
+
+	if perm&DMAPPEND!=0 {
+		ret += "a";
+	}
+
+	if perm&DMAUTH!=0 {
+		ret += "A";
+	}
+
+	if perm&DMEXCL!=0 {
+		ret += "l";
+	}
+
+	if perm&DMTMP!=0 {
+		ret += "t";
+	}
+
+	if perm&DMDEVICE!=0 {
+		ret += "D";
+	}
+
+	if perm&DMSOCKET!=0 {
+		ret += "S";
+	}
+
+	if perm&DMNAMEDPIPE!=0 {
+		ret += "P";
+	}
+
+	if perm&DMSYMLINK!=0 {
+		ret += "L";
+	}
+
+	return ret;
+}
+
+func (qid *Qid) String() string
+{
+	b := "";
+	if qid.Type&QTDIR!=0 {
+		b += "d";
+	}
+	if qid.Type&QTAPPEND!=0 {
+		b += "a";
+	}
+	if qid.Type&QTAUTH!=0 {
+		b += "A";
+	}
+	if qid.Type&QTEXCL!=0 {
+		b += "l";
+	}
+	if qid.Type&QTTMP!=0 {
+		b += "t";
+	}
+	if qid.Type&QTSYMLINK!=0 {
+		b += "L";
+	}
+
+	return fmt.Sprintf("(%x %x '%s')", qid.Path, qid.Version, b);
+}
+
+func (st *Stat) String() string
+{
+	ret := fmt.Sprintf("'%s' '%s' '%s' '%s' q ", st.Name, st.Uid, st.Gid, st.Muid);
+	ret += st.Sqid.String() + " m " + permToString(st.Mode);
+	ret += fmt.Sprintf(" at %d mt %d l %d t %d d %d", st.Atime, st.Mtime,
+		st.Length, st.Type, st.Dev);
+
+	/* dotu ? */
+	ret += " ext " + st.Ext;
+
+	return ret;
+}
+
+func (fc *Fcall) String() string
+{
+	ret := "";
+
 	switch fc.Id {
+	default:
+		ret = fmt.Sprintf("invalid call: %d", fc.Id);
 	case Tversion:
-		ret = "-"+fid+"-> Tversion: " + fc.Version + " msize: " + fmt.Sprint(fc.Msize)
+		ret = fmt.Sprintf("Tversion tag %d msize %d version '%s'", fc.Tag, fc.Msize, fc.Version);
 	case Rversion:
-		ret = "<-"+fid+"- Rversion: " + fc.Version + " msize: " + fmt.Sprint(fc.Msize)
+		ret = fmt.Sprintf("Rversion tag %d msize %d version '%s'", fc.Tag, fc.Msize, fc.Version);
 	case Tauth:
-		ret += "--> Tauth"
+		ret = fmt.Sprintf("Tauth tag %d afid %d uname '%s' nuname %d aname '%s'",
+			fc.Tag, fc.Afid, fc.Uname, fc.Nuname, fc.Aname);
 	case Rauth:
-		ret += "<-- Rauth"
+		ret = fmt.Sprintf("Rauth tag %d aqid %v", fc.Tag, fc.Fqid);
 	case Rattach:
-		ret += "<-- Rattach"
+		ret = fmt.Sprintf("Rattach tag %d aqid %v", fc.Tag, fc.Fqid);
 	case Tattach:
-		ret += "--> Tattach"
+		ret = fmt.Sprintf("Tattach tag %d fid %d afid %d uname '%s' nuname %d aname '%s'",
+			fc.Tag, fc.Fid, fc.Afid, fc.Uname, fc.Nuname, fc.Aname);
 	case Tflush:
-		ret += "--> Tflush"
+		ret = fmt.Sprintf("Tflush tag %d oldtag %d", fc.Tag, fc.Oldtag);
 	case Rerror:
-		ret += "<-- Rerror"
+		ret = fmt.Sprintf("Rerror tag %d ename '%s' ecode %d", fc.Tag, fc.Error, fc.Nerror);
 	case Twalk:
-		ret += "--> Twalk"
+		ret = fmt.Sprintf("Twalk tag %d fid %d newfid %d ", fc.Tag, fc.Fid, fc.Newfid);
+		for i:=0; i<len(fc.Wnames); i++ {
+			ret += fmt.Sprintf("%d:'%s' ", i, fc.Wnames[i]);
+		}
 	case Rwalk:
-		ret += "<-- Rwalk"
+		ret = fmt.Sprintf("Rwalk tag %d ", fc.Tag);
+		for i:=0; i<len(fc.Wqids); i++ {
+			ret += fmt.Sprintf("%d:'%v' ", i, fc.Wqids[i]);
+		}
 	case Topen:
-		ret += "--> Topen"
+		ret = fmt.Sprintf("Topen tag %d fid %d mode %x", fc.Tag, fc.Fid, fc.Mode);
 	case Ropen:
-		ret += "<-- Ropen"
+		ret = fmt.Sprintf("Ropen tag %d qid %v iounit %d", fc.Tag, fc.Fqid, fc.Iounit);
 	case Rcreate:
-		ret += "<-- Rcreate"
+		ret = fmt.Sprintf("Rcreate tag %d qid %v iounit %d", fc.Tag, fc.Fqid, fc.Iounit);
 	case Tcreate:
-		ret += "--> Tcreate"
+		ret = fmt.Sprintf("Tcreate tag %d fid %d name '%s' perm ", fc.Tag, fc.Fid, fc.Name);
+		ret += permToString(fc.Perm);
+		ret += fmt.Sprintf(" mode %x ", fc.Mode);
 	case Tread:
-		ret += "--> Tread"
+		ret = fmt.Sprintf("Tread tag %d fid %d offset %d count %d", fc.Tag, fc.Fid, fc.Offset, fc.Count);
 	case Rread:
-		ret += "<-- Rread"
+		ret = fmt.Sprintf("Rread tag %d count %d", fc.Tag, len(fc.Data));
 	case Twrite:
-		ret += "--> Twrite"
+		ret = fmt.Sprintf("Twrite tag %d fid %d offset %d count %d", fc.Tag, fc.Fid, fc.Offset, len(fc.Data));
 	case Rwrite:
-		ret += "<-- Rwrite"
+		ret = fmt.Sprintf("Rwrite tag %d count %d", fc.Tag, fc.Count);
 	case Tclunk:
-		ret += "--> Tclunk"
+		ret = fmt.Sprintf("Tclunk tag %d fid %d", fc.Tag, fc.Fid);
 	case Rclunk:
-		ret += "<-- Rclunk"
+		ret = fmt.Sprintf("Rclunk tag %d", fc.Tag);
 	case Tremove:
-		ret += "--> Tremove"
+		ret = fmt.Sprintf("Tremove tag %d fid %d", fc.Tag, fc.Fid);
 	case Tstat:
-		ret += "--> Tstat"
+		ret = fmt.Sprintf("Tstat tag %d fid %d", fc.Tag, fc.Fid);
 	case Rstat:
-		ret += "<-- Rstat"
+		ret = fmt.Sprintf("Rstat tag %d st %v", fc.Tag, fc.Fstat);
 	case Twstat:
-		ret += "--> Twstat"
+		ret = fmt.Sprintf("Twstat tag %d st %v", fc.Tag, fc.Fstat);
 	case Rflush:
-		ret += "<-- Rflush"
+		ret = fmt.Sprintf("Rflush tag %d", fc.Tag);
 	case Rremove:
-		ret += "<-- Rremove"
+		ret = fmt.Sprintf("Rremove tag %d", fc.Tag);
 	case Rwstat:
-		ret += "<-- Rwstat"
+		ret = fmt.Sprintf("Rwstat tag %d", fc.Tag);
 	}
 
 	return ret;
@@ -558,15 +641,15 @@ func ppstat(st *Stat, buf []byte, dotu bool, pval *Stat) []byte
 	return pstat(st, buf, dotu);
 }
 
-func PackStat(st *Stat, buf []byte, dotu bool) ([]byte, *Error)
+func PackStat(st *Stat, buf []byte, dotu bool) int
 {
 	sz := statsz(st, dotu);
 	if sz>len(buf) {
-		return buf, &Error{"invalid size", syscall.EINVAL};
+		return 0;
 	}
 
 	buf = pstat(st, buf, dotu);
-	return buf, nil;
+	return sz;
 }
 
 func UnpackStat(buf []byte, dotu bool) (st *Stat, err *Error, rest []byte)
@@ -603,7 +686,7 @@ func NewFcall(sz uint32) *Fcall
 
 func SetTag(fc *Fcall, tag uint16)
 {
-	ppint16(tag, fc.Pkt[6:len(fc.Pkt)], &fc.Tag);
+	ppint16(tag, fc.Pkt[5:len(fc.Pkt)], &fc.Tag);
 }
 
 func packCommon(fc *Fcall, size int, id uint8) ([]byte, *Error)
@@ -617,6 +700,7 @@ func packCommon(fc *Fcall, size int, id uint8) ([]byte, *Error)
 	p = ppint32(uint32(size), p, &fc.size);
 	p = ppint8(id, p, &fc.Id);
 	p = ppint16(Notag, p, &fc.Tag);
+	fc.Pkt = fc.Pkt[0:size];
 
 	return p, nil;
 }
