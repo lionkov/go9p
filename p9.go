@@ -231,6 +231,7 @@ func permToString(perm uint32) string {
 		ret += "L";
 	}
 
+	ret += fmt.Sprintf("%o", perm&0777);
 	return ret;
 }
 
@@ -305,7 +306,7 @@ func (fc *Fcall) String() string
 	case Rwalk:
 		ret = fmt.Sprintf("Rwalk tag %d ", fc.Tag);
 		for i:=0; i<len(fc.Wqids); i++ {
-			ret += fmt.Sprintf("%d:'%v' ", i, fc.Wqids[i]);
+			ret += fmt.Sprintf("%v ", &fc.Wqids[i]);
 		}
 	case Topen:
 		ret = fmt.Sprintf("Topen tag %d fid %d mode %x", fc.Tag, fc.Fid, fc.Mode);
@@ -969,7 +970,7 @@ func InitRread(fc *Fcall, count uint32) *Error
 	}
 
 	p = ppint32(count, p, &fc.Count);
-	fc.Data = p;
+	fc.Data = p[0:fc.Count];
 	return nil;
 }
 
@@ -1258,9 +1259,11 @@ szerror:
 		fc.Fid, p = gint32(p);
 		fc.Offset, p = gint64(p);
 		fc.Count, p = gint32(p);
-		if len(p)<int(fc.Count) {
+		if len(p)!=int(fc.Count) {
 			goto szerror;
 		}
+		fc.Data = p;
+		p = p[fc.Count:len(p)];
 
 	case Rwrite:
 		fc.Count, p = gint32(p);

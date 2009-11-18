@@ -308,6 +308,7 @@ func (*Ufs) Create(req *p9srv.Req){
 	}
 
 	fid.path = path;
+	fid.file = file;
 	err=fid.stat();
 	if err!=nil {
 		req.RespondError(err);
@@ -365,7 +366,7 @@ func (*Ufs) Read(req *p9srv.Req){
 		}
 	} else {
 		count, e = fid.file.Read(rc.Data);
-		if e!=nil {
+		if e!=nil && e!=os.EOF {
 			req.RespondError(&p9.Error{e.String(), 0});
 			return;
 		}

@@ -778,7 +778,7 @@ func (srv *Srv) create(req *Req)
 		return;
 	}
 
-	if (fid.Type&p9.QTDIR)!=0 {
+	if (fid.Type&p9.QTDIR)==0 {
 		req.RespondError(Enotdir);
 		return;
 	}
@@ -994,6 +994,7 @@ func (conn *Conn) recv()
 			}
 			fc, err, fcsize := p9.Unpack(buf, conn.Dotu);
 			if err!=nil {
+				log.Stderr(fmt.Sprintf("invalid packet :%v", buf));
 				conn.conn.Close();
 				goto closed;
 			}
@@ -1022,8 +1023,8 @@ func (conn *Conn) recv()
 			conn.reqlast = req;
 			conn.Unlock();
 			conn.Srv.Reqin <- req;
+			buf = buf[fcsize:len(buf)];
 			pos -= fcsize;
-			buf = buf[0:fcsize];
 		}
 	}
 
@@ -1058,6 +1059,7 @@ func (conn *Conn) send()
 				n, err := conn.conn.Write(buf);
 				if err!=nil {
 					/* just close the socket, will get signal on conn.done */
+					log.Stderr("error while writing");
 					conn.conn.Close();
 					break;
 				}
