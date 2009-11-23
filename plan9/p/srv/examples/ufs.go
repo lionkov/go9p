@@ -1,0 +1,557 @@
+// Copyright 2009 The Go Authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package main
+
+import "flag"
+import "fmt"
+import "log"
+import "os"
+import "strconv"
+import "strings"
+import "syscall"
+import "plan9/p"
+import "plan9/p/srv"
+
+type Fid struct {
+	path		string;
+	file		*os.File;
+	dirs		[]os.Dir;
+	diroffset	uint64;
+	st		*os.Dir;
+}
+
+type Ufs struct {
+	srv.Srv;
+}
+
+var addr = flag.String("addr", ":5640", "network address")
+var debug = flag.Bool("d", false, "print debug messages")
+var Enoent = &p.Error{"file not found", syscall.ENOENT}
+
+func toError(err os.Error) *p.Error {
+	var ecode os.Errno;
+
+	ename := err.String();
+	if e, ok := err.(os.Errno); ok {
+		ecode = e
+	} else {
+		ecode = syscall.EIO
+	}
+
+	return &p.Error{ename, ecode};
+}
+
+func (fid *Fid) stat() *p.Error {
+	var err os.Error;
+
+	fid.st, err = os.Lstat(fid.path);
+	if err != nil {
+		return toError(err)
+	}
+
+	return nil;
+}
+
+func omode2uflags(mode uint8) int {
+	ret := int(0);
+	switch mode & 3 {
+	case p.OREAD:
+		ret = os.O_RDONLY;
+		break;
+
+	case p.ORDWR:
+		ret = os.O_RDWR;
+		break;
+
+	case p.OWRITE:
+		ret = os.O_WRONLY;
+		break;
+
+	case p.OEXEC:
+		ret = os.O_RDONLY;
+		break;
+	}
+
+	if mode&p.OTRUNC != 0 {
+		ret |= os.O_TRUNC
+	}
+
+	return ret;
+}
+
+func dir2Qid(d *os.Dir) *p.Qid {
+	var qid p.Qid;
+
+	qid.Path = d.Ino;
+	qid.Version = uint32(d.Mtime_ns / 1000000);
+	qid.Type = dir2QidType(d);
+
+	return &qid;
+}
+
+func dir2QidType(d *os.Dir) uint8 {
+	ret := uint8(0);
+	if d.IsDirectory() {
+		ret |= p.QTDIR
+	}
+
+	if d.IsSymlink() {
+		ret |= p.QTSYMLINK
+	}
+
+	return ret;
+}
+
+func dir2Npmode(d *os.Dir, dotu bool) uint32 {
+	ret := uint32(d.Mode & 0777);
+	if d.IsDirectory() {
+		ret |= p.DMDIR
+	}
+
+	if dotu {
+		if d.IsSymlink() {
+			ret |= p.DMSYMLINK
+		}
+
+		if d.IsSocket() {
+			ret |= p.DMSOCKET
+		}
+
+		if d.IsFifo() {
+			ret |= p.DMNAMEDPIPE
+		}
+
+		if d.IsBlock() || d.IsChar() {
+			ret |= p.DMDEVICE
+		}
+
+		/* TODO: setuid and setgid */
+	}
+
+	return ret;
+}
+
+func dir2Stat(path string, d *os.Dir, dotu bool, upool p.Users) *p.Stat {
+	st := new(p.Stat);
+	st.Sqid = *dir2Qid(d);
+	st.Mode = dir2Npmode(d, dotu);
+	st.Atime = uint32(d.Atime_ns / 1000000000);
+	st.Mtime = uint32(d.Mtime_ns / 1000000000);
+	st.Length = d.Size;
+
+	u := upool.Uid2User(int(d.Uid));
+	g := upool.Gid2Group(int(d.Gid));
+	st.Uid = u.Name();
+	if st.Uid == "" {
+		st.Uid = "none"
+	}
+
+	st.Gid = g.Name();
+	if st.Gid == "" {
+		st.Gid = "none"
+	}
+	st.Muid = "none";
+	st.Ext = "";
+	if dotu {
+		st.Nuid = uint32(u.Id());
+		st.Ngid = uint32(g.Id());
+		st.Nmuid = p.Nouid;
+		if d.IsSymlink() {
+			var err os.Error;
+			st.Ext, err = os.Readlink(path);
+			if err != nil {
+				st.Ext = ""
+			}
+		} else if d.IsBlock() {
+			st.Ext = fmt.Sprintf("b %d %d", d.Rdev>>24, d.Rdev&0xFFFFFF)
+		} else if d.IsChar() {
+			st.Ext = fmt.Sprintf("c %d %d", d.Rdev>>24, d.Rdev&0xFFFFFF)
+		}
+	}
+
+	st.Name = path[strings.LastIndex(path, "/")+1 : len(path)];
+	return st;
+}
+
+func (*Ufs) ConnOpened(conn *srv.Conn) {
+	if conn.Srv.Debuglevel > 0 {
+		log.Stderr("connected")
+	}
+}
+
+func (*Ufs) ConnClosed(conn *srv.Conn) {
+	if conn.Srv.Debuglevel > 0 {
+		log.Stderr("disconnected")
+	}
+}
+
+func (*Ufs) FidDestroy(sfid *srv.Fid) {
+	var fid *Fid;
+
+	if sfid.Aux == nil {
+		return
+	}
+
+	fid = sfid.Aux.(*Fid);
+	if fid.file != nil {
+		fid.file.Close()
+	}
+}
+
+func (*Ufs) Attach(req *srv.Req) {
+	if req.Afid != nil {
+		req.RespondError(srv.Enoauth);
+		return;
+	}
+
+	tc := req.Tc;
+	fid := new(Fid);
+	if len(tc.Aname) == 0 {
+		fid.path = "/"
+	} else {
+		fid.path = tc.Aname
+	}
+
+	req.Fid.Aux = fid;
+	err := fid.stat();
+	if err != nil {
+		req.RespondError(err);
+		return;
+	}
+
+	qid := dir2Qid(fid.st);
+	req.RespondRattach(qid);
+}
+
+func (*Ufs) Flush(req *srv.Req)	{}
+
+func (*Ufs) Walk(req *srv.Req) {
+	fid := req.Fid.Aux.(*Fid);
+	tc := req.Tc;
+
+	err := fid.stat();
+	if err != nil {
+		req.RespondError(err);
+		return;
+	}
+
+	if req.Newfid.Aux == nil {
+		req.Newfid.Aux = new(Fid)
+	}
+
+	nfid := req.Newfid.Aux.(*Fid);
+	wqids := make([]p.Qid, len(tc.Wnames));
+	path := fid.path;
+	i := 0;
+	for ; i < len(tc.Wnames); i++ {
+		p := path + "/" + tc.Wnames[i];
+		st, err := os.Lstat(p);
+		if err != nil {
+			if i == 0 {
+				req.RespondError(Enoent);
+				return;
+			}
+
+			break;
+		}
+
+		wqids[i] = *dir2Qid(st);
+		path = p;
+	}
+
+	nfid.path = path;
+	req.RespondRwalk(wqids[0:i]);
+}
+
+func (*Ufs) Open(req *srv.Req) {
+	fid := req.Fid.Aux.(*Fid);
+	tc := req.Tc;
+	err := fid.stat();
+	if err != nil {
+		req.RespondError(err);
+		return;
+	}
+
+	var e os.Error;
+	fid.file, e = os.Open(fid.path, omode2uflags(tc.Mode), 0);
+	if e != nil {
+		req.RespondError(toError(e));
+		return;
+	}
+
+	req.RespondRopen(dir2Qid(fid.st), 0);
+}
+
+func (*Ufs) Create(req *srv.Req) {
+	fid := req.Fid.Aux.(*Fid);
+	tc := req.Tc;
+	err := fid.stat();
+	if err != nil {
+		req.RespondError(err);
+		return;
+	}
+
+	path := fid.path + "/" + tc.Name;
+	var e os.Error = nil;
+	var file *os.File = nil;
+	switch {
+	case tc.Perm&p.DMDIR != 0:
+		e = os.Mkdir(path, int(tc.Perm&0777))
+
+	case tc.Perm&p.DMSYMLINK != 0:
+		e = os.Symlink(tc.Ext, path)
+
+	case tc.Perm&p.DMLINK != 0:
+		n, e := strconv.Atoui(tc.Ext);
+		if e != nil {
+			break
+		}
+
+		ofid := req.Conn.FidGet(uint32(n));
+		if ofid == nil {
+			req.RespondError(srv.Eunknownfid);
+			return;
+		}
+
+		e = os.Link(ofid.Aux.(*Fid).path, path);
+		ofid.DecRef();
+
+	case tc.Perm&p.DMNAMEDPIPE != 0:
+	case tc.Perm&p.DMDEVICE != 0:
+		req.RespondError(&p.Error{"not implemented", syscall.EIO});
+		return;
+
+	default:
+		file, e = os.Open(path, omode2uflags(tc.Mode)|os.O_CREATE, int(tc.Perm&0777))
+	}
+
+	if file == nil && e == nil {
+		file, e = os.Open(path, omode2uflags(tc.Mode), 0)
+	}
+
+	if e != nil {
+		req.RespondError(toError(e));
+		return;
+	}
+
+	fid.path = path;
+	fid.file = file;
+	err = fid.stat();
+	if err != nil {
+		req.RespondError(err);
+		return;
+	}
+
+	req.RespondRcreate(dir2Qid(fid.st), 0);
+}
+
+func (*Ufs) Read(req *srv.Req) {
+	fid := req.Fid.Aux.(*Fid);
+	tc := req.Tc;
+	rc := req.Rc;
+	err := fid.stat();
+	if err != nil {
+		req.RespondError(err);
+		return;
+	}
+
+	p.InitRread(rc, tc.Count);
+	var count int;
+	var e os.Error;
+	if fid.st.IsDirectory() {
+		b := rc.Data;
+		if tc.Offset == 0 {
+			fid.file.Close();
+			fid.file, e = os.Open(fid.path, omode2uflags(req.Fid.Omode), 0);
+			if e != nil {
+				req.RespondError(toError(e));
+				return;
+			}
+		}
+
+		for len(b) > 0 {
+			if fid.dirs == nil {
+				fid.dirs, e = fid.file.Readdir(16);
+				if e != nil {
+					req.RespondError(toError(e));
+					return;
+				}
+
+				if len(fid.dirs) == 0 {
+					break
+				}
+			}
+
+			var i int;
+			for i = 0; i < len(fid.dirs); i++ {
+				path := fid.path + "/" + fid.dirs[i].Name;
+				st := dir2Stat(path, &fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool);
+				sz := p.PackStat(st, b, req.Conn.Dotu);
+				if sz == 0 {
+					break
+				}
+
+				b = b[sz:len(b)];
+				count += sz;
+			}
+
+			if i < len(fid.dirs) {
+				fid.dirs = fid.dirs[i:len(fid.dirs)];
+				break;
+			} else {
+				fid.dirs = nil
+			}
+		}
+	} else {
+		count, e = fid.file.ReadAt(rc.Data, int64(tc.Offset));
+		if e != nil && e != os.EOF {
+			req.RespondError(toError(e));
+			return;
+		}
+	}
+
+	p.SetRreadCount(rc, uint32(count));
+	req.Respond();
+}
+
+func (*Ufs) Write(req *srv.Req) {
+	fid := req.Fid.Aux.(*Fid);
+	tc := req.Tc;
+	err := fid.stat();
+	if err != nil {
+		req.RespondError(err);
+		return;
+	}
+
+	n, e := fid.file.WriteAt(tc.Data, int64(tc.Offset));
+	if e != nil {
+		req.RespondError(toError(e));
+		return;
+	}
+
+	req.RespondRwrite(uint32(n));
+}
+
+func (*Ufs) Clunk(req *srv.Req)	{ req.RespondRclunk() }
+
+func (*Ufs) Remove(req *srv.Req) {
+	fid := req.Fid.Aux.(*Fid);
+	err := fid.stat();
+	if err != nil {
+		req.RespondError(err);
+		return;
+	}
+
+	e := os.Remove(fid.path);
+	if e != nil {
+		req.RespondError(toError(e));
+		return;
+	}
+
+	req.RespondRremove();
+}
+
+func (*Ufs) Stat(req *srv.Req) {
+	fid := req.Fid.Aux.(*Fid);
+	err := fid.stat();
+	if err != nil {
+		req.RespondError(err);
+		return;
+	}
+
+	st := dir2Stat(fid.path, fid.st, req.Conn.Dotu, req.Conn.Srv.Upool);
+	req.RespondRstat(st);
+}
+
+func (*Ufs) Wstat(req *srv.Req) {
+	var uid, gid uint32;
+
+	fid := req.Fid.Aux.(*Fid);
+	err := fid.stat();
+	if err != nil {
+		req.RespondError(err);
+		return;
+	}
+
+	st := &req.Tc.Fstat;
+	up := req.Conn.Srv.Upool;
+	if req.Conn.Dotu {
+		uid = st.Nuid;
+		gid = st.Ngid;
+	} else {
+		uid = p.Nouid;
+		gid = p.Nouid;
+	}
+
+	if uid == p.Nouid && st.Uid != "" {
+		user := up.Uname2User(st.Uid);
+		if user == nil {
+			req.RespondError(srv.Enouser);
+			return;
+		}
+
+		uid = uint32(user.Id());
+	}
+
+	if gid == p.Nouid && st.Gid != "" {
+		group := up.Gname2Group(st.Gid);
+		if group == nil {
+			req.RespondError(srv.Enouser);
+			return;
+		}
+
+		gid = uint32(group.Id());
+	}
+
+	if st.Mode != 0xFFFFFFFF {
+		e := os.Chmod(fid.path, int(st.Mode&0777));
+		if e != nil {
+			req.RespondError(toError(e));
+			return;
+		}
+	}
+
+	if gid != 0xFFFFFFFF || uid != 0xFFFFFFFF {
+		e := os.Chown(fid.path, int(uid), int(gid));
+		if e != nil {
+			req.RespondError(toError(e));
+			return;
+		}
+	}
+
+	if st.Name != "" {
+		path := fid.path[0:strings.LastIndex(fid.path, "/")+1] + "/" + st.Name;
+		errno := syscall.Rename(fid.path, path);
+		if errno != 0 {
+			e := os.Errno(errno);
+			req.RespondError(toError(e));
+			return;
+		}
+		fid.path = path;
+	}
+
+	if st.Length != 0xFFFFFFFFFFFFFFFF {
+		e := os.Truncate(fid.path, int64(st.Length));
+		if e != nil {
+			req.RespondError(toError(e));
+			return;
+		}
+	}
+
+	req.RespondRwstat();
+}
+
+func main() {
+	flag.Parse();
+	ufs := new(Ufs);
+	ufs.Dotu = true;
+
+	if *debug {
+		ufs.Debuglevel = 1
+	}
+
+	ufs.Start(ufs);
+	srv.StartListener("tcp", *addr, &ufs.Srv);
+}

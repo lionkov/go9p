@@ -1,0 +1,149 @@
+// Copyright 2009 The Go Authors.  All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// A synthetic filesystem emulating a persistent cloning interface
+// from Plan 9. Reading the /clone file creates new entries in the filesystem
+// each containing unique information/data. Clone files remember what it written
+// to them. Removing a clone file does what is expected.
+
+package main
+
+import "flag"
+import "fmt"
+import "log"
+import "os"
+import "strings"
+import "strconv"
+import "plan9/p"
+import "plan9/p/srv"
+import "time"
+
+type ClFile struct {
+	srv.File;
+	created	string;
+	id	int;
+	data	[]byte;
+}
+
+type Clone struct {
+	srv.File;
+	clones	int;
+}
+
+var addr = flag.String("addr", ":5640", "network address")
+var debug = flag.Bool("d", false, "print debug messages")
+
+var root *srv.File
+
+func (cl *ClFile) Read(buf []byte, offset uint64) (int, *p.Error) {
+	var b []byte;
+	if len(cl.data) == 0 {
+		str := strconv.Itoa(cl.id) + " created on:" + cl.created;
+		b = strings.Bytes(str);
+	} else {
+		b = cl.data
+	}
+	n := len(b);
+	if offset >= uint64(n) {
+		return 0, nil
+	}
+
+	b = b[int(offset):n];
+	n -= int(offset);
+	if len(buf) < n {
+		n = len(buf)
+	}
+
+	for i := int(offset); i < n; i++ {
+		buf[i] = b[i]
+	}
+
+	return n, nil;
+}
+
+func (cl *ClFile) Write(data []byte, offset uint64) (int, *p.Error) {
+	n := uint64(len(cl.data));
+	nlen := offset + uint64(len(data));
+	var i uint64;
+	if nlen > n {
+		ndata := make([]byte, nlen);
+		for i = 0; i < n; i++ {
+			ndata[i] = cl.data[i]
+		}
+		cl.data = ndata;
+	}
+
+	for i := offset; i < uint64(len(data)); i++ {
+		cl.data[i] = data[i]
+	}
+
+	return len(data), nil;
+}
+
+func (cl *ClFile) Remove() *p.Error {
+	cl.Remove();
+	return nil;
+}
+func (cl *Clone) Read(buf []byte, offset uint64) (int, *p.Error) {
+	// we only allow a single read from us, change the offset and we're done
+	if offset > uint64(0) {
+		return 0, nil
+	}
+
+	cl.clones += 1;
+	ncl := new(ClFile);
+	ncl.id = cl.clones;
+	ncl.created = time.LocalTime().String();
+	name := strconv.Itoa(ncl.id);
+
+	err := ncl.Add(root, name, p.OsUsers.Uid2User(os.Geteuid()), nil, 0666, ncl);
+	if err != nil {
+		return 0, &p.Error{"can not create file", 0}
+	}
+
+	b := strings.Bytes(name);
+	if len(buf) < len(b) {
+		// cleanup
+		ncl.Remove();
+		return 0, &p.Error{"not enough buffer space for result", 0};
+	}
+
+	for i := 0; i < len(b); i++ {
+		buf[i] = b[i]
+	}
+
+	return len(b), nil;
+}
+
+func main() {
+	var err *p.Error;
+
+	flag.Parse();
+	user := p.OsUsers.Uid2User(os.Geteuid());
+	root = new(srv.File);
+	err = root.Add(nil, "/", user, nil, p.DMDIR|0555, nil);
+	if err != nil {
+		goto error
+	}
+
+	cl := new(Clone);
+	err = cl.Add(root, "clone", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, cl);
+	if err != nil {
+		goto error
+	}
+
+	s := srv.NewFileSrv(root);
+	s.Dotu = true;
+
+	if *debug {
+		s.Debuglevel = 1
+	}
+
+	s.Start(s);
+	srv.StartListener("tcp", *addr, &s.Srv);
+	return;
+
+error:
+	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Nerror));
+}
