@@ -133,46 +133,46 @@ func dir2Npmode(d *os.Dir, dotu bool) uint32 {
 	return ret;
 }
 
-func dir2Stat(path string, d *os.Dir, dotu bool, upool p.Users) *p.Stat {
-	st := new(p.Stat);
-	st.Sqid = *dir2Qid(d);
-	st.Mode = dir2Npmode(d, dotu);
-	st.Atime = uint32(d.Atime_ns / 1000000000);
-	st.Mtime = uint32(d.Mtime_ns / 1000000000);
-	st.Length = d.Size;
+func dir2Dir(path string, d *os.Dir, dotu bool, upool p.Users) *p.Dir {
+	dir := new(p.Dir);
+	dir.Sqid = *dir2Qid(d);
+	dir.Mode = dir2Npmode(d, dotu);
+	dir.Atime = uint32(d.Atime_ns / 1000000000);
+	dir.Mtime = uint32(d.Mtime_ns / 1000000000);
+	dir.Length = d.Size;
 
 	u := upool.Uid2User(int(d.Uid));
 	g := upool.Gid2Group(int(d.Gid));
-	st.Uid = u.Name();
-	if st.Uid == "" {
-		st.Uid = "none"
+	dir.Uid = u.Name();
+	if dir.Uid == "" {
+		dir.Uid = "none"
 	}
 
-	st.Gid = g.Name();
-	if st.Gid == "" {
-		st.Gid = "none"
+	dir.Gid = g.Name();
+	if dir.Gid == "" {
+		dir.Gid = "none"
 	}
-	st.Muid = "none";
-	st.Ext = "";
+	dir.Muid = "none";
+	dir.Ext = "";
 	if dotu {
-		st.Nuid = uint32(u.Id());
-		st.Ngid = uint32(g.Id());
-		st.Nmuid = p.Nouid;
+		dir.Nuid = uint32(u.Id());
+		dir.Ngid = uint32(g.Id());
+		dir.Nmuid = p.Nouid;
 		if d.IsSymlink() {
 			var err os.Error;
-			st.Ext, err = os.Readlink(path);
+			dir.Ext, err = os.Readlink(path);
 			if err != nil {
-				st.Ext = ""
+				dir.Ext = ""
 			}
 		} else if d.IsBlock() {
-			st.Ext = fmt.Sprintf("b %d %d", d.Rdev>>24, d.Rdev&0xFFFFFF)
+			dir.Ext = fmt.Sprintf("b %d %d", d.Rdev>>24, d.Rdev&0xFFFFFF)
 		} else if d.IsChar() {
-			st.Ext = fmt.Sprintf("c %d %d", d.Rdev>>24, d.Rdev&0xFFFFFF)
+			dir.Ext = fmt.Sprintf("c %d %d", d.Rdev>>24, d.Rdev&0xFFFFFF)
 		}
 	}
 
-	st.Name = path[strings.LastIndex(path, "/")+1 : len(path)];
-	return st;
+	dir.Name = path[strings.LastIndex(path, "/")+1 : len(path)];
+	return dir;
 }
 
 func (*Ufs) ConnOpened(conn *srv.Conn) {
@@ -387,8 +387,8 @@ func (*Ufs) Read(req *srv.Req) {
 			var i int;
 			for i = 0; i < len(fid.dirs); i++ {
 				path := fid.path + "/" + fid.dirs[i].Name;
-				st := dir2Stat(path, &fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool);
-				sz := p.PackStat(st, b, req.Conn.Dotu);
+				st := dir2Dir(path, &fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool);
+				sz := p.PackDir(st, b, req.Conn.Dotu);
 				if sz == 0 {
 					break
 				}
@@ -461,7 +461,7 @@ func (*Ufs) Stat(req *srv.Req) {
 		return;
 	}
 
-	st := dir2Stat(fid.path, fid.st, req.Conn.Dotu, req.Conn.Srv.Upool);
+	st := dir2Dir(fid.path, fid.st, req.Conn.Dotu, req.Conn.Srv.Upool);
 	req.RespondRstat(st);
 }
 
@@ -475,18 +475,18 @@ func (*Ufs) Wstat(req *srv.Req) {
 		return;
 	}
 
-	st := &req.Tc.Fstat;
+	dir := &req.Tc.Fdir;
 	up := req.Conn.Srv.Upool;
 	if req.Conn.Dotu {
-		uid = st.Nuid;
-		gid = st.Ngid;
+		uid = dir.Nuid;
+		gid = dir.Ngid;
 	} else {
 		uid = p.Nouid;
 		gid = p.Nouid;
 	}
 
-	if uid == p.Nouid && st.Uid != "" {
-		user := up.Uname2User(st.Uid);
+	if uid == p.Nouid && dir.Uid != "" {
+		user := up.Uname2User(dir.Uid);
 		if user == nil {
 			req.RespondError(srv.Enouser);
 			return;
@@ -495,8 +495,8 @@ func (*Ufs) Wstat(req *srv.Req) {
 		uid = uint32(user.Id());
 	}
 
-	if gid == p.Nouid && st.Gid != "" {
-		group := up.Gname2Group(st.Gid);
+	if gid == p.Nouid && dir.Gid != "" {
+		group := up.Gname2Group(dir.Gid);
 		if group == nil {
 			req.RespondError(srv.Enouser);
 			return;
@@ -505,8 +505,8 @@ func (*Ufs) Wstat(req *srv.Req) {
 		gid = uint32(group.Id());
 	}
 
-	if st.Mode != 0xFFFFFFFF {
-		e := os.Chmod(fid.path, int(st.Mode&0777));
+	if dir.Mode != 0xFFFFFFFF {
+		e := os.Chmod(fid.path, int(dir.Mode&0777));
 		if e != nil {
 			req.RespondError(toError(e));
 			return;
@@ -521,8 +521,8 @@ func (*Ufs) Wstat(req *srv.Req) {
 		}
 	}
 
-	if st.Name != "" {
-		path := fid.path[0:strings.LastIndex(fid.path, "/")+1] + "/" + st.Name;
+	if dir.Name != "" {
+		path := fid.path[0:strings.LastIndex(fid.path, "/")+1] + "/" + dir.Name;
 		errno := syscall.Rename(fid.path, path);
 		if errno != 0 {
 			e := os.Errno(errno);
@@ -532,8 +532,8 @@ func (*Ufs) Wstat(req *srv.Req) {
 		fid.path = path;
 	}
 
-	if st.Length != 0xFFFFFFFFFFFFFFFF {
-		e := os.Truncate(fid.path, int64(st.Length));
+	if dir.Length != 0xFFFFFFFFFFFFFFFF {
+		e := os.Truncate(fid.path, int64(dir.Length));
 		if e != nil {
 			req.RespondError(toError(e));
 			return;

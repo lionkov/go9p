@@ -7,7 +7,7 @@ package clnt
 import "plan9/p"
 
 // Returns the metadata for the file associated with the Fid, or an Error.
-func (clnt *Clnt) Stat(fid *Fid) (*p.Stat, *p.Error) {
+func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, *p.Error) {
 	tc := p.NewFcall(clnt.Msize);
 	err := p.PackTstat(tc, fid.Fid);
 	if err != nil {
@@ -19,17 +19,17 @@ func (clnt *Clnt) Stat(fid *Fid) (*p.Stat, *p.Error) {
 		return nil, err
 	}
 
-	return &rc.Fstat, nil;
+	return &rc.Fdir, nil;
 }
 
 // Returns the metadata for a named file, or an Error.
-func (clnt *Clnt) FStat(path string) (*p.Stat, *p.Error) {
+func (clnt *Clnt) FStat(path string) (*p.Dir, *p.Error) {
 	fid, err := clnt.FWalk(path);
 	if err != nil {
 		return nil, err
 	}
 
-	st, err := clnt.Stat(fid);
+	d, err := clnt.Stat(fid);
 	clnt.Clunk(fid);
-	return st, err;
+	return d, err;
 }

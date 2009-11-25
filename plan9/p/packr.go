@@ -185,8 +185,8 @@ func PackRremove(fc *Fcall) *Error {
 // function will create a 9P2000.u stat representation that includes
 // st.Nuid, st.Ngid, st.Nmuid and st.Ext. Otherwise these values will be
 // ignored.
-func PackRstat(fc *Fcall, st *Stat, dotu bool) *Error {
-	stsz := statsz(st, dotu);
+func PackRstat(fc *Fcall, d *Dir, dotu bool) *Error {
+	stsz := statsz(d, dotu);
 	size := 2 + stsz;	/* stat[n] */
 	p, err := packCommon(fc, size, Rstat);
 	if err != nil {
@@ -194,7 +194,7 @@ func PackRstat(fc *Fcall, st *Stat, dotu bool) *Error {
 	}
 
 	p = pint16(uint16(stsz), p);
-	p = ppstat(st, p, dotu, &fc.Fstat);
+	p = ppstat(d, p, dotu, &fc.Fdir);
 	return nil;
 }
 

@@ -123,7 +123,7 @@ func (req *Req) RespondRremove() {
 }
 
 // Respond to the request with Rstat message
-func (req *Req) RespondRstat(st *p.Stat) {
+func (req *Req) RespondRstat(st *p.Dir) {
 	err := p.PackRstat(req.Rc, st, req.Conn.Dotu);
 	if err != nil {
 		req.RespondError(err)

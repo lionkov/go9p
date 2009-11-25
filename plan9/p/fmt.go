@@ -73,14 +73,14 @@ func (qid *Qid) String() string {
 	return fmt.Sprintf("(%x %x '%s')", qid.Path, qid.Version, b);
 }
 
-func (st *Stat) String() string {
-	ret := fmt.Sprintf("'%s' '%s' '%s' '%s' q ", st.Name, st.Uid, st.Gid, st.Muid);
-	ret += st.Sqid.String() + " m " + permToString(st.Mode);
-	ret += fmt.Sprintf(" at %d mt %d l %d t %d d %d", st.Atime, st.Mtime,
-		st.Length, st.Type, st.Dev);
+func (d *Dir) String() string {
+	ret := fmt.Sprintf("'%s' '%s' '%s' '%s' q ", d.Name, d.Uid, d.Gid, d.Muid);
+	ret += d.Sqid.String() + " m " + permToString(d.Mode);
+	ret += fmt.Sprintf(" at %d mt %d l %d t %d d %d", d.Atime, d.Mtime,
+		d.Length, d.Type, d.Dev);
 
 	/* dotu ? */
-	ret += " ext " + st.Ext;
+	ret += " ext " + d.Ext;
 
 	return ret;
 }
@@ -146,9 +146,9 @@ func (fc *Fcall) String() string {
 	case Tstat:
 		ret = fmt.Sprintf("Tstat tag %d fid %d", fc.Tag, fc.Fid)
 	case Rstat:
-		ret = fmt.Sprintf("Rstat tag %d st (%v)", fc.Tag, &fc.Fstat)
+		ret = fmt.Sprintf("Rstat tag %d st (%v)", fc.Tag, &fc.Fdir)
 	case Twstat:
-		ret = fmt.Sprintf("Twstat tag %d fid %d st (%v)", fc.Tag, fc.Fid, &fc.Fstat)
+		ret = fmt.Sprintf("Twstat tag %d fid %d st (%v)", fc.Tag, fc.Fid, &fc.Fdir)
 	case Rflush:
 		ret = fmt.Sprintf("Rflush tag %d", fc.Tag)
 	case Rremove:

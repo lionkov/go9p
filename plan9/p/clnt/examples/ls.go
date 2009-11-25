@@ -14,7 +14,7 @@ func main() {
 	var err *p.Error;
 	var c *clnt.Clnt;
 	var file *clnt.File;
-	var st []*p.Stat;
+	var d []*p.Dir;
 
 	flag.Parse();
 	user = p.OsUsers.Uid2User(os.Geteuid());
@@ -34,17 +34,17 @@ func main() {
 	}
 
 	for {
-		st, err = file.Readdir(0);
+		d, err = file.Readdir(0);
 		if err != nil {
 			goto error
 		}
 
-		if st == nil || len(st) == 0 {
+		if d == nil || len(d) == 0 {
 			break
 		}
 
-		for i := 0; i < len(st); i++ {
-			os.Stdout.WriteString(st[i].Name + "\n")
+		for i := 0; i < len(d); i++ {
+			os.Stdout.WriteString(d[i].Name + "\n")
 		}
 	}
 

@@ -398,7 +398,7 @@ func (srv *Srv) stat(req *Req)	{ (req.Conn.Srv.ops).(ReqOps).Stat(req) }
 
 func (srv *Srv) wstat(req *Req) {
 	fid := req.Fid;
-	stat := req.Tc.Fstat;
+	stat := req.Tc.Fdir;
 	if stat.Type != uint16(0xFFFF) || stat.Dev != uint32(0xFFFFFFFF) || stat.Sqid.Version != uint32(0xFFFFFFFF) ||
 		stat.Sqid.Path != uint64(0xFFFFFFFFFFFFFFFF) {
 		req.RespondError(Eperm);

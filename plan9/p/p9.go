@@ -112,9 +112,9 @@ type Qid struct {
 	Path	uint64;	// server's unique identification of the file
 }
 
-// Stat describes a file
-type Stat struct {
-	Size	uint16;	// size-2 of the Stat on the wire
+// Dir describes a file
+type Dir struct {
+	Size	uint16;	// size-2 of the Dir on the wire
 	Type	uint16;
 	Dev	uint32;
 	Sqid	Qid;	// file's Qid
@@ -158,7 +158,7 @@ type Fcall struct {
 	Perm	uint32;		// file permission (mode) (used by Tcreate)
 	Offset	uint64;		// offset in the file to read/write from/to (used by Tread, Twrite)
 	Count	uint32;		// number of bytes read/written (used by Tread, Rread, Twrite, Rwrite)
-	Fstat	Stat;		// file description (used by Rstat, Twstat)
+	Fdir	Dir;		// file description (used by Rstat, Twstat)
 	Data	[]uint8;	// data read/to-write (used by Rread, Twrite)
 
 	/* 9P2000.u extensions */
@@ -299,47 +299,47 @@ func gqid(buf []byte, qid *Qid) []byte {
 	return buf;
 }
 
-func gstat(buf []byte, st *Stat, dotu bool) []byte {
-	st.Size, buf = gint16(buf);
-	st.Type, buf = gint16(buf);
-	st.Dev, buf = gint32(buf);
-	buf = gqid(buf, &st.Sqid);
-	st.Mode, buf = gint32(buf);
-	st.Atime, buf = gint32(buf);
-	st.Mtime, buf = gint32(buf);
-	st.Length, buf = gint64(buf);
-	st.Name, buf = gstr(buf);
+func gstat(buf []byte, d *Dir, dotu bool) []byte {
+	d.Size, buf = gint16(buf);
+	d.Type, buf = gint16(buf);
+	d.Dev, buf = gint32(buf);
+	buf = gqid(buf, &d.Sqid);
+	d.Mode, buf = gint32(buf);
+	d.Atime, buf = gint32(buf);
+	d.Mtime, buf = gint32(buf);
+	d.Length, buf = gint64(buf);
+	d.Name, buf = gstr(buf);
 	if buf == nil {
 		return nil
 	}
 
-	st.Uid, buf = gstr(buf);
+	d.Uid, buf = gstr(buf);
 	if buf == nil {
 		return nil
 	}
-	st.Gid, buf = gstr(buf);
+	d.Gid, buf = gstr(buf);
 	if buf == nil {
 		return nil
 	}
 
-	st.Muid, buf = gstr(buf);
+	d.Muid, buf = gstr(buf);
 	if buf == nil {
 		return nil
 	}
 
 	if dotu {
-		st.Ext, buf = gstr(buf);
+		d.Ext, buf = gstr(buf);
 		if buf == nil {
 			return nil
 		}
 
-		st.Nuid, buf = gint32(buf);
-		st.Ngid, buf = gint32(buf);
-		st.Nmuid, buf = gint32(buf);
+		d.Nuid, buf = gint32(buf);
+		d.Ngid, buf = gint32(buf);
+		d.Nmuid, buf = gint32(buf);
 	} else {
-		st.Nuid = Nouid;
-		st.Ngid = Nouid;
-		st.Nmuid = Nouid;
+		d.Nuid = Nouid;
+		d.Ngid = Nouid;
+		d.Nmuid = Nouid;
 	}
 
 	return buf;
@@ -424,53 +424,53 @@ func ppqid(val *Qid, buf []byte, pval *Qid) []byte {
 	return pqid(val, buf);
 }
 
-func statsz(st *Stat, dotu bool) int {
-	sz := 2 + 2 + 4 + 13 + 4 + 4 + 4 + 8 + 2 + 2 + 2 + 2 + len(st.Name) + len(st.Uid) + len(st.Gid) + len(st.Muid);
+func statsz(d *Dir, dotu bool) int {
+	sz := 2 + 2 + 4 + 13 + 4 + 4 + 4 + 8 + 2 + 2 + 2 + 2 + len(d.Name) + len(d.Uid) + len(d.Gid) + len(d.Muid);
 	if dotu {
-		sz += 2 + 4 + 4 + 4 + len(st.Ext)
+		sz += 2 + 4 + 4 + 4 + len(d.Ext)
 	}
 
 	return sz;
 }
 
-func pstat(st *Stat, buf []byte, dotu bool) []byte {
-	sz := statsz(st, dotu);
+func pstat(d *Dir, buf []byte, dotu bool) []byte {
+	sz := statsz(d, dotu);
 	buf = pint16(uint16(sz-2), buf);
-	buf = pint16(st.Type, buf);
-	buf = pint32(st.Dev, buf);
-	buf = pqid(&st.Sqid, buf);
-	buf = pint32(st.Mode, buf);
-	buf = pint32(st.Atime, buf);
-	buf = pint32(st.Mtime, buf);
-	buf = pint64(st.Length, buf);
-	buf = pstr(st.Name, buf);
-	buf = pstr(st.Uid, buf);
-	buf = pstr(st.Gid, buf);
-	buf = pstr(st.Muid, buf);
+	buf = pint16(d.Type, buf);
+	buf = pint32(d.Dev, buf);
+	buf = pqid(&d.Sqid, buf);
+	buf = pint32(d.Mode, buf);
+	buf = pint32(d.Atime, buf);
+	buf = pint32(d.Mtime, buf);
+	buf = pint64(d.Length, buf);
+	buf = pstr(d.Name, buf);
+	buf = pstr(d.Uid, buf);
+	buf = pstr(d.Gid, buf);
+	buf = pstr(d.Muid, buf);
 	if dotu {
-		buf = pstr(st.Ext, buf);
-		buf = pint32(st.Nuid, buf);
-		buf = pint32(st.Ngid, buf);
-		buf = pint32(st.Nmuid, buf);
+		buf = pstr(d.Ext, buf);
+		buf = pint32(d.Nuid, buf);
+		buf = pint32(d.Ngid, buf);
+		buf = pint32(d.Nmuid, buf);
 	}
 
 	return buf;
 }
 
-func ppstat(st *Stat, buf []byte, dotu bool, pval *Stat) []byte {
-	*pval = *st;
-	return pstat(st, buf, dotu);
+func ppstat(d *Dir, buf []byte, dotu bool, pval *Dir) []byte {
+	*pval = *d;
+	return pstat(d, buf, dotu);
 }
 
-// Converts a Stat value to its on-the-wire representation and writes it to
+// Converts a Dir value to its on-the-wire representation and writes it to
 // the buf. Returns the number of bytes written, 0 if there is not enough space.
-func PackStat(st *Stat, buf []byte, dotu bool) int {
-	sz := statsz(st, dotu);
+func PackDir(d *Dir, buf []byte, dotu bool) int {
+	sz := statsz(d, dotu);
 	if sz > len(buf) {
 		return 0
 	}
 
-	buf = pstat(st, buf, dotu);
+	buf = pstat(d, buf, dotu);
 	return sz;
 }
 
@@ -478,7 +478,7 @@ func PackStat(st *Stat, buf []byte, dotu bool) int {
 // Converts the on-the-wire representation of a stat to Stat value.
 // Returns an error if the conversion is impossible, otherwise
 // a pointer to a Stat value.
-func UnpackStat(buf []byte, dotu bool) (st *Stat, err *Error) {
+func UnpackDir(buf []byte, dotu bool) (d *Dir, err *Error) {
 	sz := 2 + 2 + 4 + 13 + 4 +	/* size[2] type[2] dev[4] qid[13] mode[4] */
 					4 + 4 + 8 +	/* atime[4] mtime[4] length[8] */
 					2 + 2 + 2 + 2;	/* name[s] uid[s] gid[s] muid[s] */
@@ -492,13 +492,13 @@ func UnpackStat(buf []byte, dotu bool) (st *Stat, err *Error) {
 		return nil, &Error{"short buffer", syscall.EINVAL}
 	}
 
-	st = new(Stat);
-	buf = gstat(buf, st, dotu);
+	d = new(Dir);
+	buf = gstat(buf, d, dotu);
 	if buf == nil {
 		goto szerror
 	}
 
-	return st, nil;
+	return d, nil;
 }
 
 // Allocates a new Fcall.

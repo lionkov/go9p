@@ -187,7 +187,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 
 	case Rstat:
 		m, p = gint16(p);
-		p = gstat(p, &fc.Fstat, dotu);
+		p = gstat(p, &fc.Fdir, dotu);
 		if p == nil {
 			goto szerror
 		}
@@ -195,7 +195,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 	case Twstat:
 		fc.Fid, p = gint32(p);
 		m, p = gint16(p);
-		p = gstat(p, &fc.Fstat, dotu);
+		p = gstat(p, &fc.Fdir, dotu);
 
 	case Rflush, Rclunk, Rremove, Rwstat:
 	}

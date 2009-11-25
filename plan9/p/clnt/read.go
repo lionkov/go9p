@@ -77,9 +77,9 @@ func (file *File) Readn(buf []byte, offset uint64) (int, *p.Error) {
 // Returns an array of maximum num entries (if num is 0, returns
 // all entries from the directory). If the operation fails, returns
 // an Error.
-func (file *File) Readdir(num int) ([]*p.Stat, *p.Error) {
+func (file *File) Readdir(num int) ([]*p.Dir, *p.Error) {
 	buf := make([]byte, file.fid.Clnt.Msize-p.IOHdrSz);
-	stats := make([]*p.Stat, 32);
+	dirs := make([]*p.Dir, 32);
 	pos := 0;
 	for {
 		n, err := file.Read(buf);
@@ -92,23 +92,23 @@ func (file *File) Readdir(num int) ([]*p.Stat, *p.Error) {
 		}
 
 		for b := buf[0:n]; len(b) > 0; {
-			var st *p.Stat;
-			st, err = p.UnpackStat(b, file.fid.Clnt.Dotu);
+			var d *p.Dir;
+			d, err = p.UnpackDir(b, file.fid.Clnt.Dotu);
 			if err != nil {
 				return nil, err
 			}
 
-			b = b[st.Size+2 : len(b)];
-			if pos >= len(stats) {
-				s := make([]*p.Stat, len(stats)+32);
-				for i := 0; i < len(stats); i++ {
-					s[i] = stats[i]
+			b = b[d.Size+2 : len(b)];
+			if pos >= len(dirs) {
+				s := make([]*p.Dir, len(dirs)+32);
+				for i := 0; i < len(dirs); i++ {
+					s[i] = dirs[i]
 				}
 
-				stats = s;
+				dirs = s;
 			}
 
-			stats[pos] = st;
+			dirs[pos] = d;
 			pos++;
 			if num != 0 && pos >= num {
 				break
@@ -116,5 +116,5 @@ func (file *File) Readdir(num int) ([]*p.Stat, *p.Error) {
 		}
 	}
 
-	return stats[0:pos], nil;
+	return dirs[0:pos], nil;
 }

@@ -209,8 +209,8 @@ func PackTstat(fc *Fcall, fid uint32) *Error {
 // Create a Tauth message in the specified Fcall. If dotu is true
 // the function will create 9P2000.u message, otherwise the 9P2000.u
 // specific fields from the Stat value will be ignored.
-func PackTwstat(fc *Fcall, fid uint32, st *Stat, dotu bool) *Error {
-	stsz := statsz(st, dotu);
+func PackTwstat(fc *Fcall, fid uint32, d *Dir, dotu bool) *Error {
+	stsz := statsz(d, dotu);
 	size := 4 + 2 + stsz;	/* fid[4] stat[n] */
 	p, err := packCommon(fc, size, Twstat);
 	if err != nil {
@@ -218,6 +218,6 @@ func PackTwstat(fc *Fcall, fid uint32, st *Stat, dotu bool) *Error {
 	}
 
 	p = ppint32(fid, p, &fc.Fid);
-	p = ppstat(st, p, dotu, &fc.Fstat);
+	p = ppstat(d, p, dotu, &fc.Fdir);
 	return nil;
 }

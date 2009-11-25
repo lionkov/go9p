@@ -22,7 +22,7 @@ type FStatOp interface {
 // If not implemented, "permission denied" error will be sent back. If the
 // operation returns an Error, the error is send back to the client.
 type FWstatOp interface {
-	Wstat(*p.Stat) *p.Error;
+	Wstat(*p.Dir) *p.Error;
 }
 
 // If the FReadOp interface is implemented, the Read operation will be called
@@ -62,7 +62,7 @@ type FRemoveOp interface {
 // The File type represents a file (or directory) served by the file server.
 type File struct {
 	sync.Mutex;
-	p.Stat;
+	p.Dir;
 
 	parent		*File;	// parent
 	next, prev	*File;	// siblings, guarded by parent.Lock
@@ -364,7 +364,7 @@ func (*Fsrv) Read(req *Req) {
 
 		b := rc.Data;
 		for fid.nextchild != nil {
-			sz := p.PackStat(&fid.nextchild.Stat, b, req.Conn.Dotu);
+			sz := p.PackDir(&fid.nextchild.Dir, b, req.Conn.Dotu);
 			if sz == 0 {
 				break
 			}
@@ -445,10 +445,10 @@ func (*Fsrv) Stat(req *Req) {
 		if err != nil {
 			req.RespondError(err)
 		} else {
-			req.RespondRstat(&f.Stat)
+			req.RespondRstat(&f.Dir)
 		}
 	} else {
-		req.RespondRstat(&f.Stat)
+		req.RespondRstat(&f.Dir)
 	}
 }
 
@@ -458,7 +458,7 @@ func (*Fsrv) Wstat(req *Req) {
 	f := fid.file;
 
 	if wop, ok := (f.ops).(FWstatOp); ok {
-		err := wop.Wstat(&tc.Fstat);
+		err := wop.Wstat(&tc.Fdir);
 		if err != nil {
 			req.RespondError(err)
 		} else {
