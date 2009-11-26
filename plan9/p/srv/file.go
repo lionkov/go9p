@@ -4,6 +4,7 @@
 
 package srv
 
+import "log"
 import "plan9/p"
 import "sync"
 import "syscall"
@@ -13,7 +14,7 @@ import "time"
 // called before a file stat is sent back to the client. If implemented,
 // the operation should update the data in the File struct.
 type FStatOp interface {
-	Stat() *p.Error;
+	Stat(fid *FFid) *p.Error;
 }
 
 // The FWstatOp interface provides a single operation (Wstat) that will be
@@ -22,7 +23,7 @@ type FStatOp interface {
 // If not implemented, "permission denied" error will be sent back. If the
 // operation returns an Error, the error is send back to the client.
 type FWstatOp interface {
-	Wstat(*p.Dir) *p.Error;
+	Wstat(*FFid, *p.Dir) *p.Error;
 }
 
 // If the FReadOp interface is implemented, the Read operation will be called
@@ -30,7 +31,7 @@ type FWstatOp interface {
 // be send back. The operation returns the number of bytes read, or the
 // error occured while reading.
 type FReadOp interface {
-	Read(buf []byte, offset uint64) (int, *p.Error);
+	Read(fid *FFid, buf []byte, offset uint64) (int, *p.Error);
 }
 
 // If the FWriteOp interface is implemented, the Write operation will be called
@@ -38,7 +39,7 @@ type FReadOp interface {
 // be send back. The operation returns the number of bytes written, or the
 // error occured while writing.
 type FWriteOp interface {
-	Write(data []byte, offset uint64) (int, *p.Error);
+	Write(fid *FFid, data []byte, offset uint64) (int, *p.Error);
 }
 
 // If the FCreateOp interface is implemented, the Create operation will be called
@@ -47,7 +48,7 @@ type FWriteOp interface {
 // the operation should call (*File)Add() to add the created file to the directory.
 // The operation returns the created file, or the error occured while creating it.
 type FCreateOp interface {
-	Create(name string, perm uint32) (*File, *p.Error);
+	Create(fid *FFid, name string, perm uint32) (*File, *p.Error);
 }
 
 // If the FRemoveOp interface is implemented, the Remove operation will be called
@@ -56,13 +57,27 @@ type FCreateOp interface {
 // The operation returns nil if successful, or the error that occured while removing
 // the file.
 type FRemoveOp interface {
-	Remove(*File) *p.Error;
+	Remove(*FFid) *p.Error;
 }
+
+type FOpenOp interface {
+	Open(fid *FFid, mode uint8) *p.Error;
+}
+
+type FClunkOp interface {
+	Clunk(fid *FFid) *p.Error;
+}
+
+type FFlags int;
+const (
+	Fremoved	FFlags = 1<<iota;
+)
 
 // The File type represents a file (or directory) served by the file server.
 type File struct {
 	sync.Mutex;
 	p.Dir;
+	flags		FFlags;
 
 	parent		*File;	// parent
 	next, prev	*File;	// siblings, guarded by parent.Lock
@@ -71,8 +86,8 @@ type File struct {
 }
 
 type FFid struct {
-	file		*File;
-	nextchild	*File;	// used for readdir
+	F		*File;
+	dirs		[]*File;	// used for readdir
 }
 
 // The Fsrv can be used to create file servers that serve
@@ -164,8 +179,11 @@ func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32,
 
 // Removes a file from its parent directory.
 func (f *File) Remove() {
-	p := f.parent;
+	f.Lock();
+	f.flags |= Fremoved;
+	f.Unlock();
 
+	p := f.parent;
 	p.Lock();
 	if f.next != nil {
 		f.next.prev = f.prev
@@ -243,7 +261,7 @@ func (f *File) CheckPerm(user p.User, perm uint32) bool {
 
 func (s *Fsrv) Attach(req *Req) {
 	fid := new(FFid);
-	fid.file = s.Root;
+	fid.F = s.Root;
 	req.Fid.Aux = fid;
 	req.RespondRattach(&s.Root.Sqid);
 }
@@ -259,7 +277,7 @@ func (*Fsrv) Walk(req *Req) {
 	nfid := req.Newfid.Aux.(*FFid);
 	wqids := make([]p.Qid, len(tc.Wnames));
 	i := 0;
-	f := fid.file;
+	f := fid.F;
 	for ; i < len(tc.Wnames); i++ {
 		if tc.Wnames[i] == ".." {
 			// handle dotdot
@@ -287,7 +305,7 @@ func (*Fsrv) Walk(req *Req) {
 		return;
 	}
 
-	nfid.file = f;
+	nfid.F = f;
 	req.RespondRwalk(wqids[0:i]);
 }
 
@@ -314,31 +332,37 @@ func (*Fsrv) Open(req *Req) {
 	fid := req.Fid.Aux.(*FFid);
 	tc := req.Tc;
 
-	if fid.file.CheckPerm(req.Fid.User, mode2Perm(tc.Mode)) {
+	if fid.F.CheckPerm(req.Fid.User, mode2Perm(tc.Mode)) {
 		req.RespondError(Eperm);
 		return;
 	}
 
-	req.RespondRopen(&fid.file.Sqid, 0);
+	if op, ok := (fid.F.ops).(FOpenOp); ok {
+		err := op.Open(fid, tc.Mode);
+		if err != nil {
+			req.RespondError(err)
+		}
+	}
+	req.RespondRopen(&fid.F.Sqid, 0);
 }
 
 func (*Fsrv) Create(req *Req) {
 	fid := req.Fid.Aux.(*FFid);
 	tc := req.Tc;
 
-	dir := fid.file;
+	dir := fid.F;
 	if dir.CheckPerm(req.Fid.User, p.DMWRITE) {
 		req.RespondError(Eperm);
 		return;
 	}
 
 	if cop, ok := (dir.ops).(FCreateOp); ok {
-		f, err := cop.Create(tc.Name, tc.Perm);
+		f, err := cop.Create(fid, tc.Name, tc.Perm);
 		if err != nil {
 			req.RespondError(err)
 		} else {
-			fid.file = f;
-			req.RespondRcreate(&fid.file.Sqid, 0);
+			fid.F = f;
+			req.RespondRcreate(&fid.F.Sqid, 0);
 		}
 	} else {
 		req.RespondError(Eperm)
@@ -346,38 +370,55 @@ func (*Fsrv) Create(req *Req) {
 }
 
 func (*Fsrv) Read(req *Req) {
-	var n int;
+	var i, n int;
 	var err *p.Error;
 
 	fid := req.Fid.Aux.(*FFid);
-	f := fid.file;
+	f := fid.F;
 	tc := req.Tc;
 	rc := req.Rc;
 	p.InitRread(rc, tc.Count);
 
 	if f.Mode&p.DMDIR != 0 {
 		// directory
-		f.Lock();
 		if tc.Offset == 0 {
-			fid.nextchild = f.cfirst
+			var g *File;
+			f.Lock();
+			for n,g = 0,f.cfirst; g!=nil; n,g = n+1,g.next {
+			}
+
+			fid.dirs = make([]*File, n);
+			for n,g = 0,f.cfirst; g!=nil; n,g = n+1,g.next {
+				fid.dirs[n] = g;
+			}
+			f.Unlock();
 		}
 
+		n = 0;
 		b := rc.Data;
-		for fid.nextchild != nil {
-			sz := p.PackDir(&fid.nextchild.Dir, b, req.Conn.Dotu);
+		for i=0; i<len(fid.dirs); i++ {
+			g := fid.dirs[i];
+			g.Lock();
+			if (g.flags&Fremoved)!=0 {
+				g.Unlock();
+				continue;
+			}
+
+			sz := p.PackDir(&g.Dir, b, req.Conn.Dotu);
+			g.Unlock();
 			if sz == 0 {
-				break
+				break;
 			}
 
 			b = b[sz:len(b)];
-			fid.nextchild = fid.nextchild.next;
 			n += sz;
 		}
-		f.Unlock();
+
+		fid.dirs = fid.dirs[i:len(fid.dirs)];
 	} else {
 		// file
 		if rop, ok := f.ops.(FReadOp); ok {
-			n, err = rop.Read(rc.Data, tc.Offset);
+			n, err = rop.Read(fid, rc.Data, tc.Offset);
 			if err != nil {
 				req.RespondError(err);
 				return;
@@ -394,11 +435,11 @@ func (*Fsrv) Read(req *Req) {
 
 func (*Fsrv) Write(req *Req) {
 	fid := req.Fid.Aux.(*FFid);
-	f := fid.file;
+	f := fid.F;
 	tc := req.Tc;
 
 	if wop, ok := (f.ops).(FWriteOp); ok {
-		n, err := wop.Write(tc.Data, tc.Offset);
+		n, err := wop.Write(fid, tc.Data, tc.Offset);
 		if err != nil {
 			req.RespondError(err)
 		} else {
@@ -410,11 +451,21 @@ func (*Fsrv) Write(req *Req) {
 
 }
 
-func (*Fsrv) Clunk(req *Req)	{ req.RespondRclunk() }
+func (*Fsrv) Clunk(req *Req) {
+	fid := req.Fid.Aux.(*FFid);
+
+	if op, ok := (fid.F.ops).(FClunkOp); ok {
+		err := op.Clunk(fid);
+		if err != nil {
+			req.RespondError(err)
+		}
+	}
+	req.RespondRclunk() 
+}
 
 func (*Fsrv) Remove(req *Req) {
 	fid := req.Fid.Aux.(*FFid);
-	f := fid.file;
+	f := fid.F;
 	f.Lock();
 	if f.cfirst != nil {
 		f.Unlock();
@@ -423,8 +474,8 @@ func (*Fsrv) Remove(req *Req) {
 	}
 	f.Unlock();
 
-	if rop, ok := (f.parent.ops).(FRemoveOp); ok {
-		err := rop.Remove(f);
+	if rop, ok := (f.ops).(FRemoveOp); ok {
+		err := rop.Remove(fid);
 		if err != nil {
 			req.RespondError(err)
 		} else {
@@ -432,16 +483,17 @@ func (*Fsrv) Remove(req *Req) {
 			req.RespondRremove();
 		}
 	} else {
+		log.Stderr("remove not implemented");
 		req.RespondError(Eperm)
 	}
 }
 
 func (*Fsrv) Stat(req *Req) {
 	fid := req.Fid.Aux.(*FFid);
-	f := fid.file;
+	f := fid.F;
 
 	if sop, ok := (f.ops).(FStatOp); ok {
-		err := sop.Stat();
+		err := sop.Stat(fid);
 		if err != nil {
 			req.RespondError(err)
 		} else {
@@ -455,10 +507,10 @@ func (*Fsrv) Stat(req *Req) {
 func (*Fsrv) Wstat(req *Req) {
 	tc := req.Tc;
 	fid := req.Fid.Aux.(*FFid);
-	f := fid.file;
+	f := fid.F;
 
 	if wop, ok := (f.ops).(FWstatOp); ok {
-		err := wop.Wstat(&tc.Fdir);
+		err := wop.Wstat(fid, &tc.Fdir);
 		if err != nil {
 			req.RespondError(err)
 		} else {

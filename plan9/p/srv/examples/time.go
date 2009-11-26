@@ -23,7 +23,7 @@ type InfTime struct {
 var addr = flag.String("addr", ":5640", "network address")
 var debug = flag.Bool("d", false, "print debug messages")
 
-func (*InfTime) Read(buf []byte, offset uint64) (int, *p.Error) {
+func (*InfTime) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
 	// push out time ignoring offset (infinite read)
 	t := time.LocalTime().String() + "\n";
 	b := strings.Bytes(t);
@@ -38,7 +38,7 @@ func (*InfTime) Read(buf []byte, offset uint64) (int, *p.Error) {
 	return len(b), nil;
 }
 
-func (*Time) Read(buf []byte, offset uint64) (int, *p.Error) {
+func (*Time) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
 	t := time.LocalTime().String();
 	b := strings.Bytes(t);
 	n := len(b);
