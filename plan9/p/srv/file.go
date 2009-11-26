@@ -72,16 +72,17 @@ type FDestroyOp interface {
 	FidDestroy(fid *FFid);
 }
 
-type FFlags int;
+type FFlags int
+
 const (
-	Fremoved	FFlags = 1<<iota;
+	Fremoved FFlags = 1 << iota;
 )
 
 // The File type represents a file (or directory) served by the file server.
 type File struct {
 	sync.Mutex;
 	p.Dir;
-	flags		FFlags;
+	flags	FFlags;
 
 	parent		*File;	// parent
 	next, prev	*File;	// siblings, guarded by parent.Lock
@@ -90,8 +91,8 @@ type File struct {
 }
 
 type FFid struct {
-	F		*File;
-	dirs		[]*File;	// used for readdir
+	F	*File;
+	dirs	[]*File;	// used for readdir
 }
 
 // The Fsrv can be used to create file servers that serve
@@ -388,22 +389,22 @@ func (*Fsrv) Read(req *Req) {
 		if tc.Offset == 0 {
 			var g *File;
 			f.Lock();
-			for n,g = 0,f.cfirst; g!=nil; n,g = n+1,g.next {
+			for n, g = 0, f.cfirst; g != nil; n, g = n+1, g.next {
 			}
 
 			fid.dirs = make([]*File, n);
-			for n,g = 0,f.cfirst; g!=nil; n,g = n+1,g.next {
-				fid.dirs[n] = g;
+			for n, g = 0, f.cfirst; g != nil; n, g = n+1, g.next {
+				fid.dirs[n] = g
 			}
 			f.Unlock();
 		}
 
 		n = 0;
 		b := rc.Data;
-		for i=0; i<len(fid.dirs); i++ {
+		for i = 0; i < len(fid.dirs); i++ {
 			g := fid.dirs[i];
 			g.Lock();
-			if (g.flags&Fremoved)!=0 {
+			if (g.flags & Fremoved) != 0 {
 				g.Unlock();
 				continue;
 			}
@@ -411,7 +412,7 @@ func (*Fsrv) Read(req *Req) {
 			sz := p.PackDir(&g.Dir, b, req.Conn.Dotu);
 			g.Unlock();
 			if sz == 0 {
-				break;
+				break
 			}
 
 			b = b[sz:len(b)];
@@ -464,7 +465,7 @@ func (*Fsrv) Clunk(req *Req) {
 			req.RespondError(err)
 		}
 	}
-	req.RespondRclunk() 
+	req.RespondRclunk();
 }
 
 func (*Fsrv) Remove(req *Req) {
@@ -488,7 +489,7 @@ func (*Fsrv) Remove(req *Req) {
 		}
 	} else {
 		log.Stderr("remove not implemented");
-		req.RespondError(Eperm)
+		req.RespondError(Eperm);
 	}
 }
 
@@ -530,6 +531,6 @@ func (*Fsrv) FidDestroy(ffid *Fid) {
 	f := fid.F;
 
 	if op, ok := (f.ops).(FDestroyOp); ok {
-		op.FidDestroy(fid);
+		op.FidDestroy(fid)
 	}
 }
