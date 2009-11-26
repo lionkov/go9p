@@ -68,6 +68,10 @@ type FClunkOp interface {
 	Clunk(fid *FFid) *p.Error;
 }
 
+type FDestroyOp interface {
+	FidDestroy(fid *FFid);
+}
+
 type FFlags int;
 const (
 	Fremoved	FFlags = 1<<iota;
@@ -518,5 +522,14 @@ func (*Fsrv) Wstat(req *Req) {
 		}
 	} else {
 		req.RespondError(Eperm)
+	}
+}
+
+func (*Fsrv) FidDestroy(ffid *Fid) {
+	fid := ffid.Aux.(*FFid);
+	f := fid.F;
+
+	if op, ok := (f.ops).(FDestroyOp); ok {
+		op.FidDestroy(fid);
 	}
 }
