@@ -527,6 +527,9 @@ func (*Fsrv) Wstat(req *Req) {
 }
 
 func (*Fsrv) FidDestroy(ffid *Fid) {
+	if ffid.Aux == nil {
+		return;
+	}
 	fid := ffid.Aux.(*FFid);
 	f := fid.F;
 
