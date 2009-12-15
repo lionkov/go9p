@@ -42,11 +42,7 @@ func (file *File) ReadAt(buf []byte, offset uint64) (int, *p.Error) {
 	if err != nil {
 		return 0, err
 	}
-
-	for i := 0; i < len(b); i++ {
-		buf[i] = b[i]
-	}
-
+	copy(buf, b);
 	return len(b), nil;
 }
 
@@ -78,7 +74,7 @@ func (file *File) Readn(buf []byte, offset uint64) (int, *p.Error) {
 // all entries from the directory). If the operation fails, returns
 // an Error.
 func (file *File) Readdir(num int) ([]*p.Dir, *p.Error) {
-	buf := make([]byte, file.fid.Clnt.Msize-p.IOHdrSz);
+	buf := make([]byte, file.fid.Clnt.Msize-p.IOHDRSZ);
 	dirs := make([]*p.Dir, 32);
 	pos := 0;
 	for {
@@ -101,10 +97,7 @@ func (file *File) Readdir(num int) ([]*p.Dir, *p.Error) {
 			b = b[d.Size+2 : len(b)];
 			if pos >= len(dirs) {
 				s := make([]*p.Dir, len(dirs)+32);
-				for i := 0; i < len(dirs); i++ {
-					s[i] = dirs[i]
-				}
-
+				copy(s, dirs);
 				dirs = s;
 			}
 

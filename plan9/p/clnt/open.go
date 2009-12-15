@@ -21,10 +21,10 @@ func (clnt *Clnt) Open(fid *Fid, mode uint8) *p.Error {
 		return err
 	}
 
-	fid.Fqid = rc.Fqid;
+	fid.Qid = rc.Qid;
 	fid.Iounit = rc.Iounit;
-	if fid.Iounit == 0 || fid.Iounit > clnt.Msize-p.IOHdrSz {
-		fid.Iounit = clnt.Msize - p.IOHdrSz
+	if fid.Iounit == 0 || fid.Iounit > clnt.Msize-p.IOHDRSZ {
+		fid.Iounit = clnt.Msize - p.IOHDRSZ
 	}
 	fid.Mode = mode;
 	return nil;
@@ -44,10 +44,10 @@ func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, ext str
 		return err
 	}
 
-	fid.Fqid = rc.Fqid;
+	fid.Qid = rc.Qid;
 	fid.Iounit = rc.Iounit;
-	if fid.Iounit == 0 || fid.Iounit > clnt.Msize-p.IOHdrSz {
-		fid.Iounit = clnt.Msize - p.IOHdrSz
+	if fid.Iounit == 0 || fid.Iounit > clnt.Msize-p.IOHDRSZ {
+		fid.Iounit = clnt.Msize - p.IOHDRSZ
 	}
 	fid.Mode = mode;
 	return nil;

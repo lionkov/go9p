@@ -55,29 +55,20 @@ func (cl *ClFile) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error)
 		n = len(buf)
 	}
 
-	for i := int(offset); i < n; i++ {
-		buf[i] = b[i]
-	}
-
+	copy(buf[offset:int(offset)+n], b[offset:]);
 	return n, nil;
 }
 
 func (cl *ClFile) Write(fid *srv.FFid, data []byte, offset uint64) (int, *p.Error) {
 	n := uint64(len(cl.data));
 	nlen := offset + uint64(len(data));
-	var i uint64;
 	if nlen > n {
 		ndata := make([]byte, nlen);
-		for i = 0; i < n; i++ {
-			ndata[i] = cl.data[i]
-		}
+		copy(ndata, cl.data[0:n]);
 		cl.data = ndata;
 	}
 
-	for i := offset; i < uint64(len(data)); i++ {
-		cl.data[i] = data[i]
-	}
-
+	copy(cl.data[offset:], data[offset:]);
 	return len(data), nil;
 }
 
@@ -110,10 +101,7 @@ func (cl *Clone) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) 
 		return 0, &p.Error{"not enough buffer space for result", 0};
 	}
 
-	for i := 0; i < len(b); i++ {
-		buf[i] = b[i]
-	}
-
+	copy(buf, b);
 	return len(b), nil;
 }
 
@@ -146,5 +134,5 @@ func main() {
 	return;
 
 error:
-	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Nerror));
+	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum));
 }

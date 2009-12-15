@@ -51,5 +51,5 @@ func main() {
 	return;
 
 error:
-	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Nerror));
+	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum));
 }

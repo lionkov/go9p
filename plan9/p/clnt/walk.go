@@ -24,7 +24,7 @@ func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]p.Qid, *p.Erro
 		return nil, err
 	}
 
-	return rc.Wqids, nil;
+	return rc.Wqid, nil;
 }
 
 // Walks to a named file. Returns a Fid associated with the file,
@@ -75,15 +75,15 @@ func (clnt *Clnt) FWalk(path string) (*Fid, *p.Error) {
 			goto error
 		}
 
-		if len(rc.Wqids) != n {
+		if len(rc.Wqid) != n {
 			err = &p.Error{"file not found", syscall.ENOENT};
 			goto error;
 		}
 
-		if len(rc.Wqids) > 0 {
-			newfid.Fqid = rc.Wqids[len(rc.Wqids)-1]
+		if len(rc.Wqid) > 0 {
+			newfid.Qid = rc.Wqid[len(rc.Wqid)-1]
 		} else {
-			newfid.Fqid = fid.Fqid
+			newfid.Qid = fid.Qid
 		}
 
 		wnames = wnames[n:len(wnames)];

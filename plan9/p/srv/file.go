@@ -126,9 +126,9 @@ func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32,
 	qnext++;
 	lock.Unlock();
 
-	f.Sqid.Type = uint8(mode >> 24);
-	f.Sqid.Version = 0;
-	f.Sqid.Path = qpath;
+	f.Qid.Type = uint8(mode >> 24);
+	f.Qid.Version = 0;
+	f.Qid.Path = qpath;
 	f.Mode = mode;
 	f.Atime = uint32(time.LocalTime().Seconds());
 	f.Mtime = f.Atime;
@@ -136,22 +136,22 @@ func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32,
 	f.Name = name;
 	if uid != nil {
 		f.Uid = uid.Name();
-		f.Nuid = uint32(uid.Id());
+		f.Uidnum = uint32(uid.Id());
 	} else {
 		f.Uid = "none";
-		f.Nuid = p.Nouid;
+		f.Uidnum = p.NOUID;
 	}
 
 	if gid != nil {
 		f.Gid = gid.Name();
-		f.Ngid = uint32(gid.Id());
+		f.Gidnum = uint32(gid.Id());
 	} else {
 		f.Gid = "none";
-		f.Ngid = p.Nouid;
+		f.Gidnum = p.NOUID;
 	}
 
 	f.Muid = "";
-	f.Nmuid = p.Nouid;
+	f.Muidnum = p.NOUID;
 	f.Ext = "";
 
 	if dir != nil {
@@ -238,7 +238,7 @@ func (f *File) CheckPerm(user p.User, perm uint32) bool {
 	}
 
 	/* user permissions */
-	if f.Uid == user.Name() || f.Nuid == uint32(user.Id()) {
+	if f.Uid == user.Name() || f.Uidnum == uint32(user.Id()) {
 		fperm |= (f.Mode >> 6) & 7
 	}
 
@@ -250,7 +250,7 @@ func (f *File) CheckPerm(user p.User, perm uint32) bool {
 	groups := user.Groups();
 	if groups != nil && len(groups) > 0 {
 		for i := 0; i < len(groups); i++ {
-			if f.Gid == groups[i].Name() || f.Ngid == uint32(groups[i].Id()) {
+			if f.Gid == groups[i].Name() || f.Gidnum == uint32(groups[i].Id()) {
 				fperm |= (f.Mode >> 3) & 7;
 				break;
 			}
@@ -268,7 +268,7 @@ func (s *Fsrv) Attach(req *Req) {
 	fid := new(FFid);
 	fid.F = s.Root;
 	req.Fid.Aux = fid;
-	req.RespondRattach(&s.Root.Sqid);
+	req.RespondRattach(&s.Root.Qid);
 }
 
 func (*Fsrv) Walk(req *Req) {
@@ -280,14 +280,14 @@ func (*Fsrv) Walk(req *Req) {
 	}
 
 	nfid := req.Newfid.Aux.(*FFid);
-	wqids := make([]p.Qid, len(tc.Wnames));
+	wqids := make([]p.Qid, len(tc.Wname));
 	i := 0;
 	f := fid.F;
-	for ; i < len(tc.Wnames); i++ {
-		if tc.Wnames[i] == ".." {
+	for ; i < len(tc.Wname); i++ {
+		if tc.Wname[i] == ".." {
 			// handle dotdot
 			f = f.parent;
-			wqids[i] = f.Sqid;
+			wqids[i] = f.Qid;
 			continue;
 		}
 		if (wqids[i].Type & p.QTDIR) > 0 {
@@ -296,16 +296,16 @@ func (*Fsrv) Walk(req *Req) {
 			}
 		}
 
-		p := f.Find(tc.Wnames[i]);
+		p := f.Find(tc.Wname[i]);
 		if p == nil {
 			break
 		}
 
 		f = p;
-		wqids[i] = f.Sqid;
+		wqids[i] = f.Qid;
 	}
 
-	if len(tc.Wnames) > 0 && i == 0 {
+	if len(tc.Wname) > 0 && i == 0 {
 		req.RespondError(Enoent);
 		return;
 	}
@@ -348,7 +348,7 @@ func (*Fsrv) Open(req *Req) {
 			req.RespondError(err)
 		}
 	}
-	req.RespondRopen(&fid.F.Sqid, 0);
+	req.RespondRopen(&fid.F.Qid, 0);
 }
 
 func (*Fsrv) Create(req *Req) {
@@ -367,7 +367,7 @@ func (*Fsrv) Create(req *Req) {
 			req.RespondError(err)
 		} else {
 			fid.F = f;
-			req.RespondRcreate(&fid.F.Sqid, 0);
+			req.RespondRcreate(&fid.F.Qid, 0);
 		}
 	} else {
 		req.RespondError(Eperm)
@@ -515,7 +515,7 @@ func (*Fsrv) Wstat(req *Req) {
 	f := fid.F;
 
 	if wop, ok := (f.ops).(FWstatOp); ok {
-		err := wop.Wstat(fid, &tc.Fdir);
+		err := wop.Wstat(fid, &tc.Dir);
 		if err != nil {
 			req.RespondError(err)
 		} else {

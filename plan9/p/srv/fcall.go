@@ -11,7 +11,7 @@ func (srv *Srv) version(req *Req) {
 	tc := req.Tc;
 	conn := req.Conn;
 
-	if tc.Msize < p.IOHdrSz {
+	if tc.Msize < p.IOHDRSZ {
 		req.RespondError(&p.Error{"msize too small", syscall.EINVAL});
 		return;
 	}
@@ -43,7 +43,7 @@ func (srv *Srv) version(req *Req) {
 func (srv *Srv) auth(req *Req) {
 	tc := req.Tc;
 	conn := req.Conn;
-	if tc.Afid == p.Nofid {
+	if tc.Afid == p.NOFID {
 		req.RespondError(Eunknownfid);
 		return;
 	}
@@ -55,8 +55,8 @@ func (srv *Srv) auth(req *Req) {
 	}
 
 	var user p.User = nil;
-	if tc.Nuname != p.Nouid || conn.Dotu {
-		user = srv.Upool.Uid2User(int(tc.Nuname))
+	if tc.Unamenum != p.NOUID || conn.Dotu {
+		user = srv.Upool.Uid2User(int(tc.Unamenum))
 	} else if tc.Uname != "" {
 		user = srv.Upool.Uname2User(tc.Uname)
 	}
@@ -83,7 +83,7 @@ func (srv *Srv) auth(req *Req) {
 }
 
 func (srv *Srv) authPost(req *Req) {
-	if req.Rc != nil && req.Rc.Id == p.Rattach {
+	if req.Rc != nil && req.Rc.Type == p.Rattach {
 		req.Afid.IncRef()
 	}
 }
@@ -91,7 +91,7 @@ func (srv *Srv) authPost(req *Req) {
 func (srv *Srv) attach(req *Req) {
 	tc := req.Tc;
 	conn := req.Conn;
-	if tc.Fid == p.Nofid {
+	if tc.Fid == p.NOFID {
 		req.RespondError(Eunknownfid);
 		return;
 	}
@@ -102,7 +102,7 @@ func (srv *Srv) attach(req *Req) {
 		return;
 	}
 
-	if tc.Afid != p.Nofid {
+	if tc.Afid != p.NOFID {
 		req.Afid = conn.FidGet(tc.Afid);
 		if req.Afid == nil {
 			req.RespondError(Eunknownfid)
@@ -110,8 +110,8 @@ func (srv *Srv) attach(req *Req) {
 	}
 
 	var user p.User = nil;
-	if tc.Nuname != p.Nouid || conn.Dotu {
-		user = srv.Upool.Uid2User(int(tc.Nuname))
+	if tc.Unamenum != p.NOUID || conn.Dotu {
+		user = srv.Upool.Uid2User(int(tc.Unamenum))
 	} else if tc.Uname != "" {
 		user = srv.Upool.Uname2User(tc.Uname)
 	}
@@ -134,8 +134,8 @@ func (srv *Srv) attach(req *Req) {
 }
 
 func (srv *Srv) attachPost(req *Req) {
-	if req.Rc != nil && req.Rc.Id == p.Rattach {
-		req.Fid.Type = req.Rc.Fqid.Type;
+	if req.Rc != nil && req.Rc.Type == p.Rattach {
+		req.Fid.Type = req.Rc.Qid.Type;
 		req.Fid.IncRef();
 	}
 }
@@ -183,7 +183,7 @@ func (srv *Srv) walk(req *Req) {
 	fid := req.Fid;
 
 	/* we can't walk regular files, only clone them */
-	if len(tc.Wnames) > 0 && (fid.Type&p.QTDIR) == 0 {
+	if len(tc.Wname) > 0 && (fid.Type&p.QTDIR) == 0 {
 		req.RespondError(Enotdir);
 		return;
 	}
@@ -210,13 +210,13 @@ func (srv *Srv) walk(req *Req) {
 
 func (srv *Srv) walkPost(req *Req) {
 	rc := req.Rc;
-	if rc == nil || rc.Id != p.Rwalk || req.Newfid == nil {
+	if rc == nil || rc.Type != p.Rwalk || req.Newfid == nil {
 		return
 	}
 
-	n := len(rc.Wqids);
+	n := len(rc.Wqid);
 	if n > 0 {
-		req.Newfid.Type = rc.Wqids[n-1].Type
+		req.Newfid.Type = rc.Wqid[n-1].Type
 	} else {
 		req.Newfid.Type = req.Fid.Type
 	}
@@ -245,7 +245,7 @@ func (srv *Srv) open(req *Req) {
 
 func (srv *Srv) openPost(req *Req) {
 	if req.Fid != nil {
-		req.Fid.opened = req.Rc != nil && req.Rc.Id == p.Ropen
+		req.Fid.opened = req.Rc != nil && req.Rc.Type == p.Ropen
 	}
 }
 
@@ -279,8 +279,8 @@ func (srv *Srv) create(req *Req) {
 }
 
 func (srv *Srv) createPost(req *Req) {
-	if req.Rc != nil && req.Rc.Id == p.Rcreate && req.Fid != nil {
-		req.Fid.Type = req.Rc.Fqid.Type;
+	if req.Rc != nil && req.Rc.Type == p.Rcreate && req.Fid != nil {
+		req.Fid.Type = req.Rc.Qid.Type;
 		req.Fid.opened = true;
 	}
 }
@@ -288,7 +288,7 @@ func (srv *Srv) createPost(req *Req) {
 func (srv *Srv) read(req *Req) {
 	tc := req.Tc;
 	fid := req.Fid;
-	if tc.Count+p.IOHdrSz > req.Conn.Msize {
+	if tc.Count+p.IOHDRSZ > req.Conn.Msize {
 		req.RespondError(Etoolarge)
 	}
 
@@ -327,7 +327,7 @@ func (srv *Srv) read(req *Req) {
 }
 
 func (srv *Srv) readPost(req *Req) {
-	if req.Rc != nil && req.Rc.Id == p.Rread && (req.Fid.Type&p.QTDIR) != 0 {
+	if req.Rc != nil && req.Rc.Type == p.Rread && (req.Fid.Type&p.QTDIR) != 0 {
 		req.Fid.Diroffset += uint64(req.Rc.Count)
 	}
 }
@@ -356,7 +356,7 @@ func (srv *Srv) write(req *Req) {
 		return;
 	}
 
-	if tc.Count+p.IOHdrSz > req.Conn.Msize {
+	if tc.Count+p.IOHDRSZ > req.Conn.Msize {
 		req.RespondError(Etoolarge);
 		return;
 	}
@@ -381,7 +381,7 @@ func (srv *Srv) clunk(req *Req) {
 }
 
 func (srv *Srv) clunkPost(req *Req) {
-	if req.Rc != nil && req.Rc.Id == p.Rclunk && req.Fid != nil {
+	if req.Rc != nil && req.Rc.Type == p.Rclunk && req.Fid != nil {
 		req.Fid.DecRef()
 	}
 }
@@ -389,7 +389,7 @@ func (srv *Srv) clunkPost(req *Req) {
 func (srv *Srv) remove(req *Req)	{ (req.Conn.Srv.ops).(ReqOps).Remove(req) }
 
 func (srv *Srv) removePost(req *Req) {
-	if req.Rc != nil && req.Rc.Id == p.Rremove && req.Fid != nil {
+	if req.Rc != nil && req.Rc.Type == p.Rremove && req.Fid != nil {
 		req.Fid.DecRef()
 	}
 }
@@ -398,15 +398,15 @@ func (srv *Srv) stat(req *Req)	{ (req.Conn.Srv.ops).(ReqOps).Stat(req) }
 
 func (srv *Srv) wstat(req *Req) {
 	fid := req.Fid;
-	stat := req.Tc.Fdir;
-	if stat.Type != uint16(0xFFFF) || stat.Dev != uint32(0xFFFFFFFF) || stat.Sqid.Version != uint32(0xFFFFFFFF) ||
-		stat.Sqid.Path != uint64(0xFFFFFFFFFFFFFFFF) {
+	d := &req.Tc.Dir;
+	if d.Type != uint16(0xFFFF) || d.Dev != uint32(0xFFFFFFFF) || d.Version != uint32(0xFFFFFFFF) ||
+		d.Path != uint64(0xFFFFFFFFFFFFFFFF) {
 		req.RespondError(Eperm);
 		return;
 	}
 
-	if (stat.Mode != 0xFFFFFFFF) && (((fid.Type&p.QTDIR) != 0 && (stat.Mode&p.DMDIR) == 0) ||
-		((fid.Type&p.QTDIR) == 0 && (stat.Mode&p.DMDIR) != 0)) {
+	if (d.Mode != 0xFFFFFFFF) && (((fid.Type&p.QTDIR) != 0 && (d.Mode&p.DMDIR) == 0) ||
+		((d.Type&p.QTDIR) == 0 && (d.Mode&p.DMDIR) != 0)) {
 		req.RespondError(Edirchange);
 		return;
 	}

@@ -31,11 +31,9 @@ func (*InfTime) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
 	if ml > len(buf) {
 		ml = len(buf)
 	}
-	for i := 0; i < ml; i++ {
-		buf[i] = b[i]
-	}
 
-	return len(b), nil;
+	copy(buf, b[0:ml]);
+	return ml, nil;
 }
 
 func (*Time) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
@@ -52,10 +50,7 @@ func (*Time) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
 		n = len(buf)
 	}
 
-	for i := int(offset); i < n; i++ {
-		buf[i] = b[i]
-	}
-
+	copy(buf[offset:int(offset)+n], b[offset:]);
 	return n, nil;
 }
 
@@ -93,5 +88,5 @@ func main() {
 	return;
 
 error:
-	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Nerror));
+	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum));
 }

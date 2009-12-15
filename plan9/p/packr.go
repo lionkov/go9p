@@ -12,8 +12,10 @@ func PackRversion(fc *Fcall, msize uint32, version string) *Error {
 		return err
 	}
 
-	p = ppint32(msize, p, &fc.Msize);
-	p = ppstr(version, p, &fc.Version);
+	fc.Msize = msize;
+	fc.Version = version;
+	p = pint32(msize, p);
+	p = pstr(version, p);
 
 	return nil;
 }
@@ -26,14 +28,15 @@ func PackRauth(fc *Fcall, aqid *Qid) *Error {
 		return err
 	}
 
-	p = ppqid(aqid, p, &fc.Fqid);
+	fc.Qid = *aqid;
+	p = pqid(aqid, p);
 	return nil;
 }
 
 // Create a Rerror message in the specified Fcall. If dotu is true,
 // the function will create a 9P2000.u message. If false, nerror is
 // ignored.
-func PackRerror(fc *Fcall, error string, nerror uint32, dotu bool) *Error {
+func PackRerror(fc *Fcall, error string, errornum uint32, dotu bool) *Error {
 	size := 2 + len(error);	/* ename[s] */
 	if dotu {
 		size += 4	/* ecode[4] */
@@ -44,9 +47,11 @@ func PackRerror(fc *Fcall, error string, nerror uint32, dotu bool) *Error {
 		return err
 	}
 
-	p = ppstr(error, p, &fc.Error);
+	fc.Error = error;
+	p = pstr(error, p);
 	if dotu {
-		p = ppint32(nerror, p, &fc.Nerror)
+		fc.Errornum = errornum;
+		p = pint32(errornum, p);
 	}
 
 	return nil;
@@ -67,7 +72,8 @@ func PackRattach(fc *Fcall, aqid *Qid) *Error {
 		return err
 	}
 
-	p = ppqid(aqid, p, &fc.Fqid);
+	fc.Qid = *aqid;
+	p = pqid(aqid, p);
 	return nil;
 }
 
@@ -81,9 +87,10 @@ func PackRwalk(fc *Fcall, wqids []Qid) *Error {
 	}
 
 	p = pint16(uint16(nwqid), p);
-	fc.Wqids = make([]Qid, nwqid);
+	fc.Wqid = make([]Qid, nwqid);
 	for i := 0; i < nwqid; i++ {
-		p = ppqid(&wqids[i], p, &fc.Wqids[i])
+		fc.Wqid[i] = wqids[i];
+		p = pqid(&wqids[i], p);
 	}
 
 	return nil;
@@ -97,8 +104,10 @@ func PackRopen(fc *Fcall, qid *Qid, iounit uint32) *Error {
 		return err
 	}
 
-	p = ppqid(qid, p, &fc.Fqid);
-	p = ppint32(iounit, p, &fc.Iounit);
+	fc.Qid = *qid;
+	fc.Iounit = iounit;
+	p = pqid(qid, p);
+	p = pint32(iounit, p);
 	return nil;
 }
 
@@ -110,8 +119,10 @@ func PackRcreate(fc *Fcall, qid *Qid, iounit uint32) *Error {
 		return err
 	}
 
-	p = ppqid(qid, p, &fc.Fqid);
-	p = ppint32(iounit, p, &fc.Iounit);
+	fc.Qid = *qid;
+	fc.Iounit = iounit;
+	p = pqid(qid, p);
+	p = pint32(iounit, p);
 	return nil;
 }
 
@@ -126,8 +137,9 @@ func InitRread(fc *Fcall, count uint32) *Error {
 		return err
 	}
 
-	p = ppint32(count, p, &fc.Count);
+	fc.Count = count;
 	fc.Data = p[0:fc.Count];
+	p = pint32(count, p);
 	return nil;
 }
 
@@ -136,8 +148,10 @@ func InitRread(fc *Fcall, count uint32) *Error {
 func SetRreadCount(fc *Fcall, count uint32) {
 	/* we need to update both the packet size as well as the data count */
 	size := 4 + 1 + 2 + 4 + count;	/* size[4] id[1] tag[2] count[4] data[count] */
-	ppint32(size, fc.Pkt, &fc.size);
-	ppint32(count, fc.Pkt[7:len(fc.Pkt)], &fc.Count);
+	pint32(size, fc.Pkt);
+	pint32(count, fc.Pkt[7:len(fc.Pkt)]);
+	fc.size = size;
+	fc.Count = count;
 	fc.Pkt = fc.Pkt[0:size];
 	fc.Data = fc.Data[0:count];
 	fc.size = size;
@@ -151,10 +165,7 @@ func PackRread(fc *Fcall, data []byte) *Error {
 		return err
 	}
 
-	for i := 0; i < len(data); i++ {
-		fc.Data[i] = data[i]
-	}
-
+	copy(fc.Data, data);
 	return nil;
 }
 
@@ -165,7 +176,9 @@ func PackRwrite(fc *Fcall, count uint32) *Error {
 		return err
 	}
 
-	p = ppint32(count, p, &fc.Count);
+	fc.Count = count;
+	
+	p = pint32(count, p);
 	return nil;
 }
 
@@ -194,7 +207,8 @@ func PackRstat(fc *Fcall, d *Dir, dotu bool) *Error {
 	}
 
 	p = pint16(uint16(stsz), p);
-	p = ppstat(d, p, dotu, &fc.Fdir);
+	p = pstat(d, p, dotu);
+	fc.Dir = *d;
 	return nil;
 }
 

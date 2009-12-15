@@ -9,7 +9,6 @@ package clnt
 import "fmt"
 import "log"
 import "net"
-import "os"
 import "plan9/p"
 import "sync"
 import "syscall"
@@ -40,10 +39,10 @@ type Fid struct {
 	sync.Mutex;
 	Clnt	*Clnt;	// Client the fid belongs to
 	Iounit	uint32;
-	Fqid	p.Qid;	// The Qid description for the file
+	p.Qid;		// The Qid description for the file
 	Mode	uint8;	// Open mode (one of p.O* values) (if file is open)
 	Fid	uint32;	// Fid number
-	User	p.User;	// The user the fid belongs to
+	p.User;		// The user the fid belongs to
 }
 
 // The file is similar to the Fid, but is used in the high-level client
@@ -74,8 +73,8 @@ type req struct {
 func (clnt *Clnt) rpcnb(r *req) *p.Error {
 	var tag uint16;
 
-	if r.tc.Id == p.Tversion {
-		tag = p.Notag
+	if r.tc.Type == p.Tversion {
+		tag = p.NOTAG
 	} else {
 		tag = uint16(clnt.tagpool.getId())
 	}
@@ -122,10 +121,7 @@ func (clnt *Clnt) recv() {
 	for {
 		if len(buf) < int(clnt.Msize) {
 			b := make([]byte, clnt.Msize);
-			for i := 0; i < pos; i++ {
-				b[i] = buf[i]
-			}
-
+			copy(b, buf[0:pos]);
 			buf = b;
 		}
 
@@ -187,17 +183,17 @@ func (clnt *Clnt) recv() {
 			}
 			clnt.Unlock();
 
-			if r.tc.Id != r.rc.Id-1 {
-				if r.rc.Id != p.Rerror {
+			if r.tc.Type != r.rc.Type-1 {
+				if r.rc.Type != p.Rerror {
 					r.err = &p.Error{"invalid response id", syscall.EINVAL}
 				} else {
 					if r.err != nil {
-						r.err = &p.Error{r.rc.Error, os.Errno(r.rc.Nerror)}
+						r.err = &p.Error{r.rc.Error, int(r.rc.Errornum)}
 					}
 				}
 			}
 
-			if r.tc.Tag != p.Notag {
+			if r.tc.Tag != p.NOTAG {
 				clnt.tagpool.putId(uint32(r.tc.Tag))
 			}
 
@@ -264,8 +260,8 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 	clnt.conn = c;
 	clnt.Msize = msize;
 	clnt.Dotu = dotu;
-	clnt.tagpool = newPool(uint32(p.Notag));
-	clnt.fidpool = newPool(p.Nofid);
+	clnt.tagpool = newPool(uint32(p.NOTAG));
+	clnt.fidpool = newPool(p.NOFID);
 	clnt.reqout = make(chan *req);
 	clnt.done = make(chan bool);
 

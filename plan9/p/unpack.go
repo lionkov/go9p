@@ -13,27 +13,27 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 	var m uint16;
 
 	fc = new(Fcall);
-	fc.Fid = Nofid;
-	fc.Afid = Nofid;
-	fc.Newfid = Nofid;
+	fc.Fid = NOFID;
+	fc.Afid = NOFID;
+	fc.Newfid = NOFID;
 
 	p := buf;
 	fc.size, p = gint32(p);
-	fc.Id, p = gint8(p);
+	fc.Type, p = gint8(p);
 	fc.Tag, p = gint16(p);
 
 	p = p[0 : fc.size-7];
 	fc.Pkt = buf[0:fc.size];
 	fcsz = int(fc.size);
-	if fc.Id < Tfirst || fc.Id >= Tlast {
+	if fc.Type < Tversion || fc.Type >= Rwstat {
 		return nil, &Error{"invalid id", syscall.EINVAL}, 0
 	}
 
 	var sz uint32;
 	if dotu {
-		sz = minFcsize[fc.Id-Tfirst]
+		sz = minFcsize[fc.Type-Tversion]
 	} else {
-		sz = minFcusize[fc.Id-Tfirst]
+		sz = minFcusize[fc.Type-Tversion]
 	}
 
 	if fc.size < sz {
@@ -42,7 +42,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 	}
 
 	err = nil;
-	switch fc.Id {
+	switch fc.Type {
 	default:
 		return nil, &Error{"invalid message id", syscall.EINVAL}, 0
 
@@ -67,16 +67,16 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 
 		if dotu {
 			if len(p) > 0 {
-				fc.Nuname, p = gint32(p)
+				fc.Unamenum, p = gint32(p)
 			} else {
-				fc.Nuname = Nouid
+				fc.Unamenum = NOUID
 			}
 		} else {
-			fc.Nuname = Nouid
+			fc.Unamenum = NOUID
 		}
 
 	case Rauth, Rattach:
-		p = gqid(p, &fc.Fqid)
+		p = gqid(p, &fc.Qid)
 
 	case Tflush:
 		fc.Oldtag, p = gint16(p)
@@ -96,9 +96,9 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 
 		if dotu {
 			if len(p) > 0 {
-				fc.Nuname, p = gint32(p)
+				fc.Unamenum, p = gint32(p)
 			} else {
-				fc.Nuname = Nouid
+				fc.Unamenum = NOUID
 			}
 		}
 
@@ -109,18 +109,18 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 		}
 
 		if dotu {
-			fc.Nerror, p = gint32(p)
+			fc.Errornum, p = gint32(p)
 		} else {
-			fc.Nerror = 0
+			fc.Errornum = 0
 		}
 
 	case Twalk:
 		fc.Fid, p = gint32(p);
 		fc.Newfid, p = gint32(p);
 		m, p = gint16(p);
-		fc.Wnames = make([]string, m);
+		fc.Wname = make([]string, m);
 		for i := 0; i < int(m); i++ {
-			fc.Wnames[i], p = gstr(p);
+			fc.Wname[i], p = gstr(p);
 			if p == nil {
 				goto szerror
 			}
@@ -128,9 +128,9 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 
 	case Rwalk:
 		m, p = gint16(p);
-		fc.Wqids = make([]Qid, m);
+		fc.Wqid = make([]Qid, m);
 		for i := 0; i < int(m); i++ {
-			p = gqid(p, &fc.Wqids[i])
+			p = gqid(p, &fc.Wqid[i])
 		}
 
 	case Topen:
@@ -138,7 +138,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 		fc.Mode, p = gint8(p);
 
 	case Ropen, Rcreate:
-		p = gqid(p, &fc.Fqid);
+		p = gqid(p, &fc.Qid);
 		fc.Iounit, p = gint32(p);
 
 	case Tcreate:
@@ -187,7 +187,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 
 	case Rstat:
 		m, p = gint16(p);
-		p = gstat(p, &fc.Fdir, dotu);
+		p = gstat(p, &fc.Dir, dotu);
 		if p == nil {
 			goto szerror
 		}
@@ -195,7 +195,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 	case Twstat:
 		fc.Fid, p = gint32(p);
 		m, p = gint16(p);
-		p = gstat(p, &fc.Fdir, dotu);
+		p = gstat(p, &fc.Dir, dotu);
 
 	case Rflush, Rclunk, Rremove, Rwstat:
 	}

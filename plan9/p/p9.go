@@ -6,15 +6,14 @@
 // the 9P2000 protocol.
 package p
 
-import "os"
 import "syscall"
 //import "log"
 import "strings"
 
 // 9P2000 message types
 const (
-	Tfirst, Tversion	uint8	= 100 + iota, 100 + iota;
-	Rversion			= 100 + iota;
+	Tversion	= 100 + iota;
+	Rversion;
 	Tauth;
 	Rauth;
 	Tattach;
@@ -41,33 +40,33 @@ const (
 	Rstat;
 	Twstat;
 	Rwstat;
-	Tlast;
 )
 
 const (
-	MSize	= 8216;	// default message size (8192+IOHdrSz)
-	IOHdrSz	= 24;	// the non-data size of the Twrite messages
-	Port	= 564;	// default port for 9P file servers
+	MSIZE	= 8192+IOHDRSZ;	// default message size (8192+IOHdrSz)
+	IOHDRSZ	= 24;	// the non-data size of the Twrite messages
+	PORT	= 564;	// default port for 9P file servers
 )
 
 // Qid types
 const (
-	QTFILE		= 1 << iota;	// regular file
-	QTSYMLINK;	// symlink (9P2000.u)
-	QTTMP;		// non-backed-up file
-	QTAUTH;		// authentication file
-	QTMOUNT;	// mounted channel
-	QTEXCL;		// exclusive use file
-	QTAPPEND;	// append-only file
-	QTDIR;		// directory
+	QTDIR		= 0x80;	// directories
+	QTAPPEND	= 0x40;	// append only files
+	QTEXCL		= 0x20;	// exclusive use files
+	QTMOUNT		= 0x10;	// mounted channel
+	QTAUTH		= 0x08;	// authentication file
+	QTTMP		= 0x04;	// non-backed-up file
+	QTSYMLINK	= 0x02;	// symbolic link (Unix, 9P2000.u)
+	QTLINK		= 0x01;	// hard link (Unix, 9P2000.u)
+	QTFILE		= 0x00;
 )
 
 // Flags for the mode field in Topen and Tcreate messages
 const (
-	OREAD	= iota;	// open read-only
-	OWRITE;	// open write-only
-	ORDWR;	// open read-write
-	OEXEC;	// execute (== read but check execute permission)
+	OREAD	= 0;	// open read-only
+	OWRITE	= 1;	// open write-only
+	ORDWR	= 2;	// open read-write
+	OEXEC	= 3;	// execute (== read but check execute permission)
 	OTRUNC	= 16;	// or'ed in (except for exec), truncate file first
 	OCEXEC	= 32;	// or'ed in, close on exec
 	ORCLOSE	= 64;	// or'ed in, remove on close
@@ -94,15 +93,15 @@ const (
 )
 
 const (
-	Notag	uint16	= 0xFFFF;	// no tag specified
-	Nofid	uint32	= 0xFFFFFFFF;	// no fid specified
-	Nouid	uint32	= 0xFFFFFFFF;	// no uid specified
+	NOTAG	uint16	= 0xFFFF;	// no tag specified
+	NOFID	uint32	= 0xFFFFFFFF;	// no fid specified
+	NOUID	uint32	= 0xFFFFFFFF;	// no uid specified
 )
 
 // Error represents a 9P2000 (and 9P2000.u) error
 type Error struct {
-	Error	string;		// textual representation of the error
-	Nerror	os.Errno;	// numeric representation of the error (9P2000.u)
+	Error		string;	// textual representation of the error
+	Errornum	int;	// numeric representation of the error (9P2000.u)
 }
 
 // File identifier
@@ -117,7 +116,7 @@ type Dir struct {
 	Size	uint16;	// size-2 of the Dir on the wire
 	Type	uint16;
 	Dev	uint32;
-	Sqid	Qid;	// file's Qid
+	Qid;		// file's Qid
 	Mode	uint32;	// permissions and flags
 	Atime	uint32;	// last access time in seconds
 	Mtime	uint32;	// last modified time in seconds
@@ -129,42 +128,41 @@ type Dir struct {
 
 	/* 9P2000.u extension */
 	Ext	string;	// special file's descriptor
-	Nuid	uint32;	// owner ID
-	Ngid	uint32;	// group ID
-	Nmuid	uint32;	// ID of the last user that modified the file
+	Uidnum	uint32;	// owner ID
+	Gidnum	uint32;	// group ID
+	Muidnum	uint32;	// ID of the last user that modified the file
 }
 
 // Fcall represents a 9P2000 message
 type Fcall struct {
 	size	uint32;	// size of the message
-	Id	uint8;	// message type
-	Tag	uint16;	// message tag
-
+	Type	uint8;	// message type
 	Fid	uint32;		// file identifier
+	Tag	uint16;	// message tag
 	Msize	uint32;		// maximum message size (used by Tversion, Rversion)
 	Version	string;		// protocol version (used by Tversion, Rversion)
+	Oldtag	uint16;		// tag of the message to flush (used by Tflush)
+	Error	string;		// error (used by Rerror)
+	Qid;			// file Qid (used by Rauth, Rattach, Ropen, Rcreate)
+	Iounit	uint32;		// maximum bytes read without breaking in multiple messages (used by Ropen, Rcreate)
 	Afid	uint32;		// authentication fid (used by Tauth, Tattach)
 	Uname	string;		// user name (used by Tauth, Tattach)
 	Aname	string;		// attach name (used by Tauth, Tattach)
-	Fqid	Qid;		// file Qid (used by Rauth, Rattach, Ropen, Rcreate)
-	Error	string;		// error (used by Rerror)
-	Oldtag	uint16;		// tag of the message to flush (used by Tflush)
-	Newfid	uint32;		// the fid that represents the file walked to (used by Twalk)
-	Wnames	[]string;	// list of names to walk (used by Twalk)
-	Wqids	[]Qid;		// list of Qids for the walked files (used by Rwalk)
-	Mode	uint8;		// open mode (used by Topen, Tcreate)
-	Iounit	uint32;		// maximum bytes read without breaking in multiple messages (used by Ropen, Rcreate)
-	Name	string;		// file name (used by Tcreate)
 	Perm	uint32;		// file permission (mode) (used by Tcreate)
+	Name	string;		// file name (used by Tcreate)
+	Mode	uint8;		// open mode (used by Topen, Tcreate)
+	Newfid	uint32;		// the fid that represents the file walked to (used by Twalk)
+	Wname	[]string;	// list of names to walk (used by Twalk)
+	Wqid	[]Qid;		// list of Qids for the walked files (used by Rwalk)
 	Offset	uint64;		// offset in the file to read/write from/to (used by Tread, Twrite)
 	Count	uint32;		// number of bytes read/written (used by Tread, Rread, Twrite, Rwrite)
-	Fdir	Dir;		// file description (used by Rstat, Twstat)
 	Data	[]uint8;	// data read/to-write (used by Rread, Twrite)
+	Dir;			// file description (used by Rstat, Twstat)
 
 	/* 9P2000.u extensions */
-	Nerror	uint32;	// error code, 9P2000.u only (used by Rerror)
+	Errornum	uint32;	// error code, 9P2000.u only (used by Rerror)
 	Ext	string;	// special file description, 9P2000.u only (used by Tcreate)
-	Nuname	uint32;	// user ID, 9P2000.u only (used by Tauth, Tattach)
+	Unamenum	uint32;	// user ID, 9P2000.u only (used by Tauth, Tattach)
 
 	Pkt	[]uint8;	// raw packet data
 }
@@ -303,7 +301,7 @@ func gstat(buf []byte, d *Dir, dotu bool) []byte {
 	d.Size, buf = gint16(buf);
 	d.Type, buf = gint16(buf);
 	d.Dev, buf = gint32(buf);
-	buf = gqid(buf, &d.Sqid);
+	buf = gqid(buf, &d.Qid);
 	d.Mode, buf = gint32(buf);
 	d.Atime, buf = gint32(buf);
 	d.Mtime, buf = gint32(buf);
@@ -333,13 +331,13 @@ func gstat(buf []byte, d *Dir, dotu bool) []byte {
 			return nil
 		}
 
-		d.Nuid, buf = gint32(buf);
-		d.Ngid, buf = gint32(buf);
-		d.Nmuid, buf = gint32(buf);
+		d.Uidnum, buf = gint32(buf);
+		d.Gidnum, buf = gint32(buf);
+		d.Muidnum, buf = gint32(buf);
 	} else {
-		d.Nuid = Nouid;
-		d.Ngid = Nouid;
-		d.Nmuid = Nouid;
+		d.Uidnum = NOUID;
+		d.Gidnum = NOUID;
+		d.Muidnum = NOUID;
 	}
 
 	return buf;
@@ -350,20 +348,10 @@ func pint8(val uint8, buf []byte) []byte {
 	return buf[1:len(buf)];
 }
 
-func ppint8(val uint8, buf []byte, pval *uint8) []byte {
-	*pval = val;
-	return pint8(val, buf);
-}
-
 func pint16(val uint16, buf []byte) []byte {
 	buf[0] = uint8(val);
 	buf[1] = uint8(val >> 8);
 	return buf[2:len(buf)];
-}
-
-func ppint16(val uint16, buf []byte, pval *uint16) []byte {
-	*pval = val;
-	return pint16(val, buf);
 }
 
 func pint32(val uint32, buf []byte) []byte {
@@ -372,11 +360,6 @@ func pint32(val uint32, buf []byte) []byte {
 	buf[2] = uint8(val >> 16);
 	buf[3] = uint8(val >> 24);
 	return buf[4:len(buf)];
-}
-
-func ppint32(val uint32, buf []byte, pval *uint32) []byte {
-	*pval = val;
-	return pint32(val, buf);
 }
 
 func pint64(val uint64, buf []byte) []byte {
@@ -391,24 +374,12 @@ func pint64(val uint64, buf []byte) []byte {
 	return buf[8:len(buf)];
 }
 
-func ppint64(val uint64, buf []byte, pval *uint64) []byte {
-	*pval = val;
-	return pint64(val, buf);
-}
-
 func pstr(val string, buf []byte) []byte {
 	n := uint16(len(val));
 	buf = pint16(n, buf);
 	b := strings.Bytes(val);
-	for i := 0; i < len(b); i++ {
-		buf[i] = b[i]
-	}
+	copy(buf, b);
 	return buf[n:len(buf)];
-}
-
-func ppstr(val string, buf []byte, pval *string) []byte {
-	*pval = val;
-	return pstr(val, buf);
 }
 
 func pqid(val *Qid, buf []byte) []byte {
@@ -417,11 +388,6 @@ func pqid(val *Qid, buf []byte) []byte {
 	buf = pint64(val.Path, buf);
 
 	return buf;
-}
-
-func ppqid(val *Qid, buf []byte, pval *Qid) []byte {
-	*pval = *val;
-	return pqid(val, buf);
 }
 
 func statsz(d *Dir, dotu bool) int {
@@ -438,7 +404,7 @@ func pstat(d *Dir, buf []byte, dotu bool) []byte {
 	buf = pint16(uint16(sz-2), buf);
 	buf = pint16(d.Type, buf);
 	buf = pint32(d.Dev, buf);
-	buf = pqid(&d.Sqid, buf);
+	buf = pqid(&d.Qid, buf);
 	buf = pint32(d.Mode, buf);
 	buf = pint32(d.Atime, buf);
 	buf = pint32(d.Mtime, buf);
@@ -449,17 +415,12 @@ func pstat(d *Dir, buf []byte, dotu bool) []byte {
 	buf = pstr(d.Muid, buf);
 	if dotu {
 		buf = pstr(d.Ext, buf);
-		buf = pint32(d.Nuid, buf);
-		buf = pint32(d.Ngid, buf);
-		buf = pint32(d.Nmuid, buf);
+		buf = pint32(d.Uidnum, buf);
+		buf = pint32(d.Gidnum, buf);
+		buf = pint32(d.Muidnum, buf);
 	}
 
 	return buf;
-}
-
-func ppstat(d *Dir, buf []byte, dotu bool, pval *Dir) []byte {
-	*pval = *d;
-	return pstat(d, buf, dotu);
 }
 
 // Converts a Dir value to its on-the-wire representation and writes it to
@@ -510,7 +471,7 @@ func NewFcall(sz uint32) *Fcall {
 }
 
 // Sets the tag of a Fcall.
-func SetTag(fc *Fcall, tag uint16)	{ ppint16(tag, fc.Pkt[5:len(fc.Pkt)], &fc.Tag) }
+func SetTag(fc *Fcall, tag uint16)	{ fc.Tag = tag; pint16(tag, fc.Pkt[5:len(fc.Pkt)]) }
 
 func packCommon(fc *Fcall, size int, id uint8) ([]byte, *Error) {
 	size += 4 + 1 + 2;	/* size[4] id[1] tag[2] */
@@ -518,10 +479,13 @@ func packCommon(fc *Fcall, size int, id uint8) ([]byte, *Error) {
 		return nil, &Error{"buffer too small", syscall.EINVAL}
 	}
 
+	fc.size = uint32(size);
+	fc.Type = id;
+	fc.Tag = NOTAG;
 	p := fc.Pkt;
-	p = ppint32(uint32(size), p, &fc.size);
-	p = ppint8(id, p, &fc.Id);
-	p = ppint16(Notag, p, &fc.Tag);
+	p = pint32(uint32(size), p);
+	p = pint8(id, p);
+	p = pint16(NOTAG, p);
 	fc.Pkt = fc.Pkt[0:size];
 
 	return p, nil;

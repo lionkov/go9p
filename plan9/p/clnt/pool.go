@@ -65,9 +65,7 @@ func (p *pool) getId() uint32 {
 		}
 
 		b := make([]byte, m);
-		for i := 0; i < len(p.imap); i++ {
-			b[i] = p.imap[i]
-		}
+		copy(b, p.imap);
 		p.imap = b;
 	}
 

@@ -19,7 +19,7 @@ func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, *p.Error) {
 		return nil, err
 	}
 
-	return &rc.Fdir, nil;
+	return &rc.Dir, nil;
 }
 
 // Returns the metadata for a named file, or an Error.

@@ -210,8 +210,8 @@ func (srv *Srv) Start(ops interface{}) bool {
 		srv.Upool = p.OsUsers
 	}
 
-	if srv.Msize < p.IOHdrSz {
-		srv.Msize = p.MSize
+	if srv.Msize < p.IOHDRSZ {
+		srv.Msize = p.MSIZE
 	}
 
 	srv.Reqin = make(chan *Req, srv.Maxpend);
@@ -265,7 +265,7 @@ func (req *Req) Process() {
 	srv := conn.Srv;
 	tc := req.Tc;
 
-	if tc.Fid != p.Nofid && tc.Id != p.Tattach {
+	if tc.Fid != p.NOFID && tc.Type != p.Tattach {
 		srv.Lock();
 		req.Fid = conn.FidGet(tc.Fid);
 		srv.Unlock();
@@ -275,7 +275,7 @@ func (req *Req) Process() {
 		}
 	}
 
-	switch req.Tc.Id {
+	switch req.Tc.Type {
 	default:
 		req.RespondError(&p.Error{"unknown message type", syscall.ENOSYS})
 
@@ -328,7 +328,7 @@ func (req *Req) PostProcess() {
 	srv := req.Conn.Srv;
 
 	/* call the post-handlers (if needed) */
-	switch req.Tc.Id {
+	switch req.Tc.Type {
 	case p.Tauth:
 		srv.authPost(req)
 

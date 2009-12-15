@@ -35,7 +35,7 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, *p.Error) 
 	if afid != nil {
 		afno = afid.Fid
 	} else {
-		afno = p.Nofid
+		afno = p.NOFID
 	}
 
 	fid := clnt.FidAlloc();
@@ -50,14 +50,14 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, *p.Error) 
 		return nil, err
 	}
 
-	fid.Fqid = rc.Fqid;
+	fid.Qid = rc.Qid;
 	fid.User = user;
 	return fid, nil;
 }
 
 // Connects to a file server and attaches to it as the specified user.
 func Mount(net, addr, aname string, user p.User) (*Clnt, *p.Error) {
-	clnt, err := Connect(net, addr, 8192+p.IOHdrSz, true);
+	clnt, err := Connect(net, addr, 8192+p.IOHDRSZ, true);
 	if err != nil {
 		return nil, err
 	}

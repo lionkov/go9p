@@ -8,7 +8,7 @@ import "plan9/p"
 
 // Respond to the request with Rerror message
 func (req *Req) RespondError(err *p.Error) {
-	p.PackRerror(req.Rc, err.Error, uint32(err.Nerror), req.Conn.Dotu);
+	p.PackRerror(req.Rc, err.Error, uint32(err.Errornum), req.Conn.Dotu);
 	req.Respond();
 }
 

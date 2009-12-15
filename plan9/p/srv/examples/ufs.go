@@ -40,7 +40,7 @@ func toError(err os.Error) *p.Error {
 		ecode = syscall.EIO
 	}
 
-	return &p.Error{ename, ecode};
+	return &p.Error{ename, int(ecode)};
 }
 
 func (fid *Fid) stat() *p.Error {
@@ -135,7 +135,7 @@ func dir2Npmode(d *os.Dir, dotu bool) uint32 {
 
 func dir2Dir(path string, d *os.Dir, dotu bool, upool p.Users) *p.Dir {
 	dir := new(p.Dir);
-	dir.Sqid = *dir2Qid(d);
+	dir.Qid = *dir2Qid(d);
 	dir.Mode = dir2Npmode(d, dotu);
 	dir.Atime = uint32(d.Atime_ns / 1000000000);
 	dir.Mtime = uint32(d.Mtime_ns / 1000000000);
@@ -155,9 +155,9 @@ func dir2Dir(path string, d *os.Dir, dotu bool, upool p.Users) *p.Dir {
 	dir.Muid = "none";
 	dir.Ext = "";
 	if dotu {
-		dir.Nuid = uint32(u.Id());
-		dir.Ngid = uint32(g.Id());
-		dir.Nmuid = p.Nouid;
+		dir.Uidnum = uint32(u.Id());
+		dir.Gidnum = uint32(g.Id());
+		dir.Muidnum = p.NOUID;
 		if d.IsSymlink() {
 			var err os.Error;
 			dir.Ext, err = os.Readlink(path);
@@ -242,11 +242,11 @@ func (*Ufs) Walk(req *srv.Req) {
 	}
 
 	nfid := req.Newfid.Aux.(*Fid);
-	wqids := make([]p.Qid, len(tc.Wnames));
+	wqids := make([]p.Qid, len(tc.Wname));
 	path := fid.path;
 	i := 0;
-	for ; i < len(tc.Wnames); i++ {
-		p := path + "/" + tc.Wnames[i];
+	for ; i < len(tc.Wname); i++ {
+		p := path + "/" + tc.Wname[i];
 		st, err := os.Lstat(p);
 		if err != nil {
 			if i == 0 {
@@ -475,17 +475,17 @@ func (*Ufs) Wstat(req *srv.Req) {
 		return;
 	}
 
-	dir := &req.Tc.Fdir;
+	dir := &req.Tc.Dir;
 	up := req.Conn.Srv.Upool;
 	if req.Conn.Dotu {
-		uid = dir.Nuid;
-		gid = dir.Ngid;
+		uid = dir.Uidnum;
+		gid = dir.Gidnum;
 	} else {
-		uid = p.Nouid;
-		gid = p.Nouid;
+		uid = p.NOUID;
+		gid = p.NOUID;
 	}
 
-	if uid == p.Nouid && dir.Uid != "" {
+	if uid == p.NOUID && dir.Uid != "" {
 		user := up.Uname2User(dir.Uid);
 		if user == nil {
 			req.RespondError(srv.Enouser);
@@ -495,7 +495,7 @@ func (*Ufs) Wstat(req *srv.Req) {
 		uid = uint32(user.Id());
 	}
 
-	if gid == p.Nouid && dir.Gid != "" {
+	if gid == p.NOUID && dir.Gid != "" {
 		group := up.Gname2Group(dir.Gid);
 		if group == nil {
 			req.RespondError(srv.Enouser);

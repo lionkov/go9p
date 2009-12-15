@@ -33,9 +33,7 @@ func (conn *Conn) recv() {
 	for {
 		if len(buf) < int(conn.Msize) {
 			b := make([]byte, conn.Msize);
-			for i := 0; i < pos; i++ {
-				b[i] = buf[i]
-			}
+			copy(b, buf[0:pos]);
 			buf = b;
 		}
 

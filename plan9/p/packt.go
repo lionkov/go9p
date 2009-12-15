@@ -12,14 +12,16 @@ func PackTversion(fc *Fcall, msize uint32, version string) *Error {
 		return err
 	}
 
-	p = ppint32(msize, p, &fc.Msize);
-	p = ppstr(version, p, &fc.Version);
+	fc.Msize = msize;
+	fc.Version = version;
+	p = pint32(msize, p);
+	p = pstr(version, p);
 
 	return nil;
 }
 
 // Create a Tauth message in the specified Fcall.
-func PackTauth(fc *Fcall, fid uint32, uname string, aname string, nuname uint32, dotu bool) *Error {
+func PackTauth(fc *Fcall, fid uint32, uname string, aname string, unamenum uint32, dotu bool) *Error {
 	size := 4 + 2 + 2 + len(uname) + len(aname);	/* fid[4] uname[s] aname[s] */
 	if dotu {
 		size += 4	/* n_uname[4] */
@@ -30,11 +32,15 @@ func PackTauth(fc *Fcall, fid uint32, uname string, aname string, nuname uint32,
 		return err
 	}
 
-	p = ppint32(fid, p, &fc.Fid);
-	p = ppstr(uname, p, &fc.Uname);
-	p = ppstr(aname, p, &fc.Aname);
+	fc.Fid = fid;
+	fc.Uname = uname;
+	fc.Aname = aname;
+	p = pint32(fid, p);
+	p = pstr(uname, p);
+	p = pstr(aname, p);
 	if dotu {
-		p = ppint32(nuname, p, &fc.Nuname)
+		fc.Unamenum = unamenum;
+		p = pint32(unamenum, p);
 	}
 
 	return nil;
@@ -47,14 +53,15 @@ func PackTflush(fc *Fcall, oldtag uint16) *Error {
 		return err
 	}
 
-	p = ppint16(oldtag, p, &fc.Oldtag);
+	fc.Oldtag = oldtag;
+	p = pint16(oldtag, p);
 	return nil;
 }
 
 // Create a Tattach message in the specified Fcall. If dotu is true,
 // the function will create 9P2000.u including the nuname value, otherwise
 // nuname is ignored.
-func PackTattach(fc *Fcall, fid uint32, afid uint32, uname string, aname string, nuname uint32, dotu bool) *Error {
+func PackTattach(fc *Fcall, fid uint32, afid uint32, uname string, aname string, unamenum uint32, dotu bool) *Error {
 	size := 4 + 4 + 2 + len(uname) + 2 + len(aname);	/* fid[4] afid[4] uname[s] aname[s] */
 	if dotu {
 		size += 4
@@ -65,12 +72,17 @@ func PackTattach(fc *Fcall, fid uint32, afid uint32, uname string, aname string,
 		return err
 	}
 
-	p = ppint32(fid, p, &fc.Fid);
-	p = ppint32(afid, p, &fc.Afid);
-	p = ppstr(uname, p, &fc.Uname);
-	p = ppstr(aname, p, &fc.Aname);
+	fc.Fid = fid;
+	fc.Afid = afid;
+	fc.Uname = uname;
+	fc.Aname = aname;
+	p = pint32(fid, p);
+	p = pint32(afid, p);
+	p = pstr(uname, p);
+	p = pstr(aname, p);
 	if dotu {
-		p = ppint32(nuname, p, &fc.Nuname)
+		fc.Unamenum = unamenum;
+		p = pint32(unamenum, p);
 	}
 
 	return nil;
@@ -89,12 +101,15 @@ func PackTwalk(fc *Fcall, fid uint32, newfid uint32, wnames []string) *Error {
 		return err
 	}
 
-	p = ppint32(fid, p, &fc.Fid);
-	p = ppint32(newfid, p, &fc.Newfid);
+	fc.Fid = fid;
+	fc.Newfid = newfid;
+	p = pint32(fid, p);
+	p = pint32(newfid, p);
 	p = pint16(uint16(nwname), p);
-	fc.Wnames = make([]string, nwname);
+	fc.Wname = make([]string, nwname);
 	for i := 0; i < nwname; i++ {
-		p = ppstr(wnames[i], p, &fc.Wnames[i])
+		fc.Wname[i] = wnames[i];
+		p = pstr(wnames[i], p);
 	}
 
 	return nil;
@@ -108,8 +123,10 @@ func PackTopen(fc *Fcall, fid uint32, mode uint8) *Error {
 		return err
 	}
 
-	p = ppint32(fid, p, &fc.Fid);
-	p = ppint8(mode, p, &fc.Mode);
+	fc.Fid = fid;
+	fc.Mode = mode;
+	p = pint32(fid, p);
+	p = pint8(mode, p);
 	return nil;
 }
 
@@ -128,13 +145,18 @@ func PackTcreate(fc *Fcall, fid uint32, name string, perm uint32, mode uint8, ex
 		return err
 	}
 
-	p = ppint32(fid, p, &fc.Fid);
-	p = ppstr(name, p, &fc.Name);
-	p = ppint32(perm, p, &fc.Perm);
-	p = ppint8(mode, p, &fc.Mode);
+	fc.Fid = fid;
+	fc.Name = name;
+	fc.Perm = perm;
+	fc.Mode = mode;
+	p = pint32(fid, p);
+	p = pstr(name, p);
+	p = pint32(perm, p);
+	p = pint8(mode, p);
 
 	if dotu {
-		p = ppstr(ext, p, &fc.Ext)
+		fc.Ext = ext;
+		p = pstr(ext, p);
 	}
 
 	return nil;
@@ -148,9 +170,12 @@ func PackTread(fc *Fcall, fid uint32, offset uint64, count uint32) *Error {
 		return err
 	}
 
-	p = ppint32(fid, p, &fc.Fid);
-	p = ppint64(offset, p, &fc.Offset);
-	p = ppint32(count, p, &fc.Count);
+	fc.Fid = fid;
+	fc.Offset = offset;
+	fc.Count = count;
+	p = pint32(fid, p);
+	p = pint64(offset, p);
+	p = pint32(count, p);
 	return nil;
 }
 
@@ -163,13 +188,14 @@ func PackTwrite(fc *Fcall, fid uint32, offset uint64, data []byte) *Error {
 		return err
 	}
 
-	p = ppint32(fid, p, &fc.Fid);
-	p = ppint64(offset, p, &fc.Offset);
-	p = ppint32(uint32(count), p, &fc.Count);
+	fc.Fid = fid;
+	fc.Offset = offset;
+	fc.Count = uint32(count);
+	p = pint32(fid, p);
+	p = pint64(offset, p);
+	p = pint32(uint32(count), p);
 	fc.Data = p;
-	for i := 0; i < len(data); i++ {
-		fc.Data[i] = data[i]
-	}
+	copy(fc.Data, data);
 	return nil;
 }
 
@@ -180,7 +206,8 @@ func PackTclunk(fc *Fcall, fid uint32) *Error {
 		return err
 	}
 
-	p = ppint32(fid, p, &fc.Fid);
+	fc.Fid = fid;
+	p = pint32(fid, p);
 	return nil;
 }
 
@@ -191,7 +218,8 @@ func PackTremove(fc *Fcall, fid uint32) *Error {
 		return err
 	}
 
-	p = ppint32(fid, p, &fc.Fid);
+	fc.Fid = fid;
+	p = pint32(fid, p);
 	return nil;
 }
 
@@ -202,7 +230,8 @@ func PackTstat(fc *Fcall, fid uint32) *Error {
 		return err
 	}
 
-	p = ppint32(fid, p, &fc.Fid);
+	fc.Fid = fid;
+	p = pint32(fid, p);
 	return nil;
 }
 
@@ -217,7 +246,9 @@ func PackTwstat(fc *Fcall, fid uint32, d *Dir, dotu bool) *Error {
 		return err
 	}
 
-	p = ppint32(fid, p, &fc.Fid);
-	p = ppstat(d, p, dotu, &fc.Fdir);
+	fc.Fid = fid;
+	fc.Dir = *d;
+	p = pint32(fid, p);
+	p = pstat(d, p, dotu);
 	return nil;
 }
