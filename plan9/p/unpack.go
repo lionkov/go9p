@@ -107,7 +107,6 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 		if p == nil {
 			goto szerror
 		}
-
 		if dotu {
 			fc.Errornum, p = gint32(p)
 		} else {
