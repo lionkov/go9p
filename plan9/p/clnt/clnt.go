@@ -18,6 +18,7 @@ import "syscall"
 // the files exported by the server.
 type Clnt struct {
 	sync.Mutex;
+	Finished	bool;	// client is no longer connected to server
 	Debuglevel	int;	// =0 don't print anything, >0 print Fcalls, >1 print raw packets
 	Msize		uint32;	// Maximum size of the 9P messages
 	Dotu		bool;	// If true, 9P2000.u protocol is spoken
@@ -228,6 +229,7 @@ func (clnt *Clnt) send() {
 	for {
 		select {
 		case <-clnt.done:
+			clnt.Finished = true;
 			return
 
 		case req := <-clnt.reqout:
@@ -242,7 +244,7 @@ func (clnt *Clnt) send() {
 			for buf := req.tc.Pkt; len(buf) > 0; {
 				n, err := clnt.conn.Write(buf);
 				if err != nil {
-					/* jsut close the socket, will get signal on clnt.done */
+					/* just close the socket, will get signal on clnt.done */
 					clnt.conn.Close();
 					break;
 				}
