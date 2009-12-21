@@ -533,6 +533,10 @@ func (*Fsrv) FidDestroy(ffid *Fid) {
 	fid := ffid.Aux.(*FFid);
 	f := fid.F;
 
+	if f == nil {
+		return; // otherwise errs in bad walks
+	}
+
 	if op, ok := (f.ops).(FDestroyOp); ok {
 		op.FidDestroy(fid)
 	}
