@@ -66,7 +66,7 @@ func (clnt *Clnt) FCreate(path string, perm uint32, mode uint8) (*File, *p.Error
 		return nil, err
 	}
 
-	err = clnt.Create(fid, path[n:len(path)], perm, mode, "");
+	err = clnt.Create(fid, path[n+1:len(path)], perm, mode, "");
 	if err != nil {
 		clnt.Clunk(fid);
 		return nil, err;
