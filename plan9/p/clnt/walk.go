@@ -23,6 +23,9 @@ func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]p.Qid, *p.Erro
 	if err != nil {
 		return nil, err
 	}
+	if rc.Type == p.Rerror {
+		return nil, &p.Error{rc.Error, int(rc.Errornum)}
+	}
 
 	return rc.Wqid, nil;
 }
@@ -72,6 +75,10 @@ func (clnt *Clnt) FWalk(path string) (*Fid, *p.Error) {
 		var rc *p.Fcall;
 		rc, err = clnt.rpc(tc);
 		if err != nil {
+			goto error
+		}
+		if rc.Type == p.Rerror {
+			err = &p.Error{rc.Error, int(rc.Errornum)}
 			goto error
 		}
 

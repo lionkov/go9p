@@ -18,6 +18,9 @@ func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, *p.Error) {
 	if err != nil {
 		return nil, err
 	}
+	if rc.Type == p.Rerror {
+		return nil, &p.Error{rc.Error, int(rc.Errornum)}
+	}
 
 	return &rc.Dir, nil;
 }

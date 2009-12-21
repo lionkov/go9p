@@ -20,6 +20,9 @@ func (clnt *Clnt) Open(fid *Fid, mode uint8) *p.Error {
 	if err != nil {
 		return err
 	}
+	if rc.Type == p.Rerror {
+		return &p.Error{rc.Error, int(rc.Errornum)}
+	}
 
 	fid.Qid = rc.Qid;
 	fid.Iounit = rc.Iounit;
@@ -43,6 +46,10 @@ func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, ext str
 	if err != nil {
 		return err
 	}
+	if rc.Type == p.Rerror {
+		return &p.Error{rc.Error, int(rc.Errornum)}
+	}
+
 
 	fid.Qid = rc.Qid;
 	fid.Iounit = rc.Iounit;

@@ -19,6 +19,9 @@ func (clnt *Clnt) Write(fid *Fid, data []byte, offset uint64) (int, *p.Error) {
 	if err != nil {
 		return 0, err
 	}
+	if rc.Type == p.Rerror {
+		return 0, &p.Error{rc.Error, int(rc.Errornum)}
+	}
 
 	return int(rc.Count), nil;
 }

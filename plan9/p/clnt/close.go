@@ -14,8 +14,13 @@ func (clnt *Clnt) Clunk(fid *Fid) *p.Error {
 		return err
 	}
 
-	_, err = clnt.rpc(tc);
+	rc, err := clnt.rpc(tc);
 	clnt.fidpool.putId(fid.Fid);
+
+	if rc.Type == p.Rerror {
+		return &p.Error{rc.Error, int(rc.Errornum)}
+	}
+
 
 	return err;
 }
