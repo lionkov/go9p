@@ -34,9 +34,7 @@ func (clnt *Clnt) FRemove(path string) *p.Error {
 	}
 
 	err = clnt.Remove(fid);
-	if err != nil {
-		clnt.Clunk(fid)
-	}
+	clnt.Clunk(fid) // Remove always clunks
 
 	return err;
 }
