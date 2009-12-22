@@ -4,7 +4,7 @@
 
 include $(GOROOT)/src/Make.$(GOARCH)
 
-TARG=ls read write
+TARG=ls read write cl
 OFILES=$(TARG:%=%.$O)
 
 all: $(TARG)
