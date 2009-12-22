@@ -15,6 +15,10 @@ func (clnt *Clnt) Clunk(fid *Fid) *p.Error {
 	}
 
 	rc, err := clnt.rpc(tc);
+	if err != nil {
+		return err
+	}
+
 	clnt.fidpool.putId(fid.Fid);
 
 	if rc.Type == p.Rerror {

@@ -74,6 +74,9 @@ type req struct {
 func (clnt *Clnt) rpcnb(r *req) *p.Error {
 	var tag uint16;
 
+	if clnt.Finished {
+		return &p.Error{"Client no longer connected", 0}
+	}
 	if r.tc.Type == p.Tversion {
 		tag = p.NOTAG
 	} else {
@@ -120,6 +123,7 @@ func (clnt *Clnt) recv() {
 	buf := make([]byte, clnt.Msize);
 	pos := 0;
 	for {
+		print("recv\n")
 		if len(buf) < int(clnt.Msize) {
 			b := make([]byte, clnt.Msize);
 			copy(b, buf[0:pos]);
