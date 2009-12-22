@@ -135,29 +135,36 @@ func dirtostr(d *p.Dir) string {
 }
 
 func lsone(c *clnt.Clnt, s string, long bool) {
-	file, err := c.FOpen(s, p.OREAD)
+	st, err := c.FStat(normpath(s))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error opening dir: %s\n", err.Error)
+		fmt.Fprintf(os.Stderr, "error stat %s: %s\n", err.Error)
 		return
 	}
-	defer file.Close()
-	for {
-		d, err := file.Readdir(0)
+	if st.Mode&p.DMDIR != 0 {
+		file, err := c.FOpen(s, p.OREAD)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading dir: %s\n", err.Error)
+			fmt.Fprintf(os.Stderr, "error opening dir: %s\n", err.Error)
+			return
 		}
-
-		if d == nil || len(d) == 0 {
-			break
-		}
-
-		for _, dir := range d {
-			if long {
-				fmt.Fprintf(os.Stdout, "%s\n", dirtostr(dir))
-			} else {
-				os.Stdout.WriteString(dir.Name + "\n")
+		defer file.Close()
+		for {
+			d, err := file.Readdir(0)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error reading dir: %s\n", err.Error)
+			}
+			if d == nil || len(d) == 0 {
+				break
+			}
+			for _, dir := range d {
+				if long {
+					fmt.Fprintf(os.Stdout, "%s\n", dirtostr(dir))
+				} else {
+					os.Stdout.WriteString(dir.Name + "\n")
+				}
 			}
 		}
+	} else {
+		fmt.Fprintf(os.Stdout, "%s\n", dirtostr(st))
 	}
 }
 

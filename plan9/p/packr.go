@@ -177,7 +177,7 @@ func PackRwrite(fc *Fcall, count uint32) *Error {
 	}
 
 	fc.Count = count;
-	
+
 	p = pint32(count, p);
 	return nil;
 }

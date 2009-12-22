@@ -22,6 +22,7 @@ type InfTime struct {
 
 var addr = flag.String("addr", ":5640", "network address")
 var debug = flag.Bool("d", false, "print debug messages")
+var debugall = flag.Bool("D", false, "print packets as well as debug messages")
 
 func (*InfTime) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
 	// push out time ignoring offset (infinite read)
@@ -82,6 +83,10 @@ func main() {
 	if *debug {
 		s.Debuglevel = 1
 	}
+	if *debugall {
+		s.Debuglevel = 2
+	}
+
 
 	s.Start(s);
 	srv.StartListener("tcp", *addr, &s.Srv);
