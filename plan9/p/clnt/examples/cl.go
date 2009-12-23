@@ -439,9 +439,13 @@ func main() {
 		user = p.OsUsers.Uname2User(*ouser)
 	}
 
-	c, err = clnt.Mount("tcp", *addr, "", user)
+	naddr := *addr
+	if strings.LastIndex(naddr, ":") == -1 {
+		naddr = naddr+":5640"
+	}
+	c, err = clnt.Mount("tcp", naddr, "", user)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %s %d\n", err.Error, err.Errornum)
+		fmt.Fprintf(os.Stderr, "error mounting %s: %s\n", naddr, err.Error)
 		os.Exit(1)
 	}
 
