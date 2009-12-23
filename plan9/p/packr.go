@@ -138,7 +138,7 @@ func InitRread(fc *Fcall, count uint32) *Error {
 	}
 
 	fc.Count = count;
-	fc.Data = p[0:fc.Count];
+	fc.Data = p[4:fc.Count+4];
 	p = pint32(count, p);
 	return nil;
 }

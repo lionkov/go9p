@@ -137,7 +137,7 @@ func dirtostr(d *p.Dir) string {
 func lsone(c *clnt.Clnt, s string, long bool) {
 	st, err := c.FStat(normpath(s))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error stat %s: %s\n", err.Error)
+		fmt.Fprintf(os.Stderr, "error stat: %s\n", err.Error)
 		return
 	}
 	if st.Mode&p.DMDIR != 0 {
