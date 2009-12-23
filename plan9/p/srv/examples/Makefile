@@ -4,7 +4,7 @@
 
 include $(GOROOT)/src/Make.$(GOARCH)
 
-TARG=ufs time clones
+TARG=ufs timefs clonefs
 OFILES=$(TARG:%=%.$O)
 
 all: $(TARG)
