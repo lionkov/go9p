@@ -370,7 +370,7 @@ func pint64(val uint64, buf []byte) []byte {
 	buf[4] = uint8(val >> 32);
 	buf[5] = uint8(val >> 40);
 	buf[6] = uint8(val >> 48);
-	buf[7] = uint8(val >> 58);
+	buf[7] = uint8(val >> 56);
 	return buf[8:len(buf)];
 }
 
