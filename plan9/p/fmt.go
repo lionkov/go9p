@@ -7,7 +7,7 @@ package p
 import "fmt"
 
 func permToString(perm uint32) string {
-	ret := "";
+	ret := ""
 
 	if perm&DMDIR != 0 {
 		ret += "d"
@@ -45,12 +45,12 @@ func permToString(perm uint32) string {
 		ret += "L"
 	}
 
-	ret += fmt.Sprintf("%o", perm&0777);
-	return ret;
+	ret += fmt.Sprintf("%o", perm&0777)
+	return ret
 }
 
 func (qid *Qid) String() string {
-	b := "";
+	b := ""
 	if qid.Type&QTDIR != 0 {
 		b += "d"
 	}
@@ -70,23 +70,23 @@ func (qid *Qid) String() string {
 		b += "L"
 	}
 
-	return fmt.Sprintf("(%x %x '%s')", qid.Path, qid.Version, b);
+	return fmt.Sprintf("(%x %x '%s')", qid.Path, qid.Version, b)
 }
 
 func (d *Dir) String() string {
-	ret := fmt.Sprintf("'%s' '%s' '%s' '%s' q ", d.Name, d.Uid, d.Gid, d.Muid);
-	ret += d.Qid.String() + " m " + permToString(d.Mode);
+	ret := fmt.Sprintf("'%s' '%s' '%s' '%s' q ", d.Name, d.Uid, d.Gid, d.Muid)
+	ret += d.Qid.String() + " m " + permToString(d.Mode)
 	ret += fmt.Sprintf(" at %d mt %d l %d t %d d %d", d.Atime, d.Mtime,
-		d.Length, d.Type, d.Dev);
+		d.Length, d.Type, d.Dev)
 
 	/* dotu ? */
-	ret += " ext " + d.Ext;
+	ret += " ext " + d.Ext
 
-	return ret;
+	return ret
 }
 
 func (fc *Fcall) String() string {
-	ret := "";
+	ret := ""
 
 	switch fc.Type {
 	default:
@@ -110,12 +110,12 @@ func (fc *Fcall) String() string {
 	case Rerror:
 		ret = fmt.Sprintf("Rerror tag %d ename '%s' ecode %d", fc.Tag, fc.Error, fc.Errornum)
 	case Twalk:
-		ret = fmt.Sprintf("Twalk tag %d fid %d newfid %d ", fc.Tag, fc.Fid, fc.Newfid);
+		ret = fmt.Sprintf("Twalk tag %d fid %d newfid %d ", fc.Tag, fc.Fid, fc.Newfid)
 		for i := 0; i < len(fc.Wname); i++ {
 			ret += fmt.Sprintf("%d:'%s' ", i, fc.Wname[i])
 		}
 	case Rwalk:
-		ret = fmt.Sprintf("Rwalk tag %d ", fc.Tag);
+		ret = fmt.Sprintf("Rwalk tag %d ", fc.Tag)
 		for i := 0; i < len(fc.Wqid); i++ {
 			ret += fmt.Sprintf("%v ", &fc.Wqid[i])
 		}
@@ -126,9 +126,9 @@ func (fc *Fcall) String() string {
 	case Rcreate:
 		ret = fmt.Sprintf("Rcreate tag %d qid %v iounit %d", fc.Tag, fc.Qid, fc.Iounit)
 	case Tcreate:
-		ret = fmt.Sprintf("Tcreate tag %d fid %d name '%s' perm ", fc.Tag, fc.Fid, fc.Name);
-		ret += permToString(fc.Perm);
-		ret += fmt.Sprintf(" mode %x ", fc.Mode);
+		ret = fmt.Sprintf("Tcreate tag %d fid %d name '%s' perm ", fc.Tag, fc.Fid, fc.Name)
+		ret += permToString(fc.Perm)
+		ret += fmt.Sprintf(" mode %x ", fc.Mode)
 	case Tread:
 		ret = fmt.Sprintf("Tread tag %d fid %d offset %d count %d", fc.Tag, fc.Fid, fc.Offset, fc.Count)
 	case Rread:
@@ -157,5 +157,5 @@ func (fc *Fcall) String() string {
 		ret = fmt.Sprintf("Rwstat tag %d", fc.Tag)
 	}
 
-	return ret;
+	return ret
 }

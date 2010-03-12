@@ -10,26 +10,26 @@ import "syscall"
 // dotu is true, reads 9P2000.u messages. Returns the unpacked message,
 // error and how many bytes from the buffer were used by the message.
 func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
-	var m uint16;
+	var m uint16
 
-	fc = new(Fcall);
-	fc.Fid = NOFID;
-	fc.Afid = NOFID;
-	fc.Newfid = NOFID;
+	fc = new(Fcall)
+	fc.Fid = NOFID
+	fc.Afid = NOFID
+	fc.Newfid = NOFID
 
-	p := buf;
-	fc.size, p = gint32(p);
-	fc.Type, p = gint8(p);
-	fc.Tag, p = gint16(p);
+	p := buf
+	fc.size, p = gint32(p)
+	fc.Type, p = gint8(p)
+	fc.Tag, p = gint16(p)
 
-	p = p[0 : fc.size-7];
-	fc.Pkt = buf[0:fc.size];
-	fcsz = int(fc.size);
+	p = p[0 : fc.size-7]
+	fc.Pkt = buf[0:fc.size]
+	fcsz = int(fc.size)
 	if fc.Type < Tversion || fc.Type >= Rwstat {
 		return nil, &Error{"invalid id", syscall.EINVAL}, 0
 	}
 
-	var sz uint32;
+	var sz uint32
 	if dotu {
 		sz = minFcsize[fc.Type-Tversion]
 	} else {
@@ -41,26 +41,26 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 		return nil, &Error{"invalid size", syscall.EINVAL}, 0
 	}
 
-	err = nil;
+	err = nil
 	switch fc.Type {
 	default:
 		return nil, &Error{"invalid message id", syscall.EINVAL}, 0
 
 	case Tversion, Rversion:
-		fc.Msize, p = gint32(p);
-		fc.Version, p = gstr(p);
+		fc.Msize, p = gint32(p)
+		fc.Version, p = gstr(p)
 		if p == nil {
 			goto szerror
 		}
 
 	case Tauth:
-		fc.Afid, p = gint32(p);
-		fc.Uname, p = gstr(p);
+		fc.Afid, p = gint32(p)
+		fc.Uname, p = gstr(p)
 		if p == nil {
 			goto szerror
 		}
 
-		fc.Aname, p = gstr(p);
+		fc.Aname, p = gstr(p)
 		if p == nil {
 			goto szerror
 		}
@@ -82,14 +82,14 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 		fc.Oldtag, p = gint16(p)
 
 	case Tattach:
-		fc.Fid, p = gint32(p);
-		fc.Afid, p = gint32(p);
-		fc.Uname, p = gstr(p);
+		fc.Fid, p = gint32(p)
+		fc.Afid, p = gint32(p)
+		fc.Uname, p = gstr(p)
 		if p == nil {
 			goto szerror
 		}
 
-		fc.Aname, p = gstr(p);
+		fc.Aname, p = gstr(p)
 		if p == nil {
 			goto szerror
 		}
@@ -103,7 +103,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 		}
 
 	case Rerror:
-		fc.Error, p = gstr(p);
+		fc.Error, p = gstr(p)
 		if p == nil {
 			goto szerror
 		}
@@ -114,69 +114,69 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 		}
 
 	case Twalk:
-		fc.Fid, p = gint32(p);
-		fc.Newfid, p = gint32(p);
-		m, p = gint16(p);
-		fc.Wname = make([]string, m);
+		fc.Fid, p = gint32(p)
+		fc.Newfid, p = gint32(p)
+		m, p = gint16(p)
+		fc.Wname = make([]string, m)
 		for i := 0; i < int(m); i++ {
-			fc.Wname[i], p = gstr(p);
+			fc.Wname[i], p = gstr(p)
 			if p == nil {
 				goto szerror
 			}
 		}
 
 	case Rwalk:
-		m, p = gint16(p);
-		fc.Wqid = make([]Qid, m);
+		m, p = gint16(p)
+		fc.Wqid = make([]Qid, m)
 		for i := 0; i < int(m); i++ {
 			p = gqid(p, &fc.Wqid[i])
 		}
 
 	case Topen:
-		fc.Fid, p = gint32(p);
-		fc.Mode, p = gint8(p);
+		fc.Fid, p = gint32(p)
+		fc.Mode, p = gint8(p)
 
 	case Ropen, Rcreate:
-		p = gqid(p, &fc.Qid);
-		fc.Iounit, p = gint32(p);
+		p = gqid(p, &fc.Qid)
+		fc.Iounit, p = gint32(p)
 
 	case Tcreate:
-		fc.Fid, p = gint32(p);
-		fc.Name, p = gstr(p);
+		fc.Fid, p = gint32(p)
+		fc.Name, p = gstr(p)
 		if p == nil {
 			goto szerror
 		}
-		fc.Perm, p = gint32(p);
-		fc.Mode, p = gint8(p);
+		fc.Perm, p = gint32(p)
+		fc.Mode, p = gint8(p)
 		if dotu {
-			fc.Ext, p = gstr(p);
+			fc.Ext, p = gstr(p)
 			if p == nil {
 				goto szerror
 			}
 		}
 
 	case Tread:
-		fc.Fid, p = gint32(p);
-		fc.Offset, p = gint64(p);
-		fc.Count, p = gint32(p);
+		fc.Fid, p = gint32(p)
+		fc.Offset, p = gint64(p)
+		fc.Count, p = gint32(p)
 
 	case Rread:
-		fc.Count, p = gint32(p);
+		fc.Count, p = gint32(p)
 		if len(p) < int(fc.Count) {
 			goto szerror
 		}
-		fc.Data = p;
-		p = p[fc.Count:len(p)];
+		fc.Data = p
+		p = p[fc.Count:len(p)]
 
 	case Twrite:
-		fc.Fid, p = gint32(p);
-		fc.Offset, p = gint64(p);
-		fc.Count, p = gint32(p);
+		fc.Fid, p = gint32(p)
+		fc.Offset, p = gint64(p)
+		fc.Count, p = gint32(p)
 		if len(p) != int(fc.Count) {
 			goto szerror
 		}
-		fc.Data = p;
-		p = p[fc.Count:len(p)];
+		fc.Data = p
+		p = p[fc.Count:len(p)]
 
 	case Rwrite:
 		fc.Count, p = gint32(p)
@@ -185,16 +185,16 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 		fc.Fid, p = gint32(p)
 
 	case Rstat:
-		m, p = gint16(p);
-		p = gstat(p, &fc.Dir, dotu);
+		m, p = gint16(p)
+		p = gstat(p, &fc.Dir, dotu)
 		if p == nil {
 			goto szerror
 		}
 
 	case Twstat:
-		fc.Fid, p = gint32(p);
-		m, p = gint16(p);
-		p = gstat(p, &fc.Dir, dotu);
+		fc.Fid, p = gint32(p)
+		m, p = gint16(p)
+		p = gstat(p, &fc.Dir, dotu)
 
 	case Rflush, Rclunk, Rremove, Rwstat:
 	}
@@ -203,5 +203,5 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 		goto szerror
 	}
 
-	return;
+	return
 }

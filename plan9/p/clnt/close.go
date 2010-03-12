@@ -8,25 +8,24 @@ import "plan9/p"
 
 // Clunks a fid. Returns nil if successful.
 func (clnt *Clnt) Clunk(fid *Fid) *p.Error {
-	tc := p.NewFcall(clnt.Msize);
-	err := p.PackTclunk(tc, fid.Fid);
+	tc := p.NewFcall(clnt.Msize)
+	err := p.PackTclunk(tc, fid.Fid)
 	if err != nil {
 		return err
 	}
 
-	rc, err := clnt.rpc(tc);
+	rc, err := clnt.rpc(tc)
 	if err != nil {
 		return err
 	}
 
-	clnt.fidpool.putId(fid.Fid);
+	clnt.fidpool.putId(fid.Fid)
 
 	if rc.Type == p.Rerror {
 		return &p.Error{rc.Error, int(rc.Errornum)}
 	}
 
-
-	return err;
+	return err
 }
 
 // Closes a file. Returns nil if successful.

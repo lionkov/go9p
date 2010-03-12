@@ -40,18 +40,18 @@ var m2id = [...]uint8{
 }
 
 func newPool(maxid uint32) *pool {
-	p := new(pool);
-	p.maxid = maxid;
-	p.nchan = make(chan uint32);
+	p := new(pool)
+	p.maxid = maxid
+	p.nchan = make(chan uint32)
 
-	return p;
+	return p
 }
 
 func (p *pool) getId() uint32 {
-	var n uint32 = 0;
-	var ret uint32;
+	var n uint32 = 0
+	var ret uint32
 
-	p.Lock();
+	p.Lock()
 	for n = 0; n < uint32(len(p.imap)); n++ {
 		if p.imap[n] != 0xFF {
 			break
@@ -59,38 +59,38 @@ func (p *pool) getId() uint32 {
 	}
 
 	if int(n) >= len(p.imap) {
-		m := uint32(len(p.imap) + 32);
+		m := uint32(len(p.imap) + 32)
 		if uint32(m*8) > p.maxid {
 			m = p.maxid/8 + 1
 		}
 
-		b := make([]byte, m);
-		copy(b, p.imap);
-		p.imap = b;
+		b := make([]byte, m)
+		copy(b, p.imap)
+		p.imap = b
 	}
 
 	if n >= uint32(len(p.imap)) {
-		p.need++;
-		p.Unlock();
-		ret = <-p.nchan;
+		p.need++
+		p.Unlock()
+		ret = <-p.nchan
 	} else {
-		ret = uint32(m2id[p.imap[n]]);
-		p.imap[n] |= 1 << ret;
-		ret += n * 8;
-		p.Unlock();
+		ret = uint32(m2id[p.imap[n]])
+		p.imap[n] |= 1 << ret
+		ret += n * 8
+		p.Unlock()
 	}
 
-	return ret;
+	return ret
 }
 
 func (p *pool) putId(id uint32) {
-	p.Lock();
+	p.Lock()
 	if p.need > 0 {
-		p.nchan <- id;
-		p.need--;
-		p.Unlock();
+		p.nchan <- id
+		p.need--
+		p.Unlock()
 	}
 
-	p.imap[id/8] &= ^(1 << (id % 8));
-	p.Unlock();
+	p.imap[id/8] &= ^(1 << (id % 8))
+	p.Unlock()
 }

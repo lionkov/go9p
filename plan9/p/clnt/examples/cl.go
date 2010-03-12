@@ -59,18 +59,18 @@ func normpath(s string) string {
 
 func b(mode uint32, s uint8) string {
 	var bits = []string{"---", "--x", "-w-", "-wx", "r--", "r-x", "rw-", "rwx"}
-	return bits[(mode>>s) & 7]
+	return bits[(mode>>s)&7]
 }
 
-// Convert file mode bits to string representation 
+// Convert file mode bits to string representation
 func modetostr(mode uint32) string {
-    d := "-"
-    if mode & p.DMDIR != 0 {
-        d = "d"
-	} else if mode & p.DMAPPEND != 0 {
-        d = "a"
+	d := "-"
+	if mode&p.DMDIR != 0 {
+		d = "d"
+	} else if mode&p.DMAPPEND != 0 {
+		d = "a"
 	}
-    return fmt.Sprintf("%s%s%s%s", d, b(mode, 6), b(mode, 3), b(mode, 0))
+	return fmt.Sprintf("%s%s%s%s", d, b(mode, 6), b(mode, 3), b(mode, 0))
 }
 
 // Write the string s to remote file f. Create f if it doesn't exist
@@ -86,7 +86,7 @@ func writeone(c *clnt.Clnt, f, s string) {
 	}
 	defer file.Close()
 
-	m, err := file.Write(strings.Bytes(s))
+	m, err := file.Write([]byte(s))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error writing to %s: %s\n", fname, err.Error)
 		return
@@ -441,7 +441,7 @@ func main() {
 
 	naddr := *addr
 	if strings.LastIndex(naddr, ":") == -1 {
-		naddr = naddr+":5640"
+		naddr = naddr + ":5640"
 	}
 	c, err = clnt.Mount("tcp", naddr, "", user)
 	if err != nil {

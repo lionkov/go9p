@@ -8,16 +8,15 @@ import "flag"
 import "fmt"
 import "log"
 import "os"
-import "strings"
 import "plan9/p"
 import "plan9/p/srv"
 import "time"
 
 type Time struct {
-	srv.File;
+	srv.File
 }
 type InfTime struct {
-	srv.File;
+	srv.File
 }
 
 var addr = flag.String("addr", ":5640", "network address")
@@ -26,59 +25,59 @@ var debugall = flag.Bool("D", false, "print packets as well as debug messages")
 
 func (*InfTime) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
 	// push out time ignoring offset (infinite read)
-	t := time.LocalTime().String() + "\n";
-	b := strings.Bytes(t);
-	ml := len(b);
+	t := time.LocalTime().String() + "\n"
+	b := []byte(t)
+	ml := len(b)
 	if ml > len(buf) {
 		ml = len(buf)
 	}
 
-	copy(buf, b[0:ml]);
-	return ml, nil;
+	copy(buf, b[0:ml])
+	return ml, nil
 }
 
 func (*Time) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
-	t := time.LocalTime().String();
-	b := strings.Bytes(t);
-	n := len(b);
+	t := time.LocalTime().String()
+	b := []byte(t)
+	n := len(b)
 	if offset >= uint64(n) {
 		return 0, nil
 	}
 
-	b = b[int(offset):n];
-	n -= int(offset);
+	b = b[int(offset):n]
+	n -= int(offset)
 	if len(buf) < n {
 		n = len(buf)
 	}
 
-	copy(buf[offset:int(offset)+n], b[offset:]);
-	return n, nil;
+	copy(buf[offset:int(offset)+n], b[offset:])
+	return n, nil
 }
 
 func main() {
-	var err *p.Error;
+	var err *p.Error
 
-	flag.Parse();
-	user := p.OsUsers.Uid2User(os.Geteuid());
-	root := new(srv.File);
-	err = root.Add(nil, "/", user, nil, p.DMDIR|0555, nil);
+	flag.Parse()
+	user := p.OsUsers.Uid2User(os.Geteuid())
+	root := new(srv.File)
+	err = root.Add(nil, "/", user, nil, p.DMDIR|0555, nil)
 	if err != nil {
 		goto error
 	}
 
-	tm := new(Time);
-	err = tm.Add(root, "time", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, tm);
+	tm := new(Time)
+	err = tm.Add(root, "time", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, tm)
 	if err != nil {
 		goto error
 	}
-	ntm := new(InfTime);
-	err = ntm.Add(root, "inftime", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, ntm);
+	ntm := new(InfTime)
+	err = ntm.Add(root, "inftime", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, ntm)
 	if err != nil {
 		goto error
 	}
 
-	s := srv.NewFileSrv(root);
-	s.Dotu = true;
+	s := srv.NewFileSrv(root)
+	s.Dotu = true
 
 	if *debug {
 		s.Debuglevel = 1
@@ -87,11 +86,10 @@ func main() {
 		s.Debuglevel = 2
 	}
 
-
-	s.Start(s);
-	srv.StartListener("tcp", *addr, &s.Srv);
-	return;
+	s.Start(s)
+	srv.StartListener("tcp", *addr, &s.Srv)
+	return
 
 error:
-	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum));
+	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
 }

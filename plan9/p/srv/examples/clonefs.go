@@ -13,22 +13,21 @@ import "flag"
 import "fmt"
 import "log"
 import "os"
-import "strings"
 import "strconv"
 import "plan9/p"
 import "plan9/p/srv"
 import "time"
 
 type ClFile struct {
-	srv.File;
-	created	string;
-	id	int;
-	data	[]byte;
+	srv.File
+	created string
+	id      int
+	data    []byte
 }
 
 type Clone struct {
-	srv.File;
-	clones	int;
+	srv.File
+	clones int
 }
 
 var addr = flag.String("addr", ":5640", "network address")
@@ -37,44 +36,44 @@ var debug = flag.Bool("d", false, "print debug messages")
 var root *srv.File
 
 func (cl *ClFile) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
-	var b []byte;
+	var b []byte
 	if len(cl.data) == 0 {
-		str := strconv.Itoa(cl.id) + " created on:" + cl.created;
-		b = strings.Bytes(str);
+		str := strconv.Itoa(cl.id) + " created on:" + cl.created
+		b = []byte(str)
 	} else {
 		b = cl.data
 	}
-	n := len(b);
+	n := len(b)
 	if offset >= uint64(n) {
 		return 0, nil
 	}
 
-	b = b[int(offset):n];
-	n -= int(offset);
+	b = b[int(offset):n]
+	n -= int(offset)
 	if len(buf) < n {
 		n = len(buf)
 	}
 
-	copy(buf[offset:int(offset)+n], b[offset:]);
-	return n, nil;
+	copy(buf[offset:int(offset)+n], b[offset:])
+	return n, nil
 }
 
 func (cl *ClFile) Write(fid *srv.FFid, data []byte, offset uint64) (int, *p.Error) {
-	n := uint64(len(cl.data));
-	nlen := offset + uint64(len(data));
+	n := uint64(len(cl.data))
+	nlen := offset + uint64(len(data))
 	if nlen > n {
-		ndata := make([]byte, nlen);
-		copy(ndata, cl.data[0:n]);
-		cl.data = ndata;
+		ndata := make([]byte, nlen)
+		copy(ndata, cl.data[0:n])
+		cl.data = ndata
 	}
 
-	copy(cl.data[offset:], data[offset:]);
-	return len(data), nil;
+	copy(cl.data[offset:], data[offset:])
+	return len(data), nil
 }
 
 func (cl *ClFile) Remove(fid *srv.FFid) *p.Error {
-	log.Stderr("Remove");
-	return nil;
+	log.Stderr("Remove")
+	return nil
 }
 
 func (cl *Clone) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
@@ -83,56 +82,56 @@ func (cl *Clone) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) 
 		return 0, nil
 	}
 
-	cl.clones += 1;
-	ncl := new(ClFile);
-	ncl.id = cl.clones;
-	ncl.created = time.LocalTime().String();
-	name := strconv.Itoa(ncl.id);
+	cl.clones += 1
+	ncl := new(ClFile)
+	ncl.id = cl.clones
+	ncl.created = time.LocalTime().String()
+	name := strconv.Itoa(ncl.id)
 
-	err := ncl.Add(root, name, p.OsUsers.Uid2User(os.Geteuid()), nil, 0666, ncl);
+	err := ncl.Add(root, name, p.OsUsers.Uid2User(os.Geteuid()), nil, 0666, ncl)
 	if err != nil {
 		return 0, &p.Error{"can not create file", 0}
 	}
 
-	b := strings.Bytes(name);
+	b := []byte(name)
 	if len(buf) < len(b) {
 		// cleanup
-		ncl.File.Remove();
-		return 0, &p.Error{"not enough buffer space for result", 0};
+		ncl.File.Remove()
+		return 0, &p.Error{"not enough buffer space for result", 0}
 	}
 
-	copy(buf, b);
-	return len(b), nil;
+	copy(buf, b)
+	return len(b), nil
 }
 
 func main() {
-	var err *p.Error;
+	var err *p.Error
 
-	flag.Parse();
-	user := p.OsUsers.Uid2User(os.Geteuid());
-	root = new(srv.File);
-	err = root.Add(nil, "/", user, nil, p.DMDIR|0777, nil);
+	flag.Parse()
+	user := p.OsUsers.Uid2User(os.Geteuid())
+	root = new(srv.File)
+	err = root.Add(nil, "/", user, nil, p.DMDIR|0777, nil)
 	if err != nil {
 		goto error
 	}
 
-	cl := new(Clone);
-	err = cl.Add(root, "clone", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, cl);
+	cl := new(Clone)
+	err = cl.Add(root, "clone", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, cl)
 	if err != nil {
 		goto error
 	}
 
-	s := srv.NewFileSrv(root);
-	s.Dotu = true;
+	s := srv.NewFileSrv(root)
+	s.Dotu = true
 
 	if *debug {
 		s.Debuglevel = 1
 	}
 
-	s.Start(s);
-	srv.StartListener("tcp", *addr, &s.Srv);
-	return;
+	s.Start(s)
+	srv.StartListener("tcp", *addr, &s.Srv)
+	return
 
 error:
-	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum));
+	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
 }

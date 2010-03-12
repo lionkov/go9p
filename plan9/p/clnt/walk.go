@@ -13,13 +13,13 @@ import "syscall"
 // were walked successfully, an Error is returned. Otherwise a slice with a
 // Qid for each walked name is returned.
 func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]p.Qid, *p.Error) {
-	tc := p.NewFcall(clnt.Msize);
-	err := p.PackTwalk(tc, fid.Fid, newfid.Fid, wnames);
+	tc := p.NewFcall(clnt.Msize)
+	err := p.PackTwalk(tc, fid.Fid, newfid.Fid, wnames)
 	if err != nil {
 		return nil, err
 	}
 
-	rc, err := clnt.rpc(tc);
+	rc, err := clnt.rpc(tc)
 	if err != nil {
 		return nil, err
 	}
@@ -27,15 +27,15 @@ func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]p.Qid, *p.Erro
 		return nil, &p.Error{rc.Error, int(rc.Errornum)}
 	}
 
-	return rc.Wqid, nil;
+	return rc.Wqid, nil
 }
 
 // Walks to a named file. Returns a Fid associated with the file,
 // or an Error.
 func (clnt *Clnt) FWalk(path string) (*Fid, *p.Error) {
-	var err *p.Error = nil;
+	var err *p.Error = nil
 
-	var i, m int;
+	var i, m int
 	for i = 0; i < len(path); i++ {
 		if path[i] != '/' {
 			break
@@ -46,34 +46,34 @@ func (clnt *Clnt) FWalk(path string) (*Fid, *p.Error) {
 		path = path[i:len(path)]
 	}
 
-	wnames := strings.Split(path, "/", 0);
-	newfid := clnt.FidAlloc();
-	fid := clnt.Root;
-	newfid.User = fid.User;
+	wnames := strings.Split(path, "/", 0)
+	newfid := clnt.FidAlloc()
+	fid := clnt.Root
+	newfid.User = fid.User
 
 	/* get rid of the empty names */
 	for i, m = 0, 0; i < len(wnames); i++ {
 		if wnames[i] != "" {
-			wnames[m] = wnames[i];
-			m++;
+			wnames[m] = wnames[i]
+			m++
 		}
 	}
 
-	wnames = wnames[0:m];
+	wnames = wnames[0:m]
 	for {
-		n := len(wnames);
+		n := len(wnames)
 		if n > 16 {
 			n = 16
 		}
 
-		tc := p.NewFcall(clnt.Msize);
-		err = p.PackTwalk(tc, fid.Fid, newfid.Fid, wnames[0:n]);
+		tc := p.NewFcall(clnt.Msize)
+		err = p.PackTwalk(tc, fid.Fid, newfid.Fid, wnames[0:n])
 		if err != nil {
 			goto error
 		}
 
-		var rc *p.Fcall;
-		rc, err = clnt.rpc(tc);
+		var rc *p.Fcall
+		rc, err = clnt.rpc(tc)
 		if err != nil {
 			goto error
 		}
@@ -83,8 +83,8 @@ func (clnt *Clnt) FWalk(path string) (*Fid, *p.Error) {
 		}
 
 		if len(rc.Wqid) != n {
-			err = &p.Error{"file not found", syscall.ENOENT};
-			goto error;
+			err = &p.Error{"file not found", syscall.ENOENT}
+			goto error
 		}
 
 		if len(rc.Wqid) > 0 {
@@ -93,16 +93,16 @@ func (clnt *Clnt) FWalk(path string) (*Fid, *p.Error) {
 			newfid.Qid = fid.Qid
 		}
 
-		wnames = wnames[n:len(wnames)];
-		fid = newfid;
+		wnames = wnames[n:len(wnames)]
+		fid = newfid
 		if len(wnames) == 0 {
 			break
 		}
 	}
 
-	return newfid, nil;
+	return newfid, nil
 
 error:
-	clnt.Clunk(newfid);
-	return nil, err;
+	clnt.Clunk(newfid)
+	return nil, err
 }

@@ -15,15 +15,15 @@ import "plan9/p"
 import "plan9/p/srv"
 
 type Fid struct {
-	path		string;
-	file		*os.File;
-	dirs		[]os.Dir;
-	diroffset	uint64;
-	st		*os.Dir;
+	path      string
+	file      *os.File
+	dirs      []os.Dir
+	diroffset uint64
+	st        *os.Dir
 }
 
 type Ufs struct {
-	srv.Srv;
+	srv.Srv
 }
 
 var addr = flag.String("addr", ":5640", "network address")
@@ -31,68 +31,68 @@ var debug = flag.Bool("d", false, "print debug messages")
 var Enoent = &p.Error{"file not found", syscall.ENOENT}
 
 func toError(err os.Error) *p.Error {
-	var ecode os.Errno;
+	var ecode os.Errno
 
-	ename := err.String();
+	ename := err.String()
 	if e, ok := err.(os.Errno); ok {
 		ecode = e
 	} else {
 		ecode = syscall.EIO
 	}
 
-	return &p.Error{ename, int(ecode)};
+	return &p.Error{ename, int(ecode)}
 }
 
 func (fid *Fid) stat() *p.Error {
-	var err os.Error;
+	var err os.Error
 
-	fid.st, err = os.Lstat(fid.path);
+	fid.st, err = os.Lstat(fid.path)
 	if err != nil {
 		return toError(err)
 	}
 
-	return nil;
+	return nil
 }
 
 func omode2uflags(mode uint8) int {
-	ret := int(0);
+	ret := int(0)
 	switch mode & 3 {
 	case p.OREAD:
-		ret = os.O_RDONLY;
-		break;
+		ret = os.O_RDONLY
+		break
 
 	case p.ORDWR:
-		ret = os.O_RDWR;
-		break;
+		ret = os.O_RDWR
+		break
 
 	case p.OWRITE:
-		ret = os.O_WRONLY;
-		break;
+		ret = os.O_WRONLY
+		break
 
 	case p.OEXEC:
-		ret = os.O_RDONLY;
-		break;
+		ret = os.O_RDONLY
+		break
 	}
 
 	if mode&p.OTRUNC != 0 {
 		ret |= os.O_TRUNC
 	}
 
-	return ret;
+	return ret
 }
 
 func dir2Qid(d *os.Dir) *p.Qid {
-	var qid p.Qid;
+	var qid p.Qid
 
-	qid.Path = d.Ino;
-	qid.Version = uint32(d.Mtime_ns / 1000000);
-	qid.Type = dir2QidType(d);
+	qid.Path = d.Ino
+	qid.Version = uint32(d.Mtime_ns / 1000000)
+	qid.Type = dir2QidType(d)
 
-	return &qid;
+	return &qid
 }
 
 func dir2QidType(d *os.Dir) uint8 {
-	ret := uint8(0);
+	ret := uint8(0)
 	if d.IsDirectory() {
 		ret |= p.QTDIR
 	}
@@ -101,11 +101,11 @@ func dir2QidType(d *os.Dir) uint8 {
 		ret |= p.QTSYMLINK
 	}
 
-	return ret;
+	return ret
 }
 
 func dir2Npmode(d *os.Dir, dotu bool) uint32 {
-	ret := uint32(d.Mode & 0777);
+	ret := uint32(d.Mode & 0777)
 	if d.IsDirectory() {
 		ret |= p.DMDIR
 	}
@@ -130,37 +130,37 @@ func dir2Npmode(d *os.Dir, dotu bool) uint32 {
 		/* TODO: setuid and setgid */
 	}
 
-	return ret;
+	return ret
 }
 
 func dir2Dir(path string, d *os.Dir, dotu bool, upool p.Users) *p.Dir {
-	dir := new(p.Dir);
-	dir.Qid = *dir2Qid(d);
-	dir.Mode = dir2Npmode(d, dotu);
-	dir.Atime = uint32(d.Atime_ns / 1000000000);
-	dir.Mtime = uint32(d.Mtime_ns / 1000000000);
-	dir.Length = d.Size;
+	dir := new(p.Dir)
+	dir.Qid = *dir2Qid(d)
+	dir.Mode = dir2Npmode(d, dotu)
+	dir.Atime = uint32(d.Atime_ns / 1000000000)
+	dir.Mtime = uint32(d.Mtime_ns / 1000000000)
+	dir.Length = d.Size
 
-	u := upool.Uid2User(int(d.Uid));
-	g := upool.Gid2Group(int(d.Gid));
-	dir.Uid = u.Name();
+	u := upool.Uid2User(int(d.Uid))
+	g := upool.Gid2Group(int(d.Gid))
+	dir.Uid = u.Name()
 	if dir.Uid == "" {
 		dir.Uid = "none"
 	}
 
-	dir.Gid = g.Name();
+	dir.Gid = g.Name()
 	if dir.Gid == "" {
 		dir.Gid = "none"
 	}
-	dir.Muid = "none";
-	dir.Ext = "";
+	dir.Muid = "none"
+	dir.Ext = ""
 	if dotu {
-		dir.Uidnum = uint32(u.Id());
-		dir.Gidnum = uint32(g.Id());
-		dir.Muidnum = p.NOUID;
+		dir.Uidnum = uint32(u.Id())
+		dir.Gidnum = uint32(g.Id())
+		dir.Muidnum = p.NOUID
 		if d.IsSymlink() {
-			var err os.Error;
-			dir.Ext, err = os.Readlink(path);
+			var err os.Error
+			dir.Ext, err = os.Readlink(path)
 			if err != nil {
 				dir.Ext = ""
 			}
@@ -171,8 +171,8 @@ func dir2Dir(path string, d *os.Dir, dotu bool, upool p.Users) *p.Dir {
 		}
 	}
 
-	dir.Name = path[strings.LastIndex(path, "/")+1 : len(path)];
-	return dir;
+	dir.Name = path[strings.LastIndex(path, "/")+1 : len(path)]
+	return dir
 }
 
 func (*Ufs) ConnOpened(conn *srv.Conn) {
@@ -188,13 +188,13 @@ func (*Ufs) ConnClosed(conn *srv.Conn) {
 }
 
 func (*Ufs) FidDestroy(sfid *srv.Fid) {
-	var fid *Fid;
+	var fid *Fid
 
 	if sfid.Aux == nil {
 		return
 	}
 
-	fid = sfid.Aux.(*Fid);
+	fid = sfid.Aux.(*Fid)
 	if fid.file != nil {
 		fid.file.Close()
 	}
@@ -202,100 +202,100 @@ func (*Ufs) FidDestroy(sfid *srv.Fid) {
 
 func (*Ufs) Attach(req *srv.Req) {
 	if req.Afid != nil {
-		req.RespondError(srv.Enoauth);
-		return;
+		req.RespondError(srv.Enoauth)
+		return
 	}
 
-	tc := req.Tc;
-	fid := new(Fid);
+	tc := req.Tc
+	fid := new(Fid)
 	if len(tc.Aname) == 0 {
 		fid.path = "/"
 	} else {
 		fid.path = tc.Aname
 	}
 
-	req.Fid.Aux = fid;
-	err := fid.stat();
+	req.Fid.Aux = fid
+	err := fid.stat()
 	if err != nil {
-		req.RespondError(err);
-		return;
+		req.RespondError(err)
+		return
 	}
 
-	qid := dir2Qid(fid.st);
-	req.RespondRattach(qid);
+	qid := dir2Qid(fid.st)
+	req.RespondRattach(qid)
 }
 
-func (*Ufs) Flush(req *srv.Req)	{}
+func (*Ufs) Flush(req *srv.Req) {}
 
 func (*Ufs) Walk(req *srv.Req) {
-	fid := req.Fid.Aux.(*Fid);
-	tc := req.Tc;
+	fid := req.Fid.Aux.(*Fid)
+	tc := req.Tc
 
-	err := fid.stat();
+	err := fid.stat()
 	if err != nil {
-		req.RespondError(err);
-		return;
+		req.RespondError(err)
+		return
 	}
 
 	if req.Newfid.Aux == nil {
 		req.Newfid.Aux = new(Fid)
 	}
 
-	nfid := req.Newfid.Aux.(*Fid);
-	wqids := make([]p.Qid, len(tc.Wname));
-	path := fid.path;
-	i := 0;
+	nfid := req.Newfid.Aux.(*Fid)
+	wqids := make([]p.Qid, len(tc.Wname))
+	path := fid.path
+	i := 0
 	for ; i < len(tc.Wname); i++ {
-		p := path + "/" + tc.Wname[i];
-		st, err := os.Lstat(p);
+		p := path + "/" + tc.Wname[i]
+		st, err := os.Lstat(p)
 		if err != nil {
 			if i == 0 {
-				req.RespondError(Enoent);
-				return;
+				req.RespondError(Enoent)
+				return
 			}
 
-			break;
+			break
 		}
 
-		wqids[i] = *dir2Qid(st);
-		path = p;
+		wqids[i] = *dir2Qid(st)
+		path = p
 	}
 
-	nfid.path = path;
-	req.RespondRwalk(wqids[0:i]);
+	nfid.path = path
+	req.RespondRwalk(wqids[0:i])
 }
 
 func (*Ufs) Open(req *srv.Req) {
-	fid := req.Fid.Aux.(*Fid);
-	tc := req.Tc;
-	err := fid.stat();
+	fid := req.Fid.Aux.(*Fid)
+	tc := req.Tc
+	err := fid.stat()
 	if err != nil {
-		req.RespondError(err);
-		return;
+		req.RespondError(err)
+		return
 	}
 
-	var e os.Error;
-	fid.file, e = os.Open(fid.path, omode2uflags(tc.Mode), 0);
+	var e os.Error
+	fid.file, e = os.Open(fid.path, omode2uflags(tc.Mode), 0)
 	if e != nil {
-		req.RespondError(toError(e));
-		return;
+		req.RespondError(toError(e))
+		return
 	}
 
-	req.RespondRopen(dir2Qid(fid.st), 0);
+	req.RespondRopen(dir2Qid(fid.st), 0)
 }
 
 func (*Ufs) Create(req *srv.Req) {
-	fid := req.Fid.Aux.(*Fid);
-	tc := req.Tc;
-	err := fid.stat();
+	fid := req.Fid.Aux.(*Fid)
+	tc := req.Tc
+	err := fid.stat()
 	if err != nil {
-		req.RespondError(err);
-		return;
+		req.RespondError(err)
+		return
 	}
 
-	path := fid.path + "/" + tc.Name;
-	var e os.Error = nil;
-	var file *os.File = nil;
+	path := fid.path + "/" + tc.Name
+	var e os.Error = nil
+	var file *os.File = nil
 	switch {
 	case tc.Perm&p.DMDIR != 0:
 		e = os.Mkdir(path, int(tc.Perm&0777))
@@ -304,24 +304,24 @@ func (*Ufs) Create(req *srv.Req) {
 		e = os.Symlink(tc.Ext, path)
 
 	case tc.Perm&p.DMLINK != 0:
-		n, e := strconv.Atoui(tc.Ext);
+		n, e := strconv.Atoui(tc.Ext)
 		if e != nil {
 			break
 		}
 
-		ofid := req.Conn.FidGet(uint32(n));
+		ofid := req.Conn.FidGet(uint32(n))
 		if ofid == nil {
-			req.RespondError(srv.Eunknownfid);
-			return;
+			req.RespondError(srv.Eunknownfid)
+			return
 		}
 
-		e = os.Link(ofid.Aux.(*Fid).path, path);
-		ofid.DecRef();
+		e = os.Link(ofid.Aux.(*Fid).path, path)
+		ofid.DecRef()
 
 	case tc.Perm&p.DMNAMEDPIPE != 0:
 	case tc.Perm&p.DMDEVICE != 0:
-		req.RespondError(&p.Error{"not implemented", syscall.EIO});
-		return;
+		req.RespondError(&p.Error{"not implemented", syscall.EIO})
+		return
 
 	default:
 		file, e = os.Open(path, omode2uflags(tc.Mode)|os.O_CREATE, int(tc.Perm&0777))
@@ -332,51 +332,51 @@ func (*Ufs) Create(req *srv.Req) {
 	}
 
 	if e != nil {
-		req.RespondError(toError(e));
-		return;
+		req.RespondError(toError(e))
+		return
 	}
 
-	fid.path = path;
-	fid.file = file;
-	err = fid.stat();
+	fid.path = path
+	fid.file = file
+	err = fid.stat()
 	if err != nil {
-		req.RespondError(err);
-		return;
+		req.RespondError(err)
+		return
 	}
 
-	req.RespondRcreate(dir2Qid(fid.st), 0);
+	req.RespondRcreate(dir2Qid(fid.st), 0)
 }
 
 func (*Ufs) Read(req *srv.Req) {
-	fid := req.Fid.Aux.(*Fid);
-	tc := req.Tc;
-	rc := req.Rc;
-	err := fid.stat();
+	fid := req.Fid.Aux.(*Fid)
+	tc := req.Tc
+	rc := req.Rc
+	err := fid.stat()
 	if err != nil {
-		req.RespondError(err);
-		return;
+		req.RespondError(err)
+		return
 	}
 
-	p.InitRread(rc, tc.Count);
-	var count int;
-	var e os.Error;
+	p.InitRread(rc, tc.Count)
+	var count int
+	var e os.Error
 	if fid.st.IsDirectory() {
-		b := rc.Data;
+		b := rc.Data
 		if tc.Offset == 0 {
-			fid.file.Close();
-			fid.file, e = os.Open(fid.path, omode2uflags(req.Fid.Omode), 0);
+			fid.file.Close()
+			fid.file, e = os.Open(fid.path, omode2uflags(req.Fid.Omode), 0)
 			if e != nil {
-				req.RespondError(toError(e));
-				return;
+				req.RespondError(toError(e))
+				return
 			}
 		}
 
 		for len(b) > 0 {
 			if fid.dirs == nil {
-				fid.dirs, e = fid.file.Readdir(16);
+				fid.dirs, e = fid.file.Readdir(16)
 				if e != nil {
-					req.RespondError(toError(e));
-					return;
+					req.RespondError(toError(e))
+					return
 				}
 
 				if len(fid.dirs) == 0 {
@@ -384,174 +384,174 @@ func (*Ufs) Read(req *srv.Req) {
 				}
 			}
 
-			var i int;
+			var i int
 			for i = 0; i < len(fid.dirs); i++ {
-				path := fid.path + "/" + fid.dirs[i].Name;
-				st := dir2Dir(path, &fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool);
-				sz := p.PackDir(st, b, req.Conn.Dotu);
+				path := fid.path + "/" + fid.dirs[i].Name
+				st := dir2Dir(path, &fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
+				sz := p.PackDir(st, b, req.Conn.Dotu)
 				if sz == 0 {
 					break
 				}
 
-				b = b[sz:len(b)];
-				count += sz;
+				b = b[sz:len(b)]
+				count += sz
 			}
 
 			if i < len(fid.dirs) {
-				fid.dirs = fid.dirs[i:len(fid.dirs)];
-				break;
+				fid.dirs = fid.dirs[i:len(fid.dirs)]
+				break
 			} else {
 				fid.dirs = nil
 			}
 		}
 	} else {
-		count, e = fid.file.ReadAt(rc.Data, int64(tc.Offset));
+		count, e = fid.file.ReadAt(rc.Data, int64(tc.Offset))
 		if e != nil && e != os.EOF {
-			req.RespondError(toError(e));
-			return;
+			req.RespondError(toError(e))
+			return
 		}
 	}
 
-	p.SetRreadCount(rc, uint32(count));
-	req.Respond();
+	p.SetRreadCount(rc, uint32(count))
+	req.Respond()
 }
 
 func (*Ufs) Write(req *srv.Req) {
-	fid := req.Fid.Aux.(*Fid);
-	tc := req.Tc;
-	err := fid.stat();
+	fid := req.Fid.Aux.(*Fid)
+	tc := req.Tc
+	err := fid.stat()
 	if err != nil {
-		req.RespondError(err);
-		return;
+		req.RespondError(err)
+		return
 	}
 
-	n, e := fid.file.WriteAt(tc.Data, int64(tc.Offset));
+	n, e := fid.file.WriteAt(tc.Data, int64(tc.Offset))
 	if e != nil {
-		req.RespondError(toError(e));
-		return;
+		req.RespondError(toError(e))
+		return
 	}
 
-	req.RespondRwrite(uint32(n));
+	req.RespondRwrite(uint32(n))
 }
 
-func (*Ufs) Clunk(req *srv.Req)	{ req.RespondRclunk() }
+func (*Ufs) Clunk(req *srv.Req) { req.RespondRclunk() }
 
 func (*Ufs) Remove(req *srv.Req) {
-	fid := req.Fid.Aux.(*Fid);
-	err := fid.stat();
+	fid := req.Fid.Aux.(*Fid)
+	err := fid.stat()
 	if err != nil {
-		req.RespondError(err);
-		return;
+		req.RespondError(err)
+		return
 	}
 
-	e := os.Remove(fid.path);
+	e := os.Remove(fid.path)
 	if e != nil {
-		req.RespondError(toError(e));
-		return;
+		req.RespondError(toError(e))
+		return
 	}
 
-	req.RespondRremove();
+	req.RespondRremove()
 }
 
 func (*Ufs) Stat(req *srv.Req) {
-	fid := req.Fid.Aux.(*Fid);
-	err := fid.stat();
+	fid := req.Fid.Aux.(*Fid)
+	err := fid.stat()
 	if err != nil {
-		req.RespondError(err);
-		return;
+		req.RespondError(err)
+		return
 	}
 
-	st := dir2Dir(fid.path, fid.st, req.Conn.Dotu, req.Conn.Srv.Upool);
-	req.RespondRstat(st);
+	st := dir2Dir(fid.path, fid.st, req.Conn.Dotu, req.Conn.Srv.Upool)
+	req.RespondRstat(st)
 }
 
 func (*Ufs) Wstat(req *srv.Req) {
-	var uid, gid uint32;
+	var uid, gid uint32
 
-	fid := req.Fid.Aux.(*Fid);
-	err := fid.stat();
+	fid := req.Fid.Aux.(*Fid)
+	err := fid.stat()
 	if err != nil {
-		req.RespondError(err);
-		return;
+		req.RespondError(err)
+		return
 	}
 
-	dir := &req.Tc.Dir;
-	up := req.Conn.Srv.Upool;
+	dir := &req.Tc.Dir
+	up := req.Conn.Srv.Upool
 	if req.Conn.Dotu {
-		uid = dir.Uidnum;
-		gid = dir.Gidnum;
+		uid = dir.Uidnum
+		gid = dir.Gidnum
 	} else {
-		uid = p.NOUID;
-		gid = p.NOUID;
+		uid = p.NOUID
+		gid = p.NOUID
 	}
 
 	if uid == p.NOUID && dir.Uid != "" {
-		user := up.Uname2User(dir.Uid);
+		user := up.Uname2User(dir.Uid)
 		if user == nil {
-			req.RespondError(srv.Enouser);
-			return;
+			req.RespondError(srv.Enouser)
+			return
 		}
 
-		uid = uint32(user.Id());
+		uid = uint32(user.Id())
 	}
 
 	if gid == p.NOUID && dir.Gid != "" {
-		group := up.Gname2Group(dir.Gid);
+		group := up.Gname2Group(dir.Gid)
 		if group == nil {
-			req.RespondError(srv.Enouser);
-			return;
+			req.RespondError(srv.Enouser)
+			return
 		}
 
-		gid = uint32(group.Id());
+		gid = uint32(group.Id())
 	}
 
 	if dir.Mode != 0xFFFFFFFF {
-		e := os.Chmod(fid.path, int(dir.Mode&0777));
+		e := os.Chmod(fid.path, int(dir.Mode&0777))
 		if e != nil {
-			req.RespondError(toError(e));
-			return;
+			req.RespondError(toError(e))
+			return
 		}
 	}
 
 	if gid != 0xFFFFFFFF || uid != 0xFFFFFFFF {
-		e := os.Chown(fid.path, int(uid), int(gid));
+		e := os.Chown(fid.path, int(uid), int(gid))
 		if e != nil {
-			req.RespondError(toError(e));
-			return;
+			req.RespondError(toError(e))
+			return
 		}
 	}
 
 	if dir.Name != "" {
-		path := fid.path[0:strings.LastIndex(fid.path, "/")+1] + "/" + dir.Name;
-		errno := syscall.Rename(fid.path, path);
+		path := fid.path[0:strings.LastIndex(fid.path, "/")+1] + "/" + dir.Name
+		errno := syscall.Rename(fid.path, path)
 		if errno != 0 {
-			e := os.Errno(errno);
-			req.RespondError(toError(e));
-			return;
+			e := os.Errno(errno)
+			req.RespondError(toError(e))
+			return
 		}
-		fid.path = path;
+		fid.path = path
 	}
 
 	if dir.Length != 0xFFFFFFFFFFFFFFFF {
-		e := os.Truncate(fid.path, int64(dir.Length));
+		e := os.Truncate(fid.path, int64(dir.Length))
 		if e != nil {
-			req.RespondError(toError(e));
-			return;
+			req.RespondError(toError(e))
+			return
 		}
 	}
 
-	req.RespondRwstat();
+	req.RespondRwstat()
 }
 
 func main() {
-	flag.Parse();
-	ufs := new(Ufs);
-	ufs.Dotu = true;
+	flag.Parse()
+	ufs := new(Ufs)
+	ufs.Dotu = true
 
 	if *debug {
 		ufs.Debuglevel = 1
 	}
 
-	ufs.Start(ufs);
-	srv.StartListener("tcp", *addr, &ufs.Srv);
+	ufs.Start(ufs)
+	srv.StartListener("tcp", *addr, &ufs.Srv)
 }

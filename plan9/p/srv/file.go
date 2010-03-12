@@ -14,7 +14,7 @@ import "time"
 // called before a file stat is sent back to the client. If implemented,
 // the operation should update the data in the File struct.
 type FStatOp interface {
-	Stat(fid *FFid) *p.Error;
+	Stat(fid *FFid) *p.Error
 }
 
 // The FWstatOp interface provides a single operation (Wstat) that will be
@@ -23,7 +23,7 @@ type FStatOp interface {
 // If not implemented, "permission denied" error will be sent back. If the
 // operation returns an Error, the error is send back to the client.
 type FWstatOp interface {
-	Wstat(*FFid, *p.Dir) *p.Error;
+	Wstat(*FFid, *p.Dir) *p.Error
 }
 
 // If the FReadOp interface is implemented, the Read operation will be called
@@ -31,7 +31,7 @@ type FWstatOp interface {
 // be send back. The operation returns the number of bytes read, or the
 // error occured while reading.
 type FReadOp interface {
-	Read(fid *FFid, buf []byte, offset uint64) (int, *p.Error);
+	Read(fid *FFid, buf []byte, offset uint64) (int, *p.Error)
 }
 
 // If the FWriteOp interface is implemented, the Write operation will be called
@@ -39,7 +39,7 @@ type FReadOp interface {
 // be send back. The operation returns the number of bytes written, or the
 // error occured while writing.
 type FWriteOp interface {
-	Write(fid *FFid, data []byte, offset uint64) (int, *p.Error);
+	Write(fid *FFid, data []byte, offset uint64) (int, *p.Error)
 }
 
 // If the FCreateOp interface is implemented, the Create operation will be called
@@ -48,7 +48,7 @@ type FWriteOp interface {
 // the operation should call (*File)Add() to add the created file to the directory.
 // The operation returns the created file, or the error occured while creating it.
 type FCreateOp interface {
-	Create(fid *FFid, name string, perm uint32) (*File, *p.Error);
+	Create(fid *FFid, name string, perm uint32) (*File, *p.Error)
 }
 
 // If the FRemoveOp interface is implemented, the Remove operation will be called
@@ -57,49 +57,49 @@ type FCreateOp interface {
 // The operation returns nil if successful, or the error that occured while removing
 // the file.
 type FRemoveOp interface {
-	Remove(*FFid) *p.Error;
+	Remove(*FFid) *p.Error
 }
 
 type FOpenOp interface {
-	Open(fid *FFid, mode uint8) *p.Error;
+	Open(fid *FFid, mode uint8) *p.Error
 }
 
 type FClunkOp interface {
-	Clunk(fid *FFid) *p.Error;
+	Clunk(fid *FFid) *p.Error
 }
 
 type FDestroyOp interface {
-	FidDestroy(fid *FFid);
+	FidDestroy(fid *FFid)
 }
 
 type FFlags int
 
 const (
-	Fremoved FFlags = 1 << iota;
+	Fremoved FFlags = 1 << iota
 )
 
 // The File type represents a file (or directory) served by the file server.
 type File struct {
-	sync.Mutex;
-	p.Dir;
-	flags	FFlags;
+	sync.Mutex
+	p.Dir
+	flags FFlags
 
-	parent		*File;	// parent
-	next, prev	*File;	// siblings, guarded by parent.Lock
-	cfirst, clast	*File;	// children (if directory)
-	ops		interface{};
+	parent        *File // parent
+	next, prev    *File // siblings, guarded by parent.Lock
+	cfirst, clast *File // children (if directory)
+	ops           interface{}
 }
 
 type FFid struct {
-	F	*File;
-	dirs	[]*File;	// used for readdir
+	F    *File
+	dirs []*File // used for readdir
 }
 
 // The Fsrv can be used to create file servers that serve
 // simple trees of synthetic files.
 type Fsrv struct {
-	Srv;
-	Root	*File;
+	Srv
+	Root *File
 }
 
 var lock sync.Mutex
@@ -110,57 +110,57 @@ var Enotempty = &p.Error{"directory not empty", syscall.EPERM}
 
 // Creates a file server with root as root directory
 func NewFileSrv(root *File) *Fsrv {
-	srv := new(Fsrv);
-	srv.Root = root;
-	root.parent = root;	// make sure we can .. in root
+	srv := new(Fsrv)
+	srv.Root = root
+	root.parent = root // make sure we can .. in root
 
-	return srv;
+	return srv
 }
 
 // Initializes the fields of a file and add it to a directory.
 // Returns nil if successful, or an error.
 func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32, ops interface{}) *p.Error {
 
-	lock.Lock();
-	qpath := qnext;
-	qnext++;
-	lock.Unlock();
+	lock.Lock()
+	qpath := qnext
+	qnext++
+	lock.Unlock()
 
-	f.Qid.Type = uint8(mode >> 24);
-	f.Qid.Version = 0;
-	f.Qid.Path = qpath;
-	f.Mode = mode;
-	f.Atime = uint32(time.LocalTime().Seconds());
-	f.Mtime = f.Atime;
-	f.Length = 0;
-	f.Name = name;
+	f.Qid.Type = uint8(mode >> 24)
+	f.Qid.Version = 0
+	f.Qid.Path = qpath
+	f.Mode = mode
+	f.Atime = uint32(time.LocalTime().Seconds())
+	f.Mtime = f.Atime
+	f.Length = 0
+	f.Name = name
 	if uid != nil {
-		f.Uid = uid.Name();
-		f.Uidnum = uint32(uid.Id());
+		f.Uid = uid.Name()
+		f.Uidnum = uint32(uid.Id())
 	} else {
-		f.Uid = "none";
-		f.Uidnum = p.NOUID;
+		f.Uid = "none"
+		f.Uidnum = p.NOUID
 	}
 
 	if gid != nil {
-		f.Gid = gid.Name();
-		f.Gidnum = uint32(gid.Id());
+		f.Gid = gid.Name()
+		f.Gidnum = uint32(gid.Id())
 	} else {
-		f.Gid = "none";
-		f.Gidnum = p.NOUID;
+		f.Gid = "none"
+		f.Gidnum = p.NOUID
 	}
 
-	f.Muid = "";
-	f.Muidnum = p.NOUID;
-	f.Ext = "";
+	f.Muid = ""
+	f.Muidnum = p.NOUID
+	f.Ext = ""
 
 	if dir != nil {
-		f.parent = dir;
-		dir.Lock();
+		f.parent = dir
+		dir.Lock()
 		for p := dir.cfirst; p != nil; p = p.next {
 			if name == p.Name {
-				dir.Unlock();
-				return Eexist;
+				dir.Unlock()
+				return Eexist
 			}
 		}
 
@@ -170,26 +170,26 @@ func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32,
 			dir.cfirst = f
 		}
 
-		f.prev = dir.clast;
-		f.next = nil;
-		dir.clast = f;
-		dir.Unlock();
+		f.prev = dir.clast
+		f.next = nil
+		dir.clast = f
+		dir.Unlock()
 	} else {
 		f.parent = f
 	}
 
-	f.ops = ops;
-	return nil;
+	f.ops = ops
+	return nil
 }
 
 // Removes a file from its parent directory.
 func (f *File) Remove() {
-	f.Lock();
-	f.flags |= Fremoved;
-	f.Unlock();
+	f.Lock()
+	f.flags |= Fremoved
+	f.Unlock()
 
-	p := f.parent;
-	p.Lock();
+	p := f.parent
+	p.Lock()
 	if f.next != nil {
 		f.next.prev = f.prev
 	} else {
@@ -202,23 +202,23 @@ func (f *File) Remove() {
 		p.cfirst = f.next
 	}
 
-	f.next = nil;
-	f.prev = nil;
-	p.Unlock();
+	f.next = nil
+	f.prev = nil
+	p.Unlock()
 }
 
 // Looks for a file in a directory. Returns nil if the file is not found.
 func (p *File) Find(name string) *File {
-	var f *File;
+	var f *File
 
-	p.Lock();
+	p.Lock()
 	for f = p.cfirst; f != nil; f = f.next {
 		if name == f.Name {
 			break
 		}
 	}
-	p.Unlock();
-	return f;
+	p.Unlock()
+	return f
 }
 
 // Checks if the specified user has permission to perform
@@ -229,10 +229,10 @@ func (f *File) CheckPerm(user p.User, perm uint32) bool {
 		return false
 	}
 
-	perm &= 7;
+	perm &= 7
 
 	/* other permissions */
-	fperm := f.Mode & 7;
+	fperm := f.Mode & 7
 	if (fperm & perm) == perm {
 		return true
 	}
@@ -247,12 +247,12 @@ func (f *File) CheckPerm(user p.User, perm uint32) bool {
 	}
 
 	/* group permissions */
-	groups := user.Groups();
+	groups := user.Groups()
 	if groups != nil && len(groups) > 0 {
 		for i := 0; i < len(groups); i++ {
 			if f.Gid == groups[i].Name() || f.Gidnum == uint32(groups[i].Id()) {
-				fperm |= (f.Mode >> 3) & 7;
-				break;
+				fperm |= (f.Mode >> 3) & 7
+				break
 			}
 		}
 	}
@@ -261,34 +261,34 @@ func (f *File) CheckPerm(user p.User, perm uint32) bool {
 		return true
 	}
 
-	return false;
+	return false
 }
 
 func (s *Fsrv) Attach(req *Req) {
-	fid := new(FFid);
-	fid.F = s.Root;
-	req.Fid.Aux = fid;
-	req.RespondRattach(&s.Root.Qid);
+	fid := new(FFid)
+	fid.F = s.Root
+	req.Fid.Aux = fid
+	req.RespondRattach(&s.Root.Qid)
 }
 
 func (*Fsrv) Walk(req *Req) {
-	fid := req.Fid.Aux.(*FFid);
-	tc := req.Tc;
+	fid := req.Fid.Aux.(*FFid)
+	tc := req.Tc
 
 	if req.Newfid.Aux == nil {
 		req.Newfid.Aux = new(FFid)
 	}
 
-	nfid := req.Newfid.Aux.(*FFid);
-	wqids := make([]p.Qid, len(tc.Wname));
-	i := 0;
-	f := fid.F;
+	nfid := req.Newfid.Aux.(*FFid)
+	wqids := make([]p.Qid, len(tc.Wname))
+	i := 0
+	f := fid.F
 	for ; i < len(tc.Wname); i++ {
 		if tc.Wname[i] == ".." {
 			// handle dotdot
-			f = f.parent;
-			wqids[i] = f.Qid;
-			continue;
+			f = f.parent
+			wqids[i] = f.Qid
+			continue
 		}
 		if (wqids[i].Type & p.QTDIR) > 0 {
 			if !f.CheckPerm(req.Fid.User, p.DMEXEC) {
@@ -296,26 +296,26 @@ func (*Fsrv) Walk(req *Req) {
 			}
 		}
 
-		p := f.Find(tc.Wname[i]);
+		p := f.Find(tc.Wname[i])
 		if p == nil {
 			break
 		}
 
-		f = p;
-		wqids[i] = f.Qid;
+		f = p
+		wqids[i] = f.Qid
 	}
 
 	if len(tc.Wname) > 0 && i == 0 {
-		req.RespondError(Enoent);
-		return;
+		req.RespondError(Enoent)
+		return
 	}
 
-	nfid.F = f;
-	req.RespondRwalk(wqids[0:i]);
+	nfid.F = f
+	req.RespondRwalk(wqids[0:i])
 }
 
 func mode2Perm(mode uint8) uint32 {
-	var perm uint32 = 0;
+	var perm uint32 = 0
 
 	switch mode & 3 {
 	case p.OREAD:
@@ -330,44 +330,44 @@ func mode2Perm(mode uint8) uint32 {
 		perm |= p.DMWRITE
 	}
 
-	return perm;
+	return perm
 }
 
 func (*Fsrv) Open(req *Req) {
-	fid := req.Fid.Aux.(*FFid);
-	tc := req.Tc;
+	fid := req.Fid.Aux.(*FFid)
+	tc := req.Tc
 
 	if fid.F.CheckPerm(req.Fid.User, mode2Perm(tc.Mode)) {
-		req.RespondError(Eperm);
-		return;
+		req.RespondError(Eperm)
+		return
 	}
 
 	if op, ok := (fid.F.ops).(FOpenOp); ok {
-		err := op.Open(fid, tc.Mode);
+		err := op.Open(fid, tc.Mode)
 		if err != nil {
 			req.RespondError(err)
 		}
 	}
-	req.RespondRopen(&fid.F.Qid, 0);
+	req.RespondRopen(&fid.F.Qid, 0)
 }
 
 func (*Fsrv) Create(req *Req) {
-	fid := req.Fid.Aux.(*FFid);
-	tc := req.Tc;
+	fid := req.Fid.Aux.(*FFid)
+	tc := req.Tc
 
-	dir := fid.F;
+	dir := fid.F
 	if dir.CheckPerm(req.Fid.User, p.DMWRITE) {
-		req.RespondError(Eperm);
-		return;
+		req.RespondError(Eperm)
+		return
 	}
 
 	if cop, ok := (dir.ops).(FCreateOp); ok {
-		f, err := cop.Create(fid, tc.Name, tc.Perm);
+		f, err := cop.Create(fid, tc.Name, tc.Perm)
 		if err != nil {
 			req.RespondError(err)
 		} else {
-			fid.F = f;
-			req.RespondRcreate(&fid.F.Qid, 0);
+			fid.F = f
+			req.RespondRcreate(&fid.F.Qid, 0)
 		}
 	} else {
 		req.RespondError(Eperm)
@@ -375,76 +375,76 @@ func (*Fsrv) Create(req *Req) {
 }
 
 func (*Fsrv) Read(req *Req) {
-	var i, n int;
-	var err *p.Error;
+	var i, n int
+	var err *p.Error
 
-	fid := req.Fid.Aux.(*FFid);
-	f := fid.F;
-	tc := req.Tc;
-	rc := req.Rc;
-	p.InitRread(rc, tc.Count);
+	fid := req.Fid.Aux.(*FFid)
+	f := fid.F
+	tc := req.Tc
+	rc := req.Rc
+	p.InitRread(rc, tc.Count)
 
 	if f.Mode&p.DMDIR != 0 {
 		// directory
 		if tc.Offset == 0 {
-			var g *File;
-			f.Lock();
+			var g *File
+			f.Lock()
 			for n, g = 0, f.cfirst; g != nil; n, g = n+1, g.next {
 			}
 
-			fid.dirs = make([]*File, n);
+			fid.dirs = make([]*File, n)
 			for n, g = 0, f.cfirst; g != nil; n, g = n+1, g.next {
 				fid.dirs[n] = g
 			}
-			f.Unlock();
+			f.Unlock()
 		}
 
-		n = 0;
-		b := rc.Data;
+		n = 0
+		b := rc.Data
 		for i = 0; i < len(fid.dirs); i++ {
-			g := fid.dirs[i];
-			g.Lock();
+			g := fid.dirs[i]
+			g.Lock()
 			if (g.flags & Fremoved) != 0 {
-				g.Unlock();
-				continue;
+				g.Unlock()
+				continue
 			}
 
-			sz := p.PackDir(&g.Dir, b, req.Conn.Dotu);
-			g.Unlock();
+			sz := p.PackDir(&g.Dir, b, req.Conn.Dotu)
+			g.Unlock()
 			if sz == 0 {
 				break
 			}
 
-			b = b[sz:len(b)];
-			n += sz;
+			b = b[sz:len(b)]
+			n += sz
 		}
 
-		fid.dirs = fid.dirs[i:len(fid.dirs)];
+		fid.dirs = fid.dirs[i:len(fid.dirs)]
 	} else {
 		// file
 		if rop, ok := f.ops.(FReadOp); ok {
-			n, err = rop.Read(fid, rc.Data, tc.Offset);
+			n, err = rop.Read(fid, rc.Data, tc.Offset)
 			if err != nil {
-				req.RespondError(err);
-				return;
+				req.RespondError(err)
+				return
 			}
 		} else {
-			req.RespondError(Eperm);
-			return;
+			req.RespondError(Eperm)
+			return
 		}
 	}
 
-	p.SetRreadCount(rc, uint32(n));
-	req.Respond();
+	p.SetRreadCount(rc, uint32(n))
+	req.Respond()
 }
 
 func (*Fsrv) Write(req *Req) {
-	fid := req.Fid.Aux.(*FFid);
-	f := fid.F;
-	tc := req.Tc;
+	fid := req.Fid.Aux.(*FFid)
+	f := fid.F
+	tc := req.Tc
 
 	if wop, ok := (f.ops).(FWriteOp); ok {
-		n, err := wop.Write(fid, tc.Data, tc.Offset);
+		n, err := wop.Write(fid, tc.Data, tc.Offset)
 		if err != nil {
 			req.RespondError(err)
 		} else {
@@ -457,48 +457,48 @@ func (*Fsrv) Write(req *Req) {
 }
 
 func (*Fsrv) Clunk(req *Req) {
-	fid := req.Fid.Aux.(*FFid);
+	fid := req.Fid.Aux.(*FFid)
 
 	if op, ok := (fid.F.ops).(FClunkOp); ok {
-		err := op.Clunk(fid);
+		err := op.Clunk(fid)
 		if err != nil {
 			req.RespondError(err)
 		}
 	}
-	req.RespondRclunk();
+	req.RespondRclunk()
 }
 
 func (*Fsrv) Remove(req *Req) {
-	fid := req.Fid.Aux.(*FFid);
-	f := fid.F;
-	f.Lock();
+	fid := req.Fid.Aux.(*FFid)
+	f := fid.F
+	f.Lock()
 	if f.cfirst != nil {
-		f.Unlock();
-		req.RespondError(Enotempty);
-		return;
+		f.Unlock()
+		req.RespondError(Enotempty)
+		return
 	}
-	f.Unlock();
+	f.Unlock()
 
 	if rop, ok := (f.ops).(FRemoveOp); ok {
-		err := rop.Remove(fid);
+		err := rop.Remove(fid)
 		if err != nil {
 			req.RespondError(err)
 		} else {
-			f.Remove();
-			req.RespondRremove();
+			f.Remove()
+			req.RespondRremove()
 		}
 	} else {
-		log.Stderr("remove not implemented");
-		req.RespondError(Eperm);
+		log.Stderr("remove not implemented")
+		req.RespondError(Eperm)
 	}
 }
 
 func (*Fsrv) Stat(req *Req) {
-	fid := req.Fid.Aux.(*FFid);
-	f := fid.F;
+	fid := req.Fid.Aux.(*FFid)
+	f := fid.F
 
 	if sop, ok := (f.ops).(FStatOp); ok {
-		err := sop.Stat(fid);
+		err := sop.Stat(fid)
 		if err != nil {
 			req.RespondError(err)
 		} else {
@@ -510,12 +510,12 @@ func (*Fsrv) Stat(req *Req) {
 }
 
 func (*Fsrv) Wstat(req *Req) {
-	tc := req.Tc;
-	fid := req.Fid.Aux.(*FFid);
-	f := fid.F;
+	tc := req.Tc
+	fid := req.Fid.Aux.(*FFid)
+	f := fid.F
 
 	if wop, ok := (f.ops).(FWstatOp); ok {
-		err := wop.Wstat(fid, &tc.Dir);
+		err := wop.Wstat(fid, &tc.Dir)
 		if err != nil {
 			req.RespondError(err)
 		} else {
@@ -528,13 +528,13 @@ func (*Fsrv) Wstat(req *Req) {
 
 func (*Fsrv) FidDestroy(ffid *Fid) {
 	if ffid.Aux == nil {
-		return;
+		return
 	}
-	fid := ffid.Aux.(*FFid);
-	f := fid.F;
+	fid := ffid.Aux.(*FFid)
+	f := fid.F
 
 	if f == nil {
-		return; // otherwise errs in bad walks
+		return // otherwise errs in bad walks
 	}
 
 	if op, ok := (f.ops).(FDestroyOp); ok {

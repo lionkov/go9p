@@ -10,31 +10,31 @@ import "plan9/p/clnt"
 var addr = flag.String("addr", "127.0.0.1:5640", "network address")
 
 func main() {
-	var user p.User;
-	var err *p.Error;
-	var c *clnt.Clnt;
-	var file *clnt.File;
-	var d []*p.Dir;
+	var user p.User
+	var err *p.Error
+	var c *clnt.Clnt
+	var file *clnt.File
+	var d []*p.Dir
 
-	flag.Parse();
-	user = p.OsUsers.Uid2User(os.Geteuid());
-	c, err = clnt.Mount("tcp", *addr, "", user);
+	flag.Parse()
+	user = p.OsUsers.Uid2User(os.Geteuid())
+	c, err = clnt.Mount("tcp", *addr, "", user)
 	if err != nil {
 		goto error
 	}
 
 	if flag.NArg() != 1 {
-		log.Stderr("invalid arguments");
-		return;
+		log.Stderr("invalid arguments")
+		return
 	}
 
-	file, err = c.FOpen(flag.Arg(0), p.OREAD);
+	file, err = c.FOpen(flag.Arg(0), p.OREAD)
 	if err != nil {
 		goto error
 	}
 
 	for {
-		d, err = file.Readdir(0);
+		d, err = file.Readdir(0)
 		if err != nil {
 			goto error
 		}
@@ -48,9 +48,9 @@ func main() {
 		}
 	}
 
-	file.Close();
-	return;
+	file.Close()
+	return
 
 error:
-	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum));
+	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
 }

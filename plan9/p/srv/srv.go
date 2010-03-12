@@ -14,10 +14,10 @@ import "syscall"
 type reqStatus int
 
 const (
-	reqFlush	reqStatus	= (1 << iota);	/* request is flushed (no response will be sent) */
-	reqWork;			/* goroutine is currently working on it */
-	reqResponded;			/* response is already produced */
-	reqSaved;			/* no response was produced after the request is worked on */
+	reqFlush     reqStatus = (1 << iota) /* request is flushed (no response will be sent) */
+	reqWork                /* goroutine is currently working on it */
+	reqResponded           /* response is already produced */
+	reqSaved               /* no response was produced after the request is worked on */
 )
 
 var Eunknownfid *p.Error = &p.Error{"unknown fid", syscall.EINVAL}
@@ -44,37 +44,37 @@ type AuthOps interface {
 	// is referred by afid.User. The function should return the Qid
 	// for the authentication file, or an Error if the user can't be
 	// authenticated
-	AuthInit(afid *Fid, aname string) (*p.Qid, *p.Error);
+	AuthInit(afid *Fid, aname string) (*p.Qid, *p.Error)
 
 	// AuthDestroy is called when an authentication fid is destroyed.
-	AuthDestroy(afid *Fid);
+	AuthDestroy(afid *Fid)
 
 	// AuthCheck is called after the authentication process is finished
 	// when the user tries to attach to the file server. If the function
 	// returns nil, the authentication was successful and the user has
 	// permission to access the files.
-	AuthCheck(fid *Fid, afid *Fid, aname string) *p.Error;
+	AuthCheck(fid *Fid, afid *Fid, aname string) *p.Error
 
 	// AuthRead is called when the user attempts to read data from an
 	// authentication fid.
-	AuthRead(afid *Fid, offset uint64, data []byte) (count int, err *p.Error);
+	AuthRead(afid *Fid, offset uint64, data []byte) (count int, err *p.Error)
 
 	// AuthWrite is called when the user attempts to write data to an
 	// authentication fid.
-	AuthWrite(afid *Fid, offset uint64, data []byte) (count int, err *p.Error);
+	AuthWrite(afid *Fid, offset uint64, data []byte) (count int, err *p.Error)
 }
 
 // Connection operations. These should be implemented if the file server
 // needs to be called when a connection is opened or closed.
 type ConnOps interface {
-	ConnOpened(*Conn);
-	ConnClosed(*Conn);
+	ConnOpened(*Conn)
+	ConnClosed(*Conn)
 }
 
 // Fid operations. This interface should be implemented if the file server
 // needs to be called when a Fid is destroyed.
 type FidOps interface {
-	FidDestroy(*Fid);
+	FidDestroy(*Fid)
 }
 
 // Request operations. This interface should be implemented if the file server
@@ -88,7 +88,7 @@ type ReqProcessOps interface {
 	// responsibility to call srv.Process. If srv.Process isn't called,
 	// Fid, Afid and Newfid fields in Req are not set, and the ReqOps
 	// methods are not called.
-	ReqProcess(*Req);
+	ReqProcess(*Req)
 
 	// Called when a request is responded, i.e. when (req *Req)srv.Respond()
 	// is called and before the response is sent. If the interface is not
@@ -96,7 +96,7 @@ type ReqProcessOps interface {
 	// the request. If the interface is implemented and ReqProcess calls
 	// the srv.Process method, ReqRespond should call the srv.PostProcess
 	// method.
-	ReqRespond(*Req);
+	ReqRespond(*Req)
 }
 
 // Flush operation. This interface should be implemented if the file server
@@ -105,22 +105,22 @@ type ReqProcessOps interface {
 // The flush method should call the (req *Req) srv.Flush() method if the flush
 // was successful so the request can be marked appropriately.
 type FlushOp interface {
-	Flush(*Req);
+	Flush(*Req)
 }
 
 // Request operations. This interface should be implemented by all file servers.
 // The operations correspond directly to most of the 9P2000 message types.
 type ReqOps interface {
-	Attach(*Req);
-	Walk(*Req);
-	Open(*Req);
-	Create(*Req);
-	Read(*Req);
-	Write(*Req);
-	Clunk(*Req);
-	Remove(*Req);
-	Stat(*Req);
-	Wstat(*Req);
+	Attach(*Req)
+	Walk(*Req)
+	Open(*Req)
+	Create(*Req)
+	Read(*Req)
+	Write(*Req)
+	Clunk(*Req)
+	Remove(*Req)
+	Stat(*Req)
+	Wstat(*Req)
 }
 
 // The Srv type contains the basic fields used to control the 9P2000
@@ -129,32 +129,32 @@ type ReqOps interface {
 // struct to the (Srv *) srv.Start(ops) method together with the object
 // that implements the file server operations.
 type Srv struct {
-	sync.Mutex;
-	Msize		uint32;		// Maximum size of the 9P2000 messages supported by the server
-	Dotu		bool;		// If true, the server supports the 9P2000.u extension
-	Debuglevel	int;		// 0==don't print anything, >1 print 9P messages, >2 print raw data
-	Upool		p.Users;	// Interface for finding users and groups known to the file server
-	Maxpend		int;		// Maximum pending outgoing requests
-	Ngoroutines	int;		// Number of goroutines handling requests, if 0, create a gorotine for each request
-	Reqin		chan *Req;	// Incoming requests
+	sync.Mutex
+	Msize       uint32    // Maximum size of the 9P2000 messages supported by the server
+	Dotu        bool      // If true, the server supports the 9P2000.u extension
+	Debuglevel  int       // 0==don't print anything, >1 print 9P messages, >2 print raw data
+	Upool       p.Users   // Interface for finding users and groups known to the file server
+	Maxpend     int       // Maximum pending outgoing requests
+	Ngoroutines int       // Number of goroutines handling requests, if 0, create a gorotine for each request
+	Reqin       chan *Req // Incoming requests
 
-	ops	interface{};	// operations
+	ops interface{} // operations
 }
 
 // The Conn type represents a connection from a client to the file server
 type Conn struct {
-	sync.Mutex;
-	Srv	*Srv;
-	Msize	uint32;	// maximum size of 9P2000 messages for the connection
-	Dotu	bool;	// if true, both the client and the server speak 9P2000.u
+	sync.Mutex
+	Srv   *Srv
+	Msize uint32 // maximum size of 9P2000 messages for the connection
+	Dotu  bool   // if true, both the client and the server speak 9P2000.u
 
-	conn		net.Conn;
-	fidpool		map[uint32]*Fid;
-	reqfirst	*Req;
-	reqlast		*Req;
+	conn     net.Conn
+	fidpool  map[uint32]*Fid
+	reqfirst *Req
+	reqlast  *Req
 
-	reqout	chan *Req;
-	done	chan bool;
+	reqout chan *Req
+	done   chan bool
 }
 
 // The Fid type identifies a file on the file server.
@@ -163,16 +163,16 @@ type Conn struct {
 // automatically by the srv implementation. The FidDestroy operation is called
 // when a Fid is destroyed.
 type Fid struct {
-	sync.Mutex;
-	fid		uint32;
-	refcount	int;
-	opened		bool;		// True if the Fid is opened
-	Fconn		*Conn;		// Connection the Fid belongs to
-	Omode		uint8;		// Open mode (p.O* flags), if the fid is opened
-	Type		uint8;		// Fid type (p.QT* flags)
-	Diroffset	uint64;		// If directory, the next valid read position
-	User		p.User;		// The Fid's user
-	Aux		interface{};	// Can be used by the file server implementation for per-Fid data
+	sync.Mutex
+	fid       uint32
+	refcount  int
+	opened    bool        // True if the Fid is opened
+	Fconn     *Conn       // Connection the Fid belongs to
+	Omode     uint8       // Open mode (p.O* flags), if the fid is opened
+	Type      uint8       // Fid type (p.QT* flags)
+	Diroffset uint64      // If directory, the next valid read position
+	User      p.User      // The Fid's user
+	Aux       interface{} // Can be used by the file server implementation for per-Fid data
 }
 
 // The Req type represents a 9P2000 request. Each request has a
@@ -181,17 +181,17 @@ type Fid struct {
 // Afid and Newfid values and automatically keeps track on when the Fids
 // should be destroyed.
 type Req struct {
-	sync.Mutex;
-	Tc	*p.Fcall;	// Incoming 9P2000 message
-	Rc	*p.Fcall;	// Outgoing 9P2000 response
-	Fid	*Fid;		// The Fid value for all messages that contain fid[4]
-	Afid	*Fid;		// The Fid value for the messages that contain afid[4] (Tauth and Tattach)
-	Newfid	*Fid;		// The Fid value for the messages that contain newfid[4] (Twalk)
-	Conn	*Conn;		// Connection that the request belongs to
+	sync.Mutex
+	Tc     *p.Fcall // Incoming 9P2000 message
+	Rc     *p.Fcall // Outgoing 9P2000 response
+	Fid    *Fid     // The Fid value for all messages that contain fid[4]
+	Afid   *Fid     // The Fid value for the messages that contain afid[4] (Tauth and Tattach)
+	Newfid *Fid     // The Fid value for the messages that contain newfid[4] (Twalk)
+	Conn   *Conn    // Connection that the request belongs to
 
-	status		reqStatus;
-	flushreq	*Req;
-	prev, next	*Req;
+	status     reqStatus
+	flushreq   *Req
+	prev, next *Req
 }
 
 // The Start method should be called once the file server implementor
@@ -205,7 +205,7 @@ func (srv *Srv) Start(ops interface{}) bool {
 		return false
 	}
 
-	srv.ops = ops;
+	srv.ops = ops
 	if srv.Upool == nil {
 		srv.Upool = p.OsUsers
 	}
@@ -214,22 +214,22 @@ func (srv *Srv) Start(ops interface{}) bool {
 		srv.Msize = p.MSIZE
 	}
 
-	srv.Reqin = make(chan *Req, srv.Maxpend);
-	n := srv.Ngoroutines;
+	srv.Reqin = make(chan *Req, srv.Maxpend)
+	n := srv.Ngoroutines
 	for i := 0; i < n; i++ {
 		go srv.work()
 	}
 
-	return true;
+	return true
 }
 
 func (req *Req) process() {
-	req.Lock();
-	flushed := (req.status & reqFlush) != 0;
+	req.Lock()
+	flushed := (req.status & reqFlush) != 0
 	if !flushed {
 		req.status |= reqWork
 	}
-	req.Unlock();
+	req.Unlock()
 
 	if flushed {
 		req.Respond()
@@ -241,12 +241,12 @@ func (req *Req) process() {
 		req.Process()
 	}
 
-	req.Lock();
-	req.status &= ^reqWork;
+	req.Lock()
+	req.status &= ^reqWork
 	if !(req.status&reqResponded != 0) {
 		req.status |= reqSaved
 	}
-	req.Unlock();
+	req.Unlock()
 }
 
 func (srv *Srv) work() {
@@ -261,17 +261,17 @@ func (srv *Srv) work() {
 // should call it only if the file server implements the ReqProcessOps
 // within the ReqProcess operation.
 func (req *Req) Process() {
-	conn := req.Conn;
-	srv := conn.Srv;
-	tc := req.Tc;
+	conn := req.Conn
+	srv := conn.Srv
+	tc := req.Tc
 
 	if tc.Fid != p.NOFID && tc.Type != p.Tattach {
-		srv.Lock();
-		req.Fid = conn.FidGet(tc.Fid);
-		srv.Unlock();
+		srv.Lock()
+		req.Fid = conn.FidGet(tc.Fid)
+		srv.Unlock()
 		if req.Fid == nil {
-			req.RespondError(Eunknownfid);
-			return;
+			req.RespondError(Eunknownfid)
+			return
 		}
 	}
 
@@ -325,7 +325,7 @@ func (req *Req) Process() {
 // only if the file server implements the ReqProcessOps within the
 // ReqRespond operation.
 func (req *Req) PostProcess() {
-	srv := req.Conn.Srv;
+	srv := req.Conn.Srv
 
 	/* call the post-handlers (if needed) */
 	switch req.Tc.Type {
@@ -355,18 +355,18 @@ func (req *Req) PostProcess() {
 	}
 
 	if req.Fid != nil {
-		req.Fid.DecRef();
-		req.Fid = nil;
+		req.Fid.DecRef()
+		req.Fid = nil
 	}
 
 	if req.Afid != nil {
-		req.Afid.DecRef();
-		req.Afid = nil;
+		req.Afid.DecRef()
+		req.Afid = nil
 	}
 
 	if req.Newfid != nil {
-		req.Newfid.DecRef();
-		req.Newfid = nil;
+		req.Newfid.DecRef()
+		req.Newfid = nil
 	}
 }
 
@@ -375,19 +375,19 @@ func (req *Req) PostProcess() {
 // the file server implementer shouldn't call this method directly. Instead
 // one of the RespondR* methods should be used.
 func (req *Req) Respond() {
-	conn := req.Conn;
-	req.Lock();
-	status := req.status;
-	req.status |= reqResponded;
-	req.status &= ^reqWork;
-	req.Unlock();
+	conn := req.Conn
+	req.Lock()
+	status := req.status
+	req.status |= reqResponded
+	req.status &= ^reqWork
+	req.Unlock()
 
 	if (status & reqResponded) != 0 {
 		return
 	}
 
 	/* remove the request and all requests flushing it */
-	conn.Lock();
+	conn.Lock()
 	if req.prev != nil {
 		req.prev.next = req.next
 	} else {
@@ -413,7 +413,7 @@ func (req *Req) Respond() {
 			conn.reqlast = freq.prev
 		}
 	}
-	conn.Unlock();
+	conn.Unlock()
 
 	if rop, ok := (req.Conn.Srv.ops).(ReqProcessOps); ok {
 		rop.ReqRespond(req)
@@ -435,9 +435,9 @@ func (req *Req) Respond() {
 // Should be called to cancel a request. Should only be callled
 // from the Flush operation if the FlushOp is implemented.
 func (req *Req) Flush() {
-	req.Lock();
-	req.status |= reqFlush;
-	req.Unlock();
+	req.Lock()
+	req.status |= reqFlush
+	req.Unlock()
 }
 
 // Lookup a Fid struct based on the 32-bit identifier sent over the wire.
@@ -445,60 +445,60 @@ func (req *Req) Flush() {
 // the returned fid. The user is responsible to call DecRef once it no
 // longer needs it.
 func (conn *Conn) FidGet(fidno uint32) *Fid {
-	conn.Lock();
-	fid, present := conn.fidpool[fidno];
+	conn.Lock()
+	fid, present := conn.fidpool[fidno]
 	if present {
 		fid.IncRef()
 	}
-	conn.Unlock();
+	conn.Unlock()
 
-	return fid;
+	return fid
 }
 
 // Creates a new Fid struct for the fidno integer. Returns nil
 // if the Fid for that number already exists. The returned fid
 // has reference count set to 1.
 func (conn *Conn) FidNew(fidno uint32) *Fid {
-	conn.Lock();
-	_, present := conn.fidpool[fidno];
+	conn.Lock()
+	_, present := conn.fidpool[fidno]
 	if present {
-		conn.Unlock();
-		return nil;
+		conn.Unlock()
+		return nil
 	}
 
-	fid := new(Fid);
-	fid.fid = fidno;
-	fid.refcount = 1;
-	fid.Fconn = conn;
-	conn.fidpool[fidno] = fid;
-	conn.Unlock();
+	fid := new(Fid)
+	fid.fid = fidno
+	fid.refcount = 1
+	fid.Fconn = conn
+	conn.fidpool[fidno] = fid
+	conn.Unlock()
 
-	return fid;
+	return fid
 }
 
 // Increase the reference count for the fid.
 func (fid *Fid) IncRef() {
-	fid.Lock();
-	fid.refcount++;
-	fid.Unlock();
+	fid.Lock()
+	fid.refcount++
+	fid.Unlock()
 }
 
 // Decrease the reference count for the fid. When the
 // reference count reaches 0, the fid is no longer valid.
 func (fid *Fid) DecRef() {
-	fid.Lock();
-	fid.refcount--;
-	n := fid.refcount;
-	fid.Unlock();
+	fid.Lock()
+	fid.refcount--
+	n := fid.refcount
+	fid.Unlock()
 
 	if n > 0 {
 		return
 	}
 
-	conn := fid.Fconn;
-	conn.Lock();
-	conn.fidpool[fid.fid] = nil, false;
-	conn.Unlock();
+	conn := fid.Fconn
+	conn.Lock()
+	conn.fidpool[fid.fid] = nil, false
+	conn.Unlock()
 
 	if fop, ok := (conn.Srv.ops).(FidOps); ok {
 		fop.FidDestroy(fid)

@@ -8,55 +8,55 @@ import "once"
 import "sync"
 
 type osUser struct {
-	uid int;
+	uid int
 }
 
 type osUsers struct {
-	users	map[int]*osUser;
-	groups	map[int]*osGroup;
-	sync.Mutex;
+	users  map[int]*osUser
+	groups map[int]*osGroup
+	sync.Mutex
 }
 
 // Simple Users implementation that fakes looking up users and groups
 // by uid only. The names and groups memberships are empty
 var OsUsers *osUsers
 
-func (u *osUser) Name() string	{ return "" }
+func (u *osUser) Name() string { return "" }
 
-func (u *osUser) Id() int	{ return u.uid }
+func (u *osUser) Id() int { return u.uid }
 
-func (u *osUser) Groups() []Group	{ return nil }
+func (u *osUser) Groups() []Group { return nil }
 
 type osGroup struct {
-	gid int;
+	gid int
 }
 
-func (g *osGroup) Name() string	{ return "" }
+func (g *osGroup) Name() string { return "" }
 
-func (g *osGroup) Id() int	{ return g.gid }
+func (g *osGroup) Id() int { return g.gid }
 
-func (g *osGroup) Members() []User	{ return nil }
+func (g *osGroup) Members() []User { return nil }
 
 func initOsusers() {
-	OsUsers = new(osUsers);
-	OsUsers.users = make(map[int]*osUser);
-	OsUsers.groups = make(map[int]*osGroup);
+	OsUsers = new(osUsers)
+	OsUsers.users = make(map[int]*osUser)
+	OsUsers.groups = make(map[int]*osGroup)
 }
 
 func (up *osUsers) Uid2User(uid int) User {
-	once.Do(initOsusers);
-	OsUsers.Lock();
-	user, present := OsUsers.users[uid];
+	once.Do(initOsusers)
+	OsUsers.Lock()
+	user, present := OsUsers.users[uid]
 	if present {
-		OsUsers.Unlock();
-		return user;
+		OsUsers.Unlock()
+		return user
 	}
 
-	user = new(osUser);
-	user.uid = uid;
-	OsUsers.users[uid] = user;
-	OsUsers.Unlock();
-	return user;
+	user = new(osUser)
+	user.uid = uid
+	OsUsers.users[uid] = user
+	OsUsers.Unlock()
+	return user
 }
 
 func (up *osUsers) Uname2User(uname string) User {
@@ -64,19 +64,19 @@ func (up *osUsers) Uname2User(uname string) User {
 }
 
 func (up *osUsers) Gid2Group(gid int) Group {
-	once.Do(initOsusers);
-	OsUsers.Lock();
-	group, present := OsUsers.groups[gid];
+	once.Do(initOsusers)
+	OsUsers.Lock()
+	group, present := OsUsers.groups[gid]
 	if present {
-		OsUsers.Unlock();
-		return group;
+		OsUsers.Unlock()
+		return group
 	}
 
-	group = new(osGroup);
-	group.gid = gid;
-	OsUsers.groups[gid] = group;
-	OsUsers.Unlock();
-	return group;
+	group = new(osGroup)
+	group.gid = gid
+	OsUsers.groups[gid] = group
+	OsUsers.Unlock()
+	return group
 }
 
 func (up *osUsers) Gname2Group(gname string) Group {
