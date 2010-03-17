@@ -6,10 +6,12 @@
 // a 9P2000 file server.
 package srv
 
-import "plan9/p"
-import "net"
-import "sync"
-import "syscall"
+import (
+	"net"
+	"sync"
+	"syscall"
+	"code.google.com/p/go9p/p"
+)
 
 type reqStatus int
 

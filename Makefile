@@ -5,25 +5,25 @@
 # After editing the DIRS= list or adding imports to any Go files
 # in any of those directories, run:
 #
-#	./deps.bash
+#   ./deps.bash
 #
 # to rebuild the dependency information in Make.deps.
 
-all: install
+all: install 
 
 DIRS=\
-	plan9/p\
-	plan9/p/clnt\
-	plan9/p/srv\
+	p\
+    p/clnt\
+    p/srv\
 
 NOTEST=\
-	plan9/p\
-	plan9/p/clnt\
-	plan9/p/srv\
+	p\
+    p/clnt\
+    p/srv\
 
 EXAMPLES=\
-	plan9/p/clnt/examples\
-	plan9/p/srv/examples\
+    p/clnt/examples\
+	p/srv/examples\
 
 clean.dirs: $(addsuffix .clean, $(DIRS))
 clean.dirs: $(addsuffix .clean, $(EXAMPLES))
@@ -48,8 +48,10 @@ examples.dirs: $(addsuffix .examples, $(EXAMPLES))
 
 clean: clean.dirs
 
-install: install.dirs
+install: $(TARG) install.dirs
 
 nuke: nuke.dirs
 
 examples: examples.dirs
+
+

@@ -4,9 +4,11 @@
 
 package clnt
 
-import "plan9/p"
-import "strings"
-import "syscall"
+import (
+	"strings"
+	"syscall"
+	"code.google.com/p/go9p/p"
+)
 
 // Starting from the file associated with fid, walks all wnames in
 // sequence and associates the resulting file with newfid. If no wnames

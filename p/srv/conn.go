@@ -8,7 +8,7 @@ import "fmt"
 import "log"
 import "net"
 import "os"
-import "plan9/p"
+import "code.google.com/p/go9p/p"
 
 func newConn(srv *Srv, c net.Conn) {
 	conn := new(Conn)

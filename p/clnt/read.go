@@ -4,7 +4,7 @@
 
 package clnt
 
-import "plan9/p"
+import "code.google.com/p/go9p/p"
 
 // Reads count bytes starting from offset from the file associated with the fid.
 // Returns a slice with the data read, if the operation was successful, or an

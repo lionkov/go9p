@@ -9,14 +9,16 @@
 
 package main
 
-import "flag"
-import "fmt"
-import "log"
-import "os"
-import "strconv"
-import "plan9/p"
-import "plan9/p/srv"
-import "time"
+import (
+	"flag"
+	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p/p/srv"
+	"time"
+)
 
 type ClFile struct {
 	srv.File

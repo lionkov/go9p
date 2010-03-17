@@ -4,7 +4,7 @@
 
 package srv
 
-import "plan9/p"
+import "code.google.com/p/go9p/p"
 import "syscall"
 
 func (srv *Srv) version(req *Req) {

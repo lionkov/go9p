@@ -7,7 +7,6 @@
 package p
 
 import "syscall"
-//import "log"
 
 // 9P2000 message types
 const (

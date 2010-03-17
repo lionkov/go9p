@@ -4,8 +4,10 @@
 
 package clnt
 
-import "plan9/p"
-import "syscall"
+import (
+	"syscall"
+	"code.google.com/p/go9p/p"
+)
 
 // Creates an authentication fid for the specified user. Returns the fid, if
 // successful, or an Error.

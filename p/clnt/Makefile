@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.$(GOARCH)
 
-TARG=plan9/p/clnt
+TARG=code.google.com/p/go9p/p/clnt
 GOFILES=\
 	clnt.go\
 	close.go\

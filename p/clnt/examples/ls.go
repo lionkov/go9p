@@ -1,11 +1,13 @@
 package main
 
-import "flag"
-import "fmt"
-import "log"
-import "os"
-import "plan9/p"
-import "plan9/p/clnt"
+import (
+	"flag"
+	"fmt"
+	"log"
+	"os"
+	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p/p/clnt"
+)
 
 var addr = flag.String("addr", "127.0.0.1:5640", "network address")
 

@@ -4,11 +4,13 @@
 
 package srv
 
-import "log"
-import "plan9/p"
-import "sync"
-import "syscall"
-import "time"
+import (
+	"log"
+	"sync"
+	"syscall"
+	"time"
+	"code.google.com/p/go9p/p"
+)
 
 // The FStatOp interface provides a single operation (Stat) that will be
 // called before a file stat is sent back to the client. If implemented,

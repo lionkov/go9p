@@ -4,8 +4,10 @@
 
 package clnt
 
-import "plan9/p"
-import "strings"
+import (
+	"strings"
+	"code.google.com/p/go9p/p"
+)
 
 // Opens the file associated with the fid. Returns nil if
 // the operation is successful.

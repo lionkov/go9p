@@ -6,12 +6,14 @@
 // a 9P2000 file client.
 package clnt
 
-import "fmt"
-import "log"
-import "net"
-import "plan9/p"
-import "sync"
-import "syscall"
+import (
+	"fmt"
+	"log"
+	"net"
+	"sync"
+	"syscall"
+	"code.google.com/p/go9p/p"
+)
 
 // The Clnt type represents a 9P2000 client. The client is connected to
 // a 9P2000 file server and its methods can be used to access and manipulate

@@ -4,7 +4,7 @@
 
 package clnt
 
-import "plan9/p"
+import "code.google.com/p/go9p/p"
 
 // Removes the file associated with the Fid. Returns nil if the
 // operation is successful.
