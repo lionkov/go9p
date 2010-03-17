@@ -4,7 +4,8 @@
 
 package clnt
 
-import "code.google.com/p/go9p/p"
+import "go9p.googlecode.com/hg/p"
+
 
 // Write up to len(data) bytes starting from offset. Returns the
 // number of bytes written, or an Error.

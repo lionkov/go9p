@@ -9,8 +9,8 @@ import (
 	"os"
 	"path"
 	"strings"
-	"code.google.com/p/go9p/p"
-	"code.google.com/p/go9p/p/clnt"
+	"go9p.googlecode.com/hg/p"
+	"go9p.googlecode.com/hg/p/clnt"
 )
 
 var addr = flag.String("addr", "127.0.0.1:5640", "network address")

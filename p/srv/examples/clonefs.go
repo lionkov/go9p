@@ -15,8 +15,8 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"code.google.com/p/go9p/p"
-	"code.google.com/p/go9p/p/srv"
+	"go9p.googlecode.com/hg/p"
+	"go9p.googlecode.com/hg/p/srv"
 	"time"
 )
 

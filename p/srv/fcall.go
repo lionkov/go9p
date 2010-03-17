@@ -4,8 +4,10 @@
 
 package srv
 
-import "code.google.com/p/go9p/p"
-import "syscall"
+import (
+	"syscall"
+	"go9p.googlecode.com/hg/p"
+)
 
 func (srv *Srv) version(req *Req) {
 	tc := req.Tc

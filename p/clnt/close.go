@@ -4,7 +4,7 @@
 
 package clnt
 
-import "code.google.com/p/go9p/p"
+import "go9p.googlecode.com/hg/p"
 
 // Clunks a fid. Returns nil if successful.
 func (clnt *Clnt) Clunk(fid *Fid) *p.Error {

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"code.google.com/p/go9p/p"
+	"go9p.googlecode.com/hg/p"
 )
 
 // The FStatOp interface provides a single operation (Stat) that will be

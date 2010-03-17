@@ -4,11 +4,13 @@
 
 package srv
 
-import "fmt"
-import "log"
-import "net"
-import "os"
-import "code.google.com/p/go9p/p"
+import (
+	"fmt"
+	"log"
+	"net"
+	"os"
+	"go9p.googlecode.com/hg/p"
+)
 
 func newConn(srv *Srv, c net.Conn) {
 	conn := new(Conn)

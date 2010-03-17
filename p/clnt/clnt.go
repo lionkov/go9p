@@ -12,7 +12,8 @@ import (
 	"net"
 	"sync"
 	"syscall"
-	"code.google.com/p/go9p/p"
+    "go9p.googlecode.com/hg/p"
+
 )
 
 // The Clnt type represents a 9P2000 client. The client is connected to

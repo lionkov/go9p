@@ -4,7 +4,8 @@
 
 package clnt
 
-import "code.google.com/p/go9p/p"
+import "go9p.googlecode.com/hg/p"
+
 
 // Removes the file associated with the Fid. Returns nil if the
 // operation is successful.

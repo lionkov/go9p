@@ -4,7 +4,8 @@
 
 package srv
 
-import "code.google.com/p/go9p/p"
+import "go9p.googlecode.com/hg/p"
+
 
 // Respond to the request with Rerror message
 func (req *Req) RespondError(err *p.Error) {

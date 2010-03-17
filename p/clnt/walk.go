@@ -7,7 +7,7 @@ package clnt
 import (
 	"strings"
 	"syscall"
-	"code.google.com/p/go9p/p"
+	"go9p.googlecode.com/hg/p"
 )
 
 // Starting from the file associated with fid, walks all wnames in

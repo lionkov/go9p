@@ -6,7 +6,7 @@ package clnt
 
 import (
 	"strings"
-	"code.google.com/p/go9p/p"
+	"go9p.googlecode.com/hg/p"
 )
 
 // Opens the file associated with the fid. Returns nil if

@@ -4,16 +4,17 @@
 
 package main
 
-import ("flag"
- "fmt"
- "log"
- "os"
- "strconv"
- "strings"
- "syscall"
- "code.google.com/p/go9p/p"
- "code.google.com/p/go9p/p/srv"
- )
+import (
+	"flag"
+	"fmt"
+	"log"
+	"os"
+	"strconv"
+	"strings"
+	"syscall"
+	"go9p.googlecode.com/hg/p"
+	"go9p.googlecode.com/hg/p/srv"
+)
 
 type Fid struct {
 	path      string
