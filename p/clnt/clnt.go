@@ -12,8 +12,7 @@ import (
 	"net"
 	"sync"
 	"syscall"
-    "go9p.googlecode.com/hg/p"
-
+	"go9p.googlecode.com/hg/p"
 )
 
 // The Clnt type represents a 9P2000 client. The client is connected to
@@ -26,7 +25,7 @@ type Clnt struct {
 	Msize      uint32 // Maximum size of the 9P messages
 	Dotu       bool   // If true, 9P2000.u protocol is spoken
 	Root       *Fid   // Fid that points to the rood directory
-	Id	   string // Used when printing debug messages
+	Id         string // Used when printing debug messages
 
 	conn     net.Conn
 	tagpool  *pool
@@ -37,8 +36,8 @@ type Clnt struct {
 	reqlast  *Req
 	err      *p.Error
 
-	reqchan  chan *Req
-	tchan	 chan *p.Fcall
+	reqchan chan *Req
+	tchan   chan *p.Fcall
 }
 
 // A Fid type represents a file on the server. Fids are used for the
@@ -76,7 +75,7 @@ type Req struct {
 	Rc         *p.Fcall
 	Err        *p.Error
 	Done       chan *Req
-	tag	   uint16
+	tag        uint16
 	prev, next *Req
 }
 
@@ -139,7 +138,7 @@ func (clnt *Clnt) recv() {
 	pos := 0
 	for {
 		if len(buf) < int(clnt.Msize) {
-resize:
+		resize:
 			b := make([]byte, clnt.Msize*8)
 			copy(b, buf[0:pos])
 			buf = b
@@ -237,7 +236,7 @@ closed:
 	r := clnt.reqfirst
 	clnt.reqfirst = nil
 	clnt.reqlast = nil
-	if err==nil {
+	if err == nil {
 		err = clnt.err
 	}
 	clnt.Unlock()
@@ -345,7 +344,7 @@ func (clnt *Clnt) FidAlloc() *Fid {
 }
 
 func (clnt *Clnt) NewFcall() *p.Fcall {
-	tc, ok := <- clnt.tchan
+	tc, ok := <-clnt.tchan
 	if !ok {
 		tc = p.NewFcall(clnt.Msize)
 	}
@@ -354,18 +353,18 @@ func (clnt *Clnt) NewFcall() *p.Fcall {
 }
 
 func (clnt *Clnt) ReqAlloc() *Req {
-	req, ok := <- clnt.reqchan
+	req, ok := <-clnt.reqchan
 	if !ok {
 		req = new(Req)
 		req.Clnt = clnt
 		req.tag = uint16(clnt.tagpool.getId())
 	}
 
-	return req		
+	return req
 }
 
 func (clnt *Clnt) ReqFree(req *Req) {
-	if req.Tc!=nil && len(req.Tc.Buf)>=int(clnt.Msize) {
+	if req.Tc != nil && len(req.Tc.Buf) >= int(clnt.Msize) {
 		_ = clnt.tchan <- req.Tc
 	}
 

@@ -45,7 +45,7 @@ func (conn *Conn) recv() {
 	pos := 0
 	for {
 		if len(buf) < int(conn.Msize) {
-resize:
+		resize:
 			b := make([]byte, conn.Msize*8)
 			copy(b, buf[0:pos])
 			buf = b
@@ -80,7 +80,7 @@ resize:
 			}
 
 			req := new(Req)
-			rc, ok := <- conn.rchan
+			rc, ok := <-conn.rchan
 			if !ok {
 				rc = p.NewFcall(conn.Msize)
 			}
@@ -118,13 +118,13 @@ resize:
 closed:
 	conn.done <- true
 	conn.Srv.Lock()
-	if conn.prev!=nil {
+	if conn.prev != nil {
 		conn.prev.next = conn.next
 	} else {
 		conn.Srv.connlist = conn.next
 	}
 
-	if conn.next!=nil {
+	if conn.next != nil {
 		conn.next.prev = conn.prev
 	}
 	conn.Srv.Unlock()

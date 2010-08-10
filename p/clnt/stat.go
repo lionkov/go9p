@@ -56,4 +56,3 @@ func (clnt *Clnt) Wstat(fid *Fid, dir *p.Dir) *p.Error {
 
 	return nil
 }
-

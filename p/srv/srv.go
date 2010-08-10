@@ -17,9 +17,9 @@ type reqStatus int
 
 const (
 	reqFlush     reqStatus = (1 << iota) /* request is flushed (no response will be sent) */
-	reqWork                /* goroutine is currently working on it */
-	reqResponded           /* response is already produced */
-	reqSaved               /* no response was produced after the request is worked on */
+	reqWork                              /* goroutine is currently working on it */
+	reqResponded                         /* response is already produced */
+	reqSaved                             /* no response was produced after the request is worked on */
 )
 
 var Eunknownfid *p.Error = &p.Error{"unknown fid", syscall.EINVAL}
@@ -142,7 +142,7 @@ type Srv struct {
 
 	ops interface{} // operations
 
-	connlist    *Conn     // List of connections
+	connlist *Conn // List of connections
 }
 
 // The Conn type represents a connection from a client to the file server
@@ -158,9 +158,9 @@ type Conn struct {
 	reqfirst *Req
 	reqlast  *Req
 
-	reqout   chan *Req
-	rchan    chan *p.Fcall
-	done     chan bool
+	reqout     chan *Req
+	rchan      chan *p.Fcall
+	done       chan bool
 	prev, next *Conn
 }
 
@@ -284,7 +284,7 @@ func (req *Req) Process() {
 
 	switch req.Tc.Type {
 	default:
-unknown:
+	unknown:
 		req.RespondError(&p.Error{"unknown message type", syscall.ENOSYS})
 
 	case p.Tversion:

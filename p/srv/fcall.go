@@ -402,21 +402,21 @@ func (srv *Srv) removePost(req *Req) {
 func (srv *Srv) stat(req *Req) { (req.Conn.Srv.ops).(ReqOps).Stat(req) }
 
 func (srv *Srv) wstat(req *Req) {
-/*
-	fid := req.Fid
-	d := &req.Tc.Dir
-	if d.Type != uint16(0xFFFF) || d.Dev != uint32(0xFFFFFFFF) || d.Version != uint32(0xFFFFFFFF) ||
-		d.Path != uint64(0xFFFFFFFFFFFFFFFF) {
-		req.RespondError(Eperm)
-		return
-	}
+	/*
+		fid := req.Fid
+		d := &req.Tc.Dir
+		if d.Type != uint16(0xFFFF) || d.Dev != uint32(0xFFFFFFFF) || d.Version != uint32(0xFFFFFFFF) ||
+			d.Path != uint64(0xFFFFFFFFFFFFFFFF) {
+			req.RespondError(Eperm)
+			return
+		}
 
-	if (d.Mode != 0xFFFFFFFF) && (((fid.Type&p.QTDIR) != 0 && (d.Mode&p.DMDIR) == 0) ||
-		((d.Type&p.QTDIR) == 0 && (d.Mode&p.DMDIR) != 0)) {
-		req.RespondError(Edirchange)
-		return
-	}
-*/
+		if (d.Mode != 0xFFFFFFFF) && (((fid.Type&p.QTDIR) != 0 && (d.Mode&p.DMDIR) == 0) ||
+			((d.Type&p.QTDIR) == 0 && (d.Mode&p.DMDIR) != 0)) {
+			req.RespondError(Edirchange)
+			return
+		}
+	*/
 
 	(req.Conn.Srv.ops).(ReqOps).Wstat(req)
 }

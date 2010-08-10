@@ -505,9 +505,9 @@ func packCommon(fc *Fcall, size int, id uint8) ([]byte, *Error) {
 	return p, nil
 }
 
-func (err *Error) String() string { 
-	if err!=nil {
-		return err.Error 
+func (err *Error) String() string {
+	if err != nil {
+		return err.Error
 	}
 
 	return ""

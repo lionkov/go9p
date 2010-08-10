@@ -74,7 +74,7 @@ func (clnt *Clnt) FCreate(path string, perm uint32, mode uint8) (*File, *p.Error
 		return nil, err
 	}
 
-	if path[n]=='/' {
+	if path[n] == '/' {
 		n++
 	}
 

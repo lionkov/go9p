@@ -7,7 +7,6 @@ package clnt
 import (
 	"syscall"
 	"go9p.googlecode.com/hg/p"
-
 )
 
 // Creates an authentication fid for the specified user. Returns the fid, if
