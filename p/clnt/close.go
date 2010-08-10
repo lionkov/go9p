@@ -7,25 +7,22 @@ package clnt
 import "go9p.googlecode.com/hg/p"
 
 // Clunks a fid. Returns nil if successful.
-func (clnt *Clnt) Clunk(fid *Fid) *p.Error {
-	tc := p.NewFcall(clnt.Msize)
-	err := p.PackTclunk(tc, fid.Fid)
-	if err != nil {
-		return err
-	}
+func (clnt *Clnt) Clunk(fid *Fid) (err *p.Error) {
+	err = nil
+	if fid.walked {
+		tc := clnt.NewFcall()
+		err := p.PackTclunk(tc, fid.Fid)
+		if err != nil {
+			return err
+		}
 
-	rc, err := clnt.rpc(tc)
-	if err != nil {
-		return err
+		_, err = clnt.Rpc(tc)
 	}
 
 	clnt.fidpool.putId(fid.Fid)
-
-	if rc.Type == p.Rerror {
-		return &p.Error{rc.Error, int(rc.Errornum)}
-	}
-
-	return err
+	fid.walked = false
+	fid.Fid = p.NOFID
+	return
 }
 
 // Closes a file. Returns nil if successful.

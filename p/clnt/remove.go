@@ -10,14 +10,15 @@ import "go9p.googlecode.com/hg/p"
 // Removes the file associated with the Fid. Returns nil if the
 // operation is successful.
 func (clnt *Clnt) Remove(fid *Fid) *p.Error {
-	tc := p.NewFcall(clnt.Msize)
+	tc := clnt.NewFcall()
 	err := p.PackTremove(tc, fid.Fid)
 	if err != nil {
 		return err
 	}
 
-	rc, err := clnt.rpc(tc)
+	rc, err := clnt.Rpc(tc)
 	clnt.fidpool.putId(fid.Fid)
+	fid.Fid = p.NOFID
 
 	if rc.Type == p.Rerror {
 		return &p.Error{rc.Error, int(rc.Errornum)}
@@ -35,7 +36,5 @@ func (clnt *Clnt) FRemove(path string) *p.Error {
 	}
 
 	err = clnt.Remove(fid)
-	clnt.Clunk(fid) // Remove always clunks
-
 	return err
 }

@@ -9,6 +9,7 @@ import (
 	"go9p.googlecode.com/hg/p/clnt"
 )
 
+var debuglevel = flag.Int("d", 0, "debuglevel")
 var addr = flag.String("addr", "127.0.0.1:5640", "network address")
 
 func main() {
@@ -20,6 +21,7 @@ func main() {
 
 	flag.Parse()
 	user = p.OsUsers.Uid2User(os.Geteuid())
+	clnt.DefaultDebuglevel = *debuglevel
 	c, err = clnt.Mount("tcp", *addr, "", user)
 	if err != nil {
 		goto error

@@ -180,9 +180,9 @@ func PackTread(fc *Fcall, fid uint32, offset uint64, count uint32) *Error {
 }
 
 // Create a Twrite message in the specified Fcall.
-func PackTwrite(fc *Fcall, fid uint32, offset uint64, data []byte) *Error {
-	count := len(data)
-	size := 4 + 8 + 4 + count /* fid[4] offset[8] count[4] data[count] */
+func PackTwrite(fc *Fcall, fid uint32, offset uint64, count uint32, data []byte) *Error {
+	c := len(data)
+	size := 4 + 8 + 4 + c /* fid[4] offset[8] count[4] data[count] */
 	p, err := packCommon(fc, size, Twrite)
 	if err != nil {
 		return err
@@ -190,10 +190,10 @@ func PackTwrite(fc *Fcall, fid uint32, offset uint64, data []byte) *Error {
 
 	fc.Fid = fid
 	fc.Offset = offset
-	fc.Count = uint32(count)
+	fc.Count = count
 	p = pint32(fid, p)
 	p = pint64(offset, p)
-	p = pint32(uint32(count), p)
+	p = pint32(count, p)
 	fc.Data = p
 	copy(fc.Data, data)
 	return nil
@@ -235,7 +235,7 @@ func PackTstat(fc *Fcall, fid uint32) *Error {
 	return nil
 }
 
-// Create a Tauth message in the specified Fcall. If dotu is true
+// Create a Twstat message in the specified Fcall. If dotu is true
 // the function will create 9P2000.u message, otherwise the 9P2000.u
 // specific fields from the Stat value will be ignored.
 func PackTwstat(fc *Fcall, fid uint32, d *Dir, dotu bool) *Error {
@@ -249,6 +249,7 @@ func PackTwstat(fc *Fcall, fid uint32, d *Dir, dotu bool) *Error {
 	fc.Fid = fid
 	fc.Dir = *d
 	p = pint32(fid, p)
+	p = pint16(uint16(stsz), p)
 	p = pstat(d, p, dotu)
 	return nil
 }

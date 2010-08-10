@@ -132,9 +132,9 @@ func (fc *Fcall) String() string {
 	case Tread:
 		ret = fmt.Sprintf("Tread tag %d fid %d offset %d count %d", fc.Tag, fc.Fid, fc.Offset, fc.Count)
 	case Rread:
-		ret = fmt.Sprintf("Rread tag %d count %d", fc.Tag, len(fc.Data))
+		ret = fmt.Sprintf("Rread tag %d count %d", fc.Tag, fc.Count)
 	case Twrite:
-		ret = fmt.Sprintf("Twrite tag %d fid %d offset %d count %d", fc.Tag, fc.Fid, fc.Offset, len(fc.Data))
+		ret = fmt.Sprintf("Twrite tag %d fid %d offset %d count %d", fc.Tag, fc.Fid, fc.Offset, fc.Count)
 	case Rwrite:
 		ret = fmt.Sprintf("Rwrite tag %d count %d", fc.Tag, fc.Count)
 	case Tclunk:

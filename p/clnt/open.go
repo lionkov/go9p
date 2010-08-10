@@ -12,13 +12,13 @@ import (
 // Opens the file associated with the fid. Returns nil if
 // the operation is successful.
 func (clnt *Clnt) Open(fid *Fid, mode uint8) *p.Error {
-	tc := p.NewFcall(clnt.Msize)
+	tc := clnt.NewFcall()
 	err := p.PackTopen(tc, fid.Fid, mode)
 	if err != nil {
 		return err
 	}
 
-	rc, err := clnt.rpc(tc)
+	rc, err := clnt.Rpc(tc)
 	if err != nil {
 		return err
 	}
@@ -38,13 +38,13 @@ func (clnt *Clnt) Open(fid *Fid, mode uint8) *p.Error {
 // Creates a file in the directory associated with the fid. Returns nil
 // if the operation is successful.
 func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, ext string) *p.Error {
-	tc := p.NewFcall(clnt.Msize)
+	tc := clnt.NewFcall()
 	err := p.PackTcreate(tc, fid.Fid, name, perm, mode, ext, clnt.Dotu)
 	if err != nil {
 		return err
 	}
 
-	rc, err := clnt.rpc(tc)
+	rc, err := clnt.Rpc(tc)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,11 @@ func (clnt *Clnt) FCreate(path string, perm uint32, mode uint8) (*File, *p.Error
 		return nil, err
 	}
 
-	err = clnt.Create(fid, path[n+1:], perm, mode, "")
+	if path[n]=='/' {
+		n++
+	}
+
+	err = clnt.Create(fid, path[n:], perm, mode, "")
 	if err != nil {
 		clnt.Clunk(fid)
 		return nil, err

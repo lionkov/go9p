@@ -15,20 +15,18 @@ import (
 // were walked successfully, an Error is returned. Otherwise a slice with a
 // Qid for each walked name is returned.
 func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]p.Qid, *p.Error) {
-	tc := p.NewFcall(clnt.Msize)
+	tc := clnt.NewFcall()
 	err := p.PackTwalk(tc, fid.Fid, newfid.Fid, wnames)
 	if err != nil {
 		return nil, err
 	}
 
-	rc, err := clnt.rpc(tc)
+	rc, err := clnt.Rpc(tc)
 	if err != nil {
 		return nil, err
 	}
-	if rc.Type == p.Rerror {
-		return nil, &p.Error{rc.Error, int(rc.Errornum)}
-	}
 
+	newfid.walked = true
 	return rc.Wqid, nil
 }
 
@@ -48,7 +46,7 @@ func (clnt *Clnt) FWalk(path string) (*Fid, *p.Error) {
 		path = path[i:len(path)]
 	}
 
-	wnames := strings.Split(path, "/", 0)
+	wnames := strings.Split(path, "/", -1)
 	newfid := clnt.FidAlloc()
 	fid := clnt.Root
 	newfid.User = fid.User
@@ -68,14 +66,14 @@ func (clnt *Clnt) FWalk(path string) (*Fid, *p.Error) {
 			n = 16
 		}
 
-		tc := p.NewFcall(clnt.Msize)
+		tc := clnt.NewFcall()
 		err = p.PackTwalk(tc, fid.Fid, newfid.Fid, wnames[0:n])
 		if err != nil {
 			goto error
 		}
 
 		var rc *p.Fcall
-		rc, err = clnt.rpc(tc)
+		rc, err = clnt.Rpc(tc)
 		if err != nil {
 			goto error
 		}
@@ -84,6 +82,7 @@ func (clnt *Clnt) FWalk(path string) (*Fid, *p.Error) {
 			goto error
 		}
 
+		newfid.walked = true
 		if len(rc.Wqid) != n {
 			err = &p.Error{"file not found", syscall.ENOENT}
 			goto error

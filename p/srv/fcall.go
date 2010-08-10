@@ -202,6 +202,9 @@ func (srv *Srv) walk(req *Req) {
 			req.RespondError(Einuse)
 			return
 		}
+
+		req.Newfid.User = fid.User
+		req.Newfid.Type = fid.Type
 	} else {
 		req.Newfid = req.Fid
 		req.Newfid.IncRef()
@@ -399,6 +402,7 @@ func (srv *Srv) removePost(req *Req) {
 func (srv *Srv) stat(req *Req) { (req.Conn.Srv.ops).(ReqOps).Stat(req) }
 
 func (srv *Srv) wstat(req *Req) {
+/*
 	fid := req.Fid
 	d := &req.Tc.Dir
 	if d.Type != uint16(0xFFFF) || d.Dev != uint32(0xFFFFFFFF) || d.Version != uint32(0xFFFFFFFF) ||
@@ -412,6 +416,7 @@ func (srv *Srv) wstat(req *Req) {
 		req.RespondError(Edirchange)
 		return
 	}
+*/
 
 	(req.Conn.Srv.ops).(ReqOps).Wstat(req)
 }

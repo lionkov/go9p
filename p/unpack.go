@@ -18,14 +18,14 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 	fc.Newfid = NOFID
 
 	p := buf
-	fc.size, p = gint32(p)
+	fc.Size, p = gint32(p)
 	fc.Type, p = gint8(p)
 	fc.Tag, p = gint16(p)
 
-	p = p[0 : fc.size-7]
-	fc.Pkt = buf[0:fc.size]
-	fcsz = int(fc.size)
-	if fc.Type < Tversion || fc.Type >= Rwstat {
+	p = p[0 : fc.Size-7]
+	fc.Pkt = buf[0:fc.Size]
+	fcsz = int(fc.Size)
+	if fc.Type < Tversion || fc.Type >= Tlast {
 		return nil, &Error{"invalid id", syscall.EINVAL}, 0
 	}
 
@@ -36,7 +36,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 		sz = minFcusize[fc.Type-Tversion]
 	}
 
-	if fc.size < sz {
+	if fc.Size < sz {
 	szerror:
 		return nil, &Error{"invalid size", syscall.EINVAL}, 0
 	}
@@ -173,10 +173,13 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 		fc.Offset, p = gint64(p)
 		fc.Count, p = gint32(p)
 		if len(p) != int(fc.Count) {
-			goto szerror
+			fc.Data = make([]byte, fc.Count)
+			copy(fc.Data, p)
+			p = p[len(p):]
+		} else {
+			fc.Data = p
+			p = p[fc.Count:len(p)]
 		}
-		fc.Data = p
-		p = p[fc.Count:len(p)]
 
 	case Rwrite:
 		fc.Count, p = gint32(p)

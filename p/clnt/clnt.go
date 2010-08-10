@@ -26,15 +26,19 @@ type Clnt struct {
 	Msize      uint32 // Maximum size of the 9P messages
 	Dotu       bool   // If true, 9P2000.u protocol is spoken
 	Root       *Fid   // Fid that points to the rood directory
+	Id	   string // Used when printing debug messages
 
 	conn     net.Conn
 	tagpool  *pool
 	fidpool  *pool
-	reqout   chan *req
+	reqout   chan *Req
 	done     chan bool
-	reqfirst *req
-	reqlast  *req
+	reqfirst *Req
+	reqlast  *Req
 	err      *p.Error
+
+	reqchan  chan *Req
+	tchan	 chan *p.Fcall
 }
 
 // A Fid type represents a file on the server. Fids are used for the
@@ -47,6 +51,7 @@ type Fid struct {
 	Mode   uint8  // Open mode (one of p.O* values) (if file is open)
 	Fid    uint32 // Fid number
 	p.User        // The user the fid belongs to
+	walked bool   // true if the fid points to a walked file on the server
 }
 
 // The file is similar to the Fid, but is used in the high-level client
@@ -64,29 +69,32 @@ type pool struct {
 	imap  []byte
 }
 
-type req struct {
+type Req struct {
 	sync.Mutex
-	clnt       *Clnt
-	tc         *p.Fcall
-	rc         *p.Fcall
-	err        *p.Error
-	done       chan *req
-	prev, next *req
+	Clnt       *Clnt
+	Tc         *p.Fcall
+	Rc         *p.Fcall
+	Err        *p.Error
+	Done       chan *Req
+	tag	   uint16
+	prev, next *Req
 }
 
-func (clnt *Clnt) rpcnb(r *req) *p.Error {
+var DefaultDebuglevel int
+
+func (clnt *Clnt) Rpcnb(r *Req) *p.Error {
 	var tag uint16
 
 	if clnt.Finished {
 		return &p.Error{"Client no longer connected", 0}
 	}
-	if r.tc.Type == p.Tversion {
+	if r.Tc.Type == p.Tversion {
 		tag = p.NOTAG
 	} else {
-		tag = uint16(clnt.tagpool.getId())
+		tag = r.tag
 	}
 
-	p.SetTag(r.tc, tag)
+	p.SetTag(r.Tc, tag)
 	clnt.Lock()
 	if clnt.err != nil {
 		clnt.Unlock()
@@ -107,29 +115,35 @@ func (clnt *Clnt) rpcnb(r *req) *p.Error {
 	return nil
 }
 
-func (clnt *Clnt) rpc(tc *p.Fcall) (*p.Fcall, *p.Error) {
-	r := new(req)
-	r.tc = tc
-	r.done = make(chan *req)
-	err := clnt.rpcnb(r)
+func (clnt *Clnt) Rpc(tc *p.Fcall) (rc *p.Fcall, err *p.Error) {
+	r := clnt.ReqAlloc()
+	r.Tc = tc
+	r.Done = make(chan *Req)
+	err = clnt.Rpcnb(r)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	<-r.done
-	return r.rc, r.err
+	<-r.Done
+	rc = r.Rc
+	err = r.Err
+	clnt.ReqFree(r)
+	return
 }
 
 func (clnt *Clnt) recv() {
 	var err *p.Error
 
-	buf := make([]byte, clnt.Msize)
+	err = nil
+	buf := make([]byte, clnt.Msize*8)
 	pos := 0
 	for {
 		if len(buf) < int(clnt.Msize) {
-			b := make([]byte, clnt.Msize)
+resize:
+			b := make([]byte, clnt.Msize*8)
 			copy(b, buf[0:pos])
 			buf = b
+			b = nil
 		}
 
 		n, oerr := clnt.conn.Read(buf[pos:len(buf)])
@@ -142,6 +156,10 @@ func (clnt *Clnt) recv() {
 		for pos > 4 {
 			sz, _ := p.Gint32(buf)
 			if pos < int(sz) {
+				if len(buf) < int(sz) {
+					goto resize
+				}
+
 				break
 			}
 
@@ -156,15 +174,15 @@ func (clnt *Clnt) recv() {
 
 			if clnt.Debuglevel > 0 {
 				if clnt.Debuglevel > 1 {
-					log.Stderr("}-} " + fmt.Sprint(fc.Pkt))
+					log.Stderr("}-}", clnt.Id, fmt.Sprint(fc.Pkt))
 				}
 
-				log.Stderr("}}} " + fc.String())
+				log.Stderr("}}}", clnt.Id, fc.String())
 			}
 
-			var r *req = nil
+			var r *Req = nil
 			for r = clnt.reqfirst; r != nil; r = r.next {
-				if r.tc.Tag == fc.Tag {
+				if r.Tc.Tag == fc.Tag {
 					break
 				}
 			}
@@ -176,7 +194,7 @@ func (clnt *Clnt) recv() {
 				goto closed
 			}
 
-			r.rc = fc
+			r.Rc = fc
 			if r.prev != nil {
 				r.prev.next = r.next
 			} else {
@@ -190,26 +208,24 @@ func (clnt *Clnt) recv() {
 			}
 			clnt.Unlock()
 
-			if r.tc.Type != r.rc.Type-1 {
-				if r.rc.Type != p.Rerror {
-					r.err = &p.Error{"invalid response id", syscall.EINVAL}
+			if r.Tc.Type != r.Rc.Type-1 {
+				if r.Rc.Type != p.Rerror {
+					r.Err = &p.Error{"invalid response", syscall.EINVAL}
+					log.Stderr(fmt.Sprintf("TTT %v", r.Tc))
+					log.Stderr(fmt.Sprintf("RRR %v", r.Rc))
 				} else {
-					if r.err != nil {
-						r.err = &p.Error{r.rc.Error, int(r.rc.Errornum)}
+					if r.Err != nil {
+						r.Err = &p.Error{r.Rc.Error, int(r.Rc.Errornum)}
 					}
 				}
 			}
 
-			if r.tc.Tag != p.NOTAG {
-				clnt.tagpool.putId(uint32(r.tc.Tag))
-			}
-
-			if r.done != nil {
-				r.done <- r
+			if r.Done != nil {
+				r.Done <- r
 			}
 
 			pos -= fcsize
-			buf = buf[0:fcsize]
+			buf = buf[fcsize:]
 		}
 	}
 
@@ -221,12 +237,14 @@ closed:
 	r := clnt.reqfirst
 	clnt.reqfirst = nil
 	clnt.reqlast = nil
-	err = clnt.err
+	if err==nil {
+		err = clnt.err
+	}
 	clnt.Unlock()
 	for ; r != nil; r = r.next {
-		r.err = err
-		if r.done != nil {
-			r.done <- r
+		r.Err = err
+		if r.Done != nil {
+			r.Done <- r
 		}
 	}
 }
@@ -241,13 +259,13 @@ func (clnt *Clnt) send() {
 		case req := <-clnt.reqout:
 			if clnt.Debuglevel > 0 {
 				if clnt.Debuglevel > 1 {
-					log.Stderr("{-{ " + fmt.Sprint(req.tc.Pkt))
+					log.Stderr("{-{", clnt.Id, ":", fmt.Sprint(req.Tc.Pkt))
 				}
 
-				log.Stderr("{{{ " + req.tc.String())
+				log.Stderr("{{{", clnt.Id, ":", req.Tc.String())
 			}
 
-			for buf := req.tc.Pkt; len(buf) > 0; {
+			for buf := req.Tc.Pkt; len(buf) > 0; {
 				n, err := clnt.conn.Write(buf)
 				if err != nil {
 					/* just close the socket, will get signal on clnt.done */
@@ -268,10 +286,13 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 	clnt.conn = c
 	clnt.Msize = msize
 	clnt.Dotu = dotu
+	clnt.Debuglevel = DefaultDebuglevel
 	clnt.tagpool = newPool(uint32(p.NOTAG))
 	clnt.fidpool = newPool(p.NOFID)
-	clnt.reqout = make(chan *req)
+	clnt.reqout = make(chan *Req)
 	clnt.done = make(chan bool)
+	clnt.reqchan = make(chan *Req, 16)
+	clnt.tchan = make(chan *p.Fcall, 16)
 
 	go clnt.recv()
 	go clnt.send()
@@ -289,6 +310,7 @@ func Connect(ntype, addr string, msize uint32, dotu bool) (*Clnt, *p.Error) {
 	}
 
 	clnt := NewClnt(c, msize, dotu)
+	clnt.Id = addr + ":"
 	ver := "9P2000"
 	if clnt.Dotu {
 		ver = "9P2000.u"
@@ -300,7 +322,7 @@ func Connect(ntype, addr string, msize uint32, dotu bool) (*Clnt, *p.Error) {
 		return nil, err
 	}
 
-	rc, err := clnt.rpc(tc)
+	rc, err := clnt.Rpc(tc)
 	if err != nil {
 		return nil, err
 	}
@@ -320,4 +342,41 @@ func (clnt *Clnt) FidAlloc() *Fid {
 	fid.Clnt = clnt
 
 	return fid
+}
+
+func (clnt *Clnt) NewFcall() *p.Fcall {
+	tc, ok := <- clnt.tchan
+	if !ok {
+		tc = p.NewFcall(clnt.Msize)
+	}
+
+	return tc
+}
+
+func (clnt *Clnt) ReqAlloc() *Req {
+	req, ok := <- clnt.reqchan
+	if !ok {
+		req = new(Req)
+		req.Clnt = clnt
+		req.tag = uint16(clnt.tagpool.getId())
+	}
+
+	return req		
+}
+
+func (clnt *Clnt) ReqFree(req *Req) {
+	if req.Tc!=nil && len(req.Tc.Buf)>=int(clnt.Msize) {
+		_ = clnt.tchan <- req.Tc
+	}
+
+	req.Tc = nil
+	req.Rc = nil
+	req.Err = nil
+	req.Done = nil
+	req.next = nil
+	req.prev = nil
+
+	if ok := clnt.reqchan <- req; !ok {
+		clnt.tagpool.putId(uint32(req.tag))
+	}
 }

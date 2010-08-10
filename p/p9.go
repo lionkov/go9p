@@ -38,6 +38,7 @@ const (
 	Rstat
 	Twstat
 	Rwstat
+	Tlast
 )
 
 const (
@@ -133,7 +134,7 @@ type Dir struct {
 
 // Fcall represents a 9P2000 message
 type Fcall struct {
-	size    uint32   // size of the message
+	Size    uint32   // size of the message
 	Type    uint8    // message type
 	Fid     uint32   // file identifier
 	Tag     uint16   // message tag
@@ -163,6 +164,7 @@ type Fcall struct {
 	Unamenum uint32 // user ID, 9P2000.u only (used by Tauth, Tattach)
 
 	Pkt []uint8 // raw packet data
+	Buf []uint8 // buffer to put the raw data in
 }
 
 // Interface for accessing users and groups
@@ -217,6 +219,12 @@ var minFcsize = [...]uint32{
 	4,  /* Rstat stat[n] */
 	8,  /* Twstat fid[4] stat[n] */
 	0,  /* Rwstat */
+	20, /* Tbread fileid[8] offset[8] count[4] */
+	4,  /* Rbread count[4] */
+	20, /* Tbwrite fileid[8] offset[8] count[4] */
+	4,  /* Rbwrite count[4] */
+	16, /* Tbtrunc fileid[8] offset[8] */
+	0,  /* Rbtrunc */
 }
 
 // minimum size of a 9P2000.u message for a type
@@ -248,7 +256,12 @@ var minFcusize = [...]uint32{
 	4,  /* Tstat fid[4] */
 	4,  /* Rstat stat[n] */
 	8,  /* Twstat fid[4] stat[n] */
-	0,  /* Rwstat */
+	20, /* Tbread fileid[8] offset[8] count[4] */
+	4,  /* Rbread count[4] */
+	20, /* Tbwrite fileid[8] offset[8] count[4] */
+	4,  /* Rbwrite count[4] */
+	16, /* Tbtrunc fileid[8] offset[8] */
+	0,  /* Rbtrunc */
 }
 
 func gint8(buf []byte) (uint8, []byte) { return buf[0], buf[1:len(buf)] }
@@ -463,7 +476,7 @@ func UnpackDir(buf []byte, dotu bool) (d *Dir, err *Error) {
 // Allocates a new Fcall.
 func NewFcall(sz uint32) *Fcall {
 	fc := new(Fcall)
-	fc.Pkt = make([]byte, sz)
+	fc.Buf = make([]byte, sz)
 
 	return fc
 }
@@ -476,20 +489,26 @@ func SetTag(fc *Fcall, tag uint16) {
 
 func packCommon(fc *Fcall, size int, id uint8) ([]byte, *Error) {
 	size += 4 + 1 + 2 /* size[4] id[1] tag[2] */
-	if len(fc.Pkt) < int(size) {
+	if len(fc.Buf) < int(size) {
 		return nil, &Error{"buffer too small", syscall.EINVAL}
 	}
 
-	fc.size = uint32(size)
+	fc.Size = uint32(size)
 	fc.Type = id
 	fc.Tag = NOTAG
-	p := fc.Pkt
+	p := fc.Buf
 	p = pint32(uint32(size), p)
 	p = pint8(id, p)
 	p = pint16(NOTAG, p)
-	fc.Pkt = fc.Pkt[0:size]
+	fc.Pkt = fc.Buf[0:size]
 
 	return p, nil
 }
 
-func (err *Error) String() string { return err.Error }
+func (err *Error) String() string { 
+	if err!=nil {
+		return err.Error 
+	}
+
+	return ""
+}

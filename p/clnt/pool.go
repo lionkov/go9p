@@ -89,6 +89,7 @@ func (p *pool) putId(id uint32) {
 		p.nchan <- id
 		p.need--
 		p.Unlock()
+		return
 	}
 
 	p.imap[id/8] &= ^(1 << (id % 8))

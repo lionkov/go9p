@@ -14,13 +14,13 @@ import (
 // successful, or an Error.
 func (clnt *Clnt) Auth(user p.User, aname string) (*Fid, *p.Error) {
 	fid := clnt.FidAlloc()
-	tc := p.NewFcall(clnt.Msize)
+	tc := clnt.NewFcall()
 	err := p.PackTauth(tc, fid.Fid, user.Name(), aname, uint32(user.Id()), clnt.Dotu)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = clnt.rpc(tc)
+	_, err = clnt.Rpc(tc)
 	if err != nil {
 		return nil, err
 	}
@@ -42,13 +42,13 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, *p.Error) 
 	}
 
 	fid := clnt.FidAlloc()
-	tc := p.NewFcall(clnt.Msize)
+	tc := clnt.NewFcall()
 	err := p.PackTattach(tc, fid.Fid, afno, user.Name(), aname, uint32(user.Id()), clnt.Dotu)
 	if err != nil {
 		return nil, err
 	}
 
-	rc, err := clnt.rpc(tc)
+	rc, err := clnt.Rpc(tc)
 	if err != nil {
 		return nil, err
 	}

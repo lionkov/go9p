@@ -19,9 +19,9 @@ import (
 type Fid struct {
 	path      string
 	file      *os.File
-	dirs      []os.Dir
+	dirs      []os.FileInfo
 	diroffset uint64
-	st        *os.Dir
+	st        *os.FileInfo
 }
 
 type Ufs struct {
@@ -83,7 +83,7 @@ func omode2uflags(mode uint8) int {
 	return ret
 }
 
-func dir2Qid(d *os.Dir) *p.Qid {
+func dir2Qid(d *os.FileInfo) *p.Qid {
 	var qid p.Qid
 
 	qid.Path = d.Ino
@@ -93,7 +93,7 @@ func dir2Qid(d *os.Dir) *p.Qid {
 	return &qid
 }
 
-func dir2QidType(d *os.Dir) uint8 {
+func dir2QidType(d *os.FileInfo) uint8 {
 	ret := uint8(0)
 	if d.IsDirectory() {
 		ret |= p.QTDIR
@@ -106,7 +106,7 @@ func dir2QidType(d *os.Dir) uint8 {
 	return ret
 }
 
-func dir2Npmode(d *os.Dir, dotu bool) uint32 {
+func dir2Npmode(d *os.FileInfo, dotu bool) uint32 {
 	ret := uint32(d.Mode & 0777)
 	if d.IsDirectory() {
 		ret |= p.DMDIR
@@ -135,13 +135,13 @@ func dir2Npmode(d *os.Dir, dotu bool) uint32 {
 	return ret
 }
 
-func dir2Dir(path string, d *os.Dir, dotu bool, upool p.Users) *p.Dir {
+func dir2Dir(path string, d *os.FileInfo, dotu bool, upool p.Users) *p.Dir {
 	dir := new(p.Dir)
 	dir.Qid = *dir2Qid(d)
 	dir.Mode = dir2Npmode(d, dotu)
 	dir.Atime = uint32(d.Atime_ns / 1000000000)
 	dir.Mtime = uint32(d.Mtime_ns / 1000000000)
-	dir.Length = d.Size
+	dir.Length = uint64(d.Size)
 
 	u := upool.Uid2User(int(d.Uid))
 	g := upool.Gid2Group(int(d.Gid))
@@ -300,7 +300,7 @@ func (*Ufs) Create(req *srv.Req) {
 	var file *os.File = nil
 	switch {
 	case tc.Perm&p.DMDIR != 0:
-		e = os.Mkdir(path, int(tc.Perm&0777))
+		e = os.Mkdir(path, tc.Perm&0777)
 
 	case tc.Perm&p.DMSYMLINK != 0:
 		e = os.Symlink(tc.Ext, path)
@@ -326,7 +326,7 @@ func (*Ufs) Create(req *srv.Req) {
 		return
 
 	default:
-		file, e = os.Open(path, omode2uflags(tc.Mode)|os.O_CREATE, int(tc.Perm&0777))
+		file, e = os.Open(path, omode2uflags(tc.Mode)|os.O_CREATE, tc.Perm&0777)
 	}
 
 	if file == nil && e == nil {
@@ -508,7 +508,7 @@ func (*Ufs) Wstat(req *srv.Req) {
 	}
 
 	if dir.Mode != 0xFFFFFFFF {
-		e := os.Chmod(fid.path, int(dir.Mode&0777))
+		e := os.Chmod(fid.path, dir.Mode&0777)
 		if e != nil {
 			req.RespondError(toError(e))
 			return

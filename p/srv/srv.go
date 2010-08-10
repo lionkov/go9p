@@ -141,6 +141,8 @@ type Srv struct {
 	Reqin       chan *Req // Incoming requests
 
 	ops interface{} // operations
+
+	connlist    *Conn     // List of connections
 }
 
 // The Conn type represents a connection from a client to the file server
@@ -149,14 +151,17 @@ type Conn struct {
 	Srv   *Srv
 	Msize uint32 // maximum size of 9P2000 messages for the connection
 	Dotu  bool   // if true, both the client and the server speak 9P2000.u
+	Id    string // used when printing debug messages
 
 	conn     net.Conn
 	fidpool  map[uint32]*Fid
 	reqfirst *Req
 	reqlast  *Req
 
-	reqout chan *Req
-	done   chan bool
+	reqout   chan *Req
+	rchan    chan *p.Fcall
+	done     chan bool
+	prev, next *Conn
 }
 
 // The Fid type identifies a file on the file server.
@@ -279,6 +284,7 @@ func (req *Req) Process() {
 
 	switch req.Tc.Type {
 	default:
+unknown:
 		req.RespondError(&p.Error{"unknown message type", syscall.ENOSYS})
 
 	case p.Tversion:
@@ -449,10 +455,10 @@ func (req *Req) Flush() {
 func (conn *Conn) FidGet(fidno uint32) *Fid {
 	conn.Lock()
 	fid, present := conn.fidpool[fidno]
+	conn.Unlock()
 	if present {
 		fid.IncRef()
 	}
-	conn.Unlock()
 
 	return fid
 }

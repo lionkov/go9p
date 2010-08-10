@@ -10,13 +10,13 @@ import "go9p.googlecode.com/hg/p"
 // Write up to len(data) bytes starting from offset. Returns the
 // number of bytes written, or an Error.
 func (clnt *Clnt) Write(fid *Fid, data []byte, offset uint64) (int, *p.Error) {
-	tc := p.NewFcall(clnt.Msize)
-	err := p.PackTwrite(tc, fid.Fid, offset, data)
+	tc := clnt.NewFcall()
+	err := p.PackTwrite(tc, fid.Fid, offset, uint32(len(data)), data)
 	if err != nil {
 		return 0, err
 	}
 
-	rc, err := clnt.rpc(tc)
+	rc, err := clnt.Rpc(tc)
 	if err != nil {
 		return 0, err
 	}

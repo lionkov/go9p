@@ -11,13 +11,13 @@ import "go9p.googlecode.com/hg/p"
 // Returns a slice with the data read, if the operation was successful, or an
 // Error.
 func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, *p.Error) {
-	tc := p.NewFcall(clnt.Msize)
+	tc := clnt.NewFcall()
 	err := p.PackTread(tc, fid.Fid, offset, count)
 	if err != nil {
 		return nil, err
 	}
 
-	rc, err := clnt.rpc(tc)
+	rc, err := clnt.Rpc(tc)
 	if err != nil {
 		return nil, err
 	}

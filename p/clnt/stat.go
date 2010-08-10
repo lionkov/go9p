@@ -9,13 +9,13 @@ import "go9p.googlecode.com/hg/p"
 
 // Returns the metadata for the file associated with the Fid, or an Error.
 func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, *p.Error) {
-	tc := p.NewFcall(clnt.Msize)
+	tc := clnt.NewFcall()
 	err := p.PackTstat(tc, fid.Fid)
 	if err != nil {
 		return nil, err
 	}
 
-	rc, err := clnt.rpc(tc)
+	rc, err := clnt.Rpc(tc)
 	if err != nil {
 		return nil, err
 	}
@@ -37,3 +37,23 @@ func (clnt *Clnt) FStat(path string) (*p.Dir, *p.Error) {
 	clnt.Clunk(fid)
 	return d, err
 }
+
+// Modifies the data of the file associated with the Fid, or an Error.
+func (clnt *Clnt) Wstat(fid *Fid, dir *p.Dir) *p.Error {
+	tc := clnt.NewFcall()
+	err := p.PackTwstat(tc, fid.Fid, dir, clnt.Dotu)
+	if err != nil {
+		return err
+	}
+
+	rc, err := clnt.Rpc(tc)
+	if err != nil {
+		return err
+	}
+	if rc.Type == p.Rerror {
+		return &p.Error{rc.Error, int(rc.Errornum)}
+	}
+
+	return nil
+}
+

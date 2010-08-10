@@ -150,11 +150,11 @@ func SetRreadCount(fc *Fcall, count uint32) {
 	size := 4 + 1 + 2 + 4 + count /* size[4] id[1] tag[2] count[4] data[count] */
 	pint32(size, fc.Pkt)
 	pint32(count, fc.Pkt[7:len(fc.Pkt)])
-	fc.size = size
+	fc.Size = size
 	fc.Count = count
 	fc.Pkt = fc.Pkt[0:size]
 	fc.Data = fc.Data[0:count]
-	fc.size = size
+	fc.Size = size
 }
 
 // Create a Rread message in the specified Fcall.
