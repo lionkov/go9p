@@ -193,7 +193,11 @@ func walkone(c *clnt.Clnt, s string) {
 	cwd = ncwd
 }
 
-func cmdcd(c *clnt.Clnt, s []string) { walkone(c, strings.Join(s, "/")) }
+func cmdcd(c *clnt.Clnt, s []string) {
+	if s != nil {
+		walkone(c, strings.Join(s, "/"))
+	}
+}
 
 // Print the contents of f
 func cmdcat(c *clnt.Clnt, s []string) {
