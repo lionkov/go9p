@@ -17,6 +17,7 @@ func newConn(srv *Srv, c net.Conn) {
 	conn.Srv = srv
 	conn.Msize = srv.Msize
 	conn.Dotu = srv.Dotu
+	conn.Debuglevel = srv.Debuglevel
 	conn.conn = c
 	conn.fidpool = make(map[uint32]*Fid)
 	conn.reqout = make(chan *Req, srv.Maxpend)
@@ -29,9 +30,12 @@ func newConn(srv *Srv, c net.Conn) {
 	srv.connlist = conn
 	srv.Unlock()
 
+	conn.Id = c.RemoteAddr().String()
 	if op, ok := (conn.Srv.ops).(ConnOps); ok {
 		op.ConnOpened(conn)
 	}
+
+	conn.statsRegister()
 
 	go conn.recv()
 	go conn.send()
@@ -88,15 +92,25 @@ func (conn *Conn) recv() {
 			req.Conn = conn
 			req.Tc = fc
 			req.Rc = rc
-			if conn.Srv.Debuglevel > 0 {
-				if conn.Srv.Debuglevel > 1 {
+			if conn.Debuglevel > 0 {
+				conn.logFcall(req.Tc)
+				if conn.Debuglevel&DbgPrintPackets != 0 {
 					log.Stderr(">->", conn.Id, fmt.Sprint(req.Tc.Pkt))
 				}
 
-				log.Stderr(">>>", conn.Id, req.Tc.String())
+				if conn.Debuglevel&DbgPrintFcalls != 0 {
+					log.Stderr(">>>", conn.Id, req.Tc.String())
+				}
 			}
 
 			conn.Lock()
+			conn.nreqs++
+			conn.tsz += uint64(fc.Size)
+			conn.npend++
+			if conn.npend > conn.maxpend {
+				conn.maxpend = conn.npend
+			}
+
 			if conn.reqlast != nil {
 				conn.reqlast.next = req
 			} else {
@@ -128,6 +142,7 @@ closed:
 		conn.next.prev = conn.prev
 	}
 	conn.Srv.Unlock()
+	conn.statsUnregister()
 
 	if op, ok := (conn.Srv.ops).(ConnOps); ok {
 		op.ConnClosed(conn)
@@ -149,12 +164,19 @@ func (conn *Conn) send() {
 
 		case req := <-conn.reqout:
 			p.SetTag(req.Rc, req.Tc.Tag)
-			if conn.Srv.Debuglevel > 0 {
-				if conn.Srv.Debuglevel > 1 {
+			conn.Lock()
+			conn.rsz += uint64(req.Rc.Size)
+			conn.npend--
+			conn.Unlock()
+			if conn.Debuglevel > 0 {
+				conn.logFcall(req.Rc)
+				if conn.Debuglevel&DbgPrintPackets != 0 {
 					log.Stderr("<-<", conn.Id, fmt.Sprint(req.Rc.Pkt))
 				}
 
-				log.Stderr("<<<", conn.Id, req.Rc.String())
+				if conn.Debuglevel&DbgPrintFcalls != 0 {
+					log.Stderr("<<<", conn.Id, req.Rc.String())
+				}
 			}
 
 			for buf := req.Rc.Pkt; len(buf) > 0; {
@@ -180,6 +202,21 @@ func (conn *Conn) RemoteAddr() net.Addr {
 
 func (conn *Conn) LocalAddr() net.Addr {
 	return conn.conn.LocalAddr()
+}
+
+func (conn *Conn) logFcall(fc *p.Fcall) {
+	if conn.Debuglevel&DbgLogPackets != 0 {
+		pkt := make([]byte, len(fc.Pkt))
+		copy(pkt, fc.Pkt)
+		conn.Srv.Log.Log(pkt, conn, DbgLogPackets)
+	}
+
+	if conn.Debuglevel&DbgLogFcalls != 0 {
+		f := new(p.Fcall)
+		*f = *fc
+		f.Pkt = nil
+		conn.Srv.Log.Log(f, conn, DbgLogFcalls)
+	}
 }
 
 // Start listening on the specified network and address for incoming

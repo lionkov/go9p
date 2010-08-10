@@ -15,6 +15,14 @@ import (
 	"go9p.googlecode.com/hg/p"
 )
 
+// Debug flags
+const (
+	DbgPrintFcalls  = (1 << iota) // print all 9P messages on stderr
+	DbgPrintPackets               // print the raw packets on stderr
+	DbgLogFcalls                  // keep the last N 9P messages (can be accessed over http)
+	DbgLogPackets                 // keep the last N 9P messages (can be accessed over http)
+)
+
 // The Clnt type represents a 9P2000 client. The client is connected to
 // a 9P2000 file server and its methods can be used to access and manipulate
 // the files exported by the server.
@@ -26,6 +34,7 @@ type Clnt struct {
 	Dotu       bool   // If true, 9P2000.u protocol is spoken
 	Root       *Fid   // Fid that points to the rood directory
 	Id         string // Used when printing debug messages
+	Log        *p.Logger
 
 	conn     net.Conn
 	tagpool  *pool
@@ -38,6 +47,8 @@ type Clnt struct {
 
 	reqchan chan *Req
 	tchan   chan *p.Fcall
+
+	next, prev *Clnt
 }
 
 // A Fid type represents a file on the server. Fids are used for the
@@ -80,6 +91,10 @@ type Req struct {
 }
 
 var DefaultDebuglevel int
+var DefaultLogger *p.Logger
+
+var clntLock sync.Mutex
+var clntList, clntLast *Clnt
 
 func (clnt *Clnt) Rpcnb(r *Req) *p.Error {
 	var tag uint16
@@ -172,11 +187,14 @@ func (clnt *Clnt) recv() {
 			}
 
 			if clnt.Debuglevel > 0 {
-				if clnt.Debuglevel > 1 {
+				clnt.logFcall(fc)
+				if clnt.Debuglevel&DbgPrintPackets != 0 {
 					log.Stderr("}-}", clnt.Id, fmt.Sprint(fc.Pkt))
 				}
 
-				log.Stderr("}}}", clnt.Id, fc.String())
+				if clnt.Debuglevel&DbgPrintFcalls != 0 {
+					log.Stderr("}}}", clnt.Id, fc.String())
+				}
 			}
 
 			var r *Req = nil
@@ -246,6 +264,20 @@ closed:
 			r.Done <- r
 		}
 	}
+
+	clntLock.Lock()
+	if clnt.prev != nil {
+		clnt.prev.next = clnt.next
+	} else {
+		clntList = clnt.next
+	}
+
+	if clnt.next != nil {
+		clnt.next.prev = clnt.prev
+	} else {
+		clntLast = clnt.prev
+	}
+	clntLock.Unlock()
 }
 
 func (clnt *Clnt) send() {
@@ -257,11 +289,14 @@ func (clnt *Clnt) send() {
 
 		case req := <-clnt.reqout:
 			if clnt.Debuglevel > 0 {
-				if clnt.Debuglevel > 1 {
-					log.Stderr("{-{", clnt.Id, ":", fmt.Sprint(req.Tc.Pkt))
+				clnt.logFcall(req.Tc)
+				if clnt.Debuglevel&DbgPrintPackets != 0 {
+					log.Stderr("{-{", clnt.Id, fmt.Sprint(req.Tc.Pkt))
 				}
 
-				log.Stderr("{{{", clnt.Id, ":", req.Tc.String())
+				if clnt.Debuglevel&DbgPrintFcalls != 0 {
+					log.Stderr("{{{", clnt.Id, req.Tc.String())
+				}
 			}
 
 			for buf := req.Tc.Pkt; len(buf) > 0; {
@@ -286,6 +321,7 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 	clnt.Msize = msize
 	clnt.Dotu = dotu
 	clnt.Debuglevel = DefaultDebuglevel
+	clnt.Log = DefaultLogger
 	clnt.tagpool = newPool(uint32(p.NOTAG))
 	clnt.fidpool = newPool(p.NOFID)
 	clnt.reqout = make(chan *Req)
@@ -295,6 +331,17 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 
 	go clnt.recv()
 	go clnt.send()
+
+	clntLock.Lock()
+	if clntLast != nil {
+		clntLast.next = clnt
+	} else {
+		clntList = clnt
+	}
+
+	clnt.prev = clntLast
+	clntLast = clnt
+	clntLock.Unlock()
 
 	return clnt
 }
@@ -378,4 +425,23 @@ func (clnt *Clnt) ReqFree(req *Req) {
 	if ok := clnt.reqchan <- req; !ok {
 		clnt.tagpool.putId(uint32(req.tag))
 	}
+}
+
+func (clnt *Clnt) logFcall(fc *p.Fcall) {
+	if clnt.Debuglevel&DbgLogPackets != 0 {
+		pkt := make([]byte, len(fc.Pkt))
+		copy(pkt, fc.Pkt)
+		clnt.Log.Log(pkt, clnt, DbgLogPackets)
+	}
+
+	if clnt.Debuglevel&DbgLogFcalls != 0 {
+		f := new(p.Fcall)
+		*f = *fc
+		f.Pkt = nil
+		clnt.Log.Log(f, clnt, DbgLogFcalls)
+	}
+}
+
+func init() {
+	statsRegister()
 }

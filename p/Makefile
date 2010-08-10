@@ -3,6 +3,7 @@ include $(GOROOT)/src/Make.$(GOARCH)
 TARG=go9p.googlecode.com/hg/p
 GOFILES=\
 	fmt.go\
+	log.go\
 	p9.go\
 	osusers.go\
 	packr.go\

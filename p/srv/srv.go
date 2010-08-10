@@ -22,6 +22,14 @@ const (
 	reqSaved                             /* no response was produced after the request is worked on */
 )
 
+// Debug flags
+const (
+	DbgPrintFcalls  = (1 << iota) // print all 9P messages on stderr
+	DbgPrintPackets               // print the raw packets on stderr
+	DbgLogFcalls                  // keep the last N 9P messages (can be accessed over http)
+	DbgLogPackets                 // keep the last N 9P messages (can be accessed over http)
+)
+
 var Eunknownfid *p.Error = &p.Error{"unknown fid", syscall.EINVAL}
 var Enoauth *p.Error = &p.Error{"no authentication required", syscall.EINVAL}
 var Einuse *p.Error = &p.Error{"fid already in use", syscall.EINVAL}
@@ -132,13 +140,15 @@ type ReqOps interface {
 // that implements the file server operations.
 type Srv struct {
 	sync.Mutex
+	Id          string    // Used for debugging and stats
 	Msize       uint32    // Maximum size of the 9P2000 messages supported by the server
 	Dotu        bool      // If true, the server supports the 9P2000.u extension
-	Debuglevel  int       // 0==don't print anything, >1 print 9P messages, >2 print raw data
+	Debuglevel  int       // debug level
 	Upool       p.Users   // Interface for finding users and groups known to the file server
 	Maxpend     int       // Maximum pending outgoing requests
 	Ngoroutines int       // Number of goroutines handling requests, if 0, create a gorotine for each request
 	Reqin       chan *Req // Incoming requests
+	Log         *p.Logger
 
 	ops interface{} // operations
 
@@ -148,10 +158,11 @@ type Srv struct {
 // The Conn type represents a connection from a client to the file server
 type Conn struct {
 	sync.Mutex
-	Srv   *Srv
-	Msize uint32 // maximum size of 9P2000 messages for the connection
-	Dotu  bool   // if true, both the client and the server speak 9P2000.u
-	Id    string // used when printing debug messages
+	Srv        *Srv
+	Msize      uint32 // maximum size of 9P2000 messages for the connection
+	Dotu       bool   // if true, both the client and the server speak 9P2000.u
+	Id         string // used for debugging and stats
+	Debuglevel int
 
 	conn     net.Conn
 	fidpool  map[uint32]*Fid
@@ -162,6 +173,13 @@ type Conn struct {
 	rchan      chan *p.Fcall
 	done       chan bool
 	prev, next *Conn
+
+	// stats
+	nreqs   int    // number of requests processed by the server
+	tsz     uint64 // total size of the T messages received
+	rsz     uint64 // total size of the R messages sent
+	npend   int    // number of currently pending messages
+	maxpend int    // maximum number of pending messages
 }
 
 // The Fid type identifies a file on the file server.
@@ -221,12 +239,17 @@ func (srv *Srv) Start(ops interface{}) bool {
 		srv.Msize = p.MSIZE
 	}
 
+	if srv.Log == nil {
+		srv.Log = p.NewLogger(1024)
+	}
+
 	srv.Reqin = make(chan *Req, srv.Maxpend)
 	n := srv.Ngoroutines
 	for i := 0; i < n; i++ {
 		go srv.work()
 	}
 
+	srv.statsRegister()
 	return true
 }
 

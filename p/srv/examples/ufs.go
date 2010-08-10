@@ -7,6 +7,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"http"
 	"log"
 	"os"
 	"strconv"
@@ -29,7 +30,7 @@ type Ufs struct {
 }
 
 var addr = flag.String("addr", ":5640", "network address")
-var debug = flag.Bool("d", false, "print debug messages")
+var debug = flag.Int("d", 0, "print debug messages")
 var Enoent = &p.Error{"file not found", syscall.ENOENT}
 
 func toError(err os.Error) *p.Error {
@@ -549,11 +550,9 @@ func main() {
 	flag.Parse()
 	ufs := new(Ufs)
 	ufs.Dotu = true
-
-	if *debug {
-		ufs.Debuglevel = 1
-	}
-
+	ufs.Id = "ufs"
+	ufs.Debuglevel = *debug
 	ufs.Start(ufs)
+	go http.ListenAndServe(":6060", nil)
 	srv.StartListener("tcp", *addr, &ufs.Srv)
 }
