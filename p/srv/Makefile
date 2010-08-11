@@ -1,7 +1,7 @@
 include $(GOROOT)/src/Make.$(GOARCH)
 
-#STATS=none
-STATS=http
+STATS=none
+#STATS=http
 
 TARG=go9p.googlecode.com/hg/p/srv
 GOFILES=\
