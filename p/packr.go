@@ -217,4 +217,3 @@ func PackRwstat(fc *Fcall) *Error {
 	_, err := packCommon(fc, 0, Rwstat)
 	return err
 }
-

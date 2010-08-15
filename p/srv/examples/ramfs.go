@@ -15,12 +15,12 @@ import (
 )
 
 type Ramfs struct {
-	srv	*srv.Fsrv
-	user	p.User
-	group	p.Group
-	blksz	int
-	blkchan	chan []byte
-	zero	[]byte		// blksz array of zeroes
+	srv     *srv.Fsrv
+	user    p.User
+	group   p.Group
+	blksz   int
+	blkchan chan []byte
+	zero    []byte // blksz array of zeroes
 }
 
 type RFile struct {
@@ -38,27 +38,27 @@ func (f *RFile) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
 	f.Lock()
 	defer f.Unlock()
 
-	if offset>f.Length {
+	if offset > f.Length {
 		return 0, nil
 	}
 
 	count := uint32(len(buf))
-	if offset+uint64(count)>f.Length {
+	if offset+uint64(count) > f.Length {
 		count = uint32(f.Length - offset)
 	}
 
-	for n, off, b := offset/uint64(rsrv.blksz), offset%uint64(rsrv.blksz), buf[0:count]; len(b)>0; n++ {
+	for n, off, b := offset/uint64(rsrv.blksz), offset%uint64(rsrv.blksz), buf[0:count]; len(b) > 0; n++ {
 		m := rsrv.blksz - int(off)
-		if m>len(b) {
+		if m > len(b) {
 			m = len(b)
 		}
 
 		blk := rsrv.zero
-		if len(f.data[n])!=0 {
+		if len(f.data[n]) != 0 {
 			blk = f.data[n]
 		}
 
-//		log.Stderr("read block", n, "off", off, "len", m, "l", len(blk), "ll", len(b))
+		//		log.Stderr("read block", n, "off", off, "len", m, "l", len(blk), "ll", len(b))
 		copy(b, blk[off:off+uint64(m)])
 		b = b[m:]
 		off = 0
@@ -73,23 +73,23 @@ func (f *RFile) Write(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) 
 
 	// make sure the data array is big enough
 	sz := offset + uint64(len(buf))
-	if (f.Length < sz) {
+	if f.Length < sz {
 		f.expand(sz)
 	}
 
 	count := 0
-	for n, off := offset/uint64(rsrv.blksz), offset%uint64(rsrv.blksz); len(buf)>0; n++ {
+	for n, off := offset/uint64(rsrv.blksz), offset%uint64(rsrv.blksz); len(buf) > 0; n++ {
 		blk := f.data[n]
-		if len(blk)==0 {
+		if len(blk) == 0 {
 			var ok bool
-			blk, ok = <- rsrv.blkchan
+			blk, ok = <-rsrv.blkchan
 			if !ok {
 				blk = make([]byte, rsrv.blksz)
 			}
 
-//			if off>0 {
-				copy(blk, rsrv.zero/*[0:off]*/)
-//			}
+			//			if off>0 {
+			copy(blk, rsrv.zero /*[0:off]*/ )
+			//			}
 
 			f.data[n] = blk
 		}
@@ -143,26 +143,26 @@ func (f *RFile) Wstat(fid *srv.FFid, dir *p.Dir) *p.Error {
 	}
 
 	if dir.Mode != 0xFFFFFFFF {
-		f.Mode = (f.Mode&^0777) | (dir.Mode&0777)
+		f.Mode = (f.Mode &^ 0777) | (dir.Mode & 0777)
 	}
 
 	if dir.Name != "" {
-		if err:=f.Rename(dir.Name); err!=nil {
+		if err := f.Rename(dir.Name); err != nil {
 			return err
 		}
 	}
 
-	if dir.Length!=0xFFFFFFFFFFFFFFFF {
+	if dir.Length != 0xFFFFFFFFFFFFFFFF {
 		f.trunc(dir.Length)
 	}
 
-	return nil	
+	return nil
 }
 
 // called with f locked
 func (f *RFile) trunc(sz uint64) {
 	if f.Length == sz {
-		return;
+		return
 	}
 
 	if f.Length > sz {
@@ -174,18 +174,18 @@ func (f *RFile) trunc(sz uint64) {
 
 // called with f lock held
 func (f *RFile) shrink(sz uint64) {
-	blknum := sz/uint64(rsrv.blksz)
-	off := sz%uint64(rsrv.blksz)
-	if off>0 {
-		if len(f.data[blknum])>0 {
+	blknum := sz / uint64(rsrv.blksz)
+	off := sz % uint64(rsrv.blksz)
+	if off > 0 {
+		if len(f.data[blknum]) > 0 {
 			copy(f.data[blknum][off:], rsrv.zero)
 		}
 
 		blknum++
 	}
 
-	for i:=blknum; i<uint64(len(f.data)); i++ {
-		if len(f.data[i])==0 {
+	for i := blknum; i < uint64(len(f.data)); i++ {
+		if len(f.data[i]) == 0 {
 			continue
 		}
 
@@ -197,8 +197,8 @@ func (f *RFile) shrink(sz uint64) {
 }
 
 func (f *RFile) expand(sz uint64) {
-	blknum := sz/uint64(rsrv.blksz)
-	if sz%uint64(rsrv.blksz)!=0 {
+	blknum := sz / uint64(rsrv.blksz)
+	if sz%uint64(rsrv.blksz) != 0 {
 		blknum++
 	}
 
