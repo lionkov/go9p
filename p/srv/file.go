@@ -94,6 +94,7 @@ type File struct {
 
 type FFid struct {
 	F    *File
+	Fid  *Fid
 	dirs []*File // used for readdir
 }
 
@@ -187,6 +188,11 @@ func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32,
 // Removes a file from its parent directory.
 func (f *File) Remove() {
 	f.Lock()
+	if (f.flags&Fremoved)!=0 {
+		f.Unlock()
+		return
+	}
+
 	f.flags |= Fremoved
 	f.Unlock()
 
@@ -208,6 +214,22 @@ func (f *File) Remove() {
 	f.prev = nil
 	p.Unlock()
 }
+
+func (f *File) Rename(name string) *p.Error {
+	p := f.parent
+	p.Lock()
+	defer p.Unlock()
+	for c := p.cfirst; c != nil; c = c.next {
+		if name == c.Name {
+			return Eexist
+		}
+	}
+
+	f.Name = name
+
+	return nil
+}
+
 
 // Looks for a file in a directory. Returns nil if the file is not found.
 func (p *File) Find(name string) *File {
@@ -269,6 +291,7 @@ func (f *File) CheckPerm(user p.User, perm uint32) bool {
 func (s *Fsrv) Attach(req *Req) {
 	fid := new(FFid)
 	fid.F = s.Root
+	fid.Fid = req.Fid
 	req.Fid.Aux = fid
 	req.RespondRattach(&s.Root.Qid)
 }
@@ -278,7 +301,9 @@ func (*Fsrv) Walk(req *Req) {
 	tc := req.Tc
 
 	if req.Newfid.Aux == nil {
-		req.Newfid.Aux = new(FFid)
+		nfid := new(FFid)
+		nfid.Fid = req.Newfid
+		req.Newfid.Aux = nfid
 	}
 
 	nfid := req.Newfid.Aux.(*FFid)
@@ -339,7 +364,7 @@ func (*Fsrv) Open(req *Req) {
 	fid := req.Fid.Aux.(*FFid)
 	tc := req.Tc
 
-	if fid.F.CheckPerm(req.Fid.User, mode2Perm(tc.Mode)) {
+	if !fid.F.CheckPerm(req.Fid.User, mode2Perm(tc.Mode)) {
 		req.RespondError(Eperm)
 		return
 	}
@@ -358,7 +383,7 @@ func (*Fsrv) Create(req *Req) {
 	tc := req.Tc
 
 	dir := fid.F
-	if dir.CheckPerm(req.Fid.User, p.DMWRITE) {
+	if !dir.CheckPerm(req.Fid.User, p.DMWRITE) {
 		req.RespondError(Eperm)
 		return
 	}
