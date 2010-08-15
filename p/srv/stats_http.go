@@ -52,11 +52,34 @@ func (conn *Conn) ServeHTTP(c *http.Conn, r *http.Request) {
 	if conn.Debuglevel&DbgLogFcalls != 0 {
 		fs := conn.Srv.Log.Filter(conn, DbgLogFcalls)
 		io.WriteString(c, fmt.Sprintf("<h2>Last %d 9P messages</h2>", len(fs)))
-		for _, l := range fs {
+		for i, l := range fs {
 			fc := l.Data.(*p.Fcall)
-			if fc.Type != 0 {
-				io.WriteString(c, fmt.Sprintf("<br>%s", fc))
+			if fc.Type==0 {
+				continue
 			}
+
+			lbl := ""
+			if fc.Type%2==0 {
+				// try to find the response for the T message
+				for j:=i+1; j<len(fs); j++ {
+					rc := fs[j].Data.(*p.Fcall)
+					if rc.Tag == fc.Tag {
+						lbl = fmt.Sprintf("<a href='#fc%d'>&#10164;</a>", j)
+						break
+					}
+				}
+			} else {
+				// try to find the request for the R message
+				for j:=i-1; j>=0; j-- {
+					tc := fs[j].Data.(*p.Fcall)
+					if tc.Tag == fc.Tag {
+						lbl = fmt.Sprintf("<a href='#fc%d'>&#10166;</a>", j)
+						break
+					}
+				}
+			}
+
+			io.WriteString(c, fmt.Sprintf("<br id='fc%d'>%d: %s%s", i, i, fc, lbl))
 		}
 	}
 }
