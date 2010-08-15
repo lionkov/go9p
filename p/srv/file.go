@@ -188,7 +188,7 @@ func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32,
 // Removes a file from its parent directory.
 func (f *File) Remove() {
 	f.Lock()
-	if (f.flags&Fremoved)!=0 {
+	if (f.flags & Fremoved) != 0 {
 		f.Unlock()
 		return
 	}

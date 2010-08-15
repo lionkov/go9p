@@ -54,14 +54,14 @@ func (conn *Conn) ServeHTTP(c *http.Conn, r *http.Request) {
 		io.WriteString(c, fmt.Sprintf("<h2>Last %d 9P messages</h2>", len(fs)))
 		for i, l := range fs {
 			fc := l.Data.(*p.Fcall)
-			if fc.Type==0 {
+			if fc.Type == 0 {
 				continue
 			}
 
 			lbl := ""
-			if fc.Type%2==0 {
+			if fc.Type%2 == 0 {
 				// try to find the response for the T message
-				for j:=i+1; j<len(fs); j++ {
+				for j := i + 1; j < len(fs); j++ {
 					rc := fs[j].Data.(*p.Fcall)
 					if rc.Tag == fc.Tag {
 						lbl = fmt.Sprintf("<a href='#fc%d'>&#10164;</a>", j)
@@ -70,7 +70,7 @@ func (conn *Conn) ServeHTTP(c *http.Conn, r *http.Request) {
 				}
 			} else {
 				// try to find the request for the R message
-				for j:=i-1; j>=0; j-- {
+				for j := i - 1; j >= 0; j-- {
 					tc := fs[j].Data.(*p.Fcall)
 					if tc.Tag == fc.Tag {
 						lbl = fmt.Sprintf("<a href='#fc%d'>&#10166;</a>", j)
