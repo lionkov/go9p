@@ -5,12 +5,17 @@
 package p
 
 import "syscall"
+import "fmt"
 
 // Creates a Fcall value from the on-the-wire representation. If
 // dotu is true, reads 9P2000.u messages. Returns the unpacked message,
 // error and how many bytes from the buffer were used by the message.
 func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 	var m uint16
+
+	if len(buf) < 7 {
+		return nil, &Error{"buffer too short", syscall.EINVAL}, 0
+	}
 
 	fc = new(Fcall)
 	fc.Fid = NOFID
@@ -21,6 +26,11 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 	fc.Size, p = gint32(p)
 	fc.Type, p = gint8(p)
 	fc.Tag, p = gint16(p)
+
+	if int(fc.Size)>len(buf) || fc.Size<7 {
+		return nil, &Error{fmt.Sprintf("buffer too short: %d expected %d",
+			len(buf), fc.Size), syscall.EINVAL}, 0
+	}
 
 	p = p[0 : fc.Size-7]
 	fc.Pkt = buf[0:fc.Size]

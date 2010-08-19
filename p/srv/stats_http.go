@@ -46,6 +46,8 @@ func (conn *Conn) ServeHTTP(c *http.Conn, r *http.Request) {
 	io.WriteString(c, fmt.Sprintf("<br>Sent %v bytes", conn.rsz))
 	io.WriteString(c, fmt.Sprintf("<br>Received %v bytes", conn.tsz))
 	io.WriteString(c, fmt.Sprintf("<br>Pending requests: %d max %d", conn.npend, conn.maxpend))
+	io.WriteString(c, fmt.Sprintf("<br>Number of reads: %d", conn.nreads))
+	io.WriteString(c, fmt.Sprintf("<br>Number of writes: %d", conn.nwrites))
 	conn.Unlock()
 
 	// fcalls

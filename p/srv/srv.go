@@ -180,6 +180,8 @@ type Conn struct {
 	rsz     uint64 // total size of the R messages sent
 	npend   int    // number of currently pending messages
 	maxpend int    // maximum number of pending messages
+	nreads  int    // number of reads
+	nwrites int    // number of writes
 }
 
 // The Fid type identifies a file on the file server.

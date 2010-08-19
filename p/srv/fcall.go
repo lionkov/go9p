@@ -295,6 +295,7 @@ func (srv *Srv) read(req *Req) {
 	fid := req.Fid
 	if tc.Count+p.IOHDRSZ > req.Conn.Msize {
 		req.RespondError(Etoolarge)
+		return
 	}
 
 	if (fid.Type & p.QTAUTH) != 0 {
