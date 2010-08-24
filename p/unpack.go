@@ -27,9 +27,11 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 	fc.Type, p = gint8(p)
 	fc.Tag, p = gint16(p)
 
-	if int(fc.Size)>len(buf) || fc.Size<7 {
+	if int(fc.Size) > len(buf) || fc.Size < 7 {
 		return nil, &Error{fmt.Sprintf("buffer too short: %d expected %d",
-			len(buf), fc.Size), syscall.EINVAL}, 0
+			len(buf), fc.Size),
+			syscall.EINVAL},
+			0
 	}
 
 	p = p[0 : fc.Size-7]

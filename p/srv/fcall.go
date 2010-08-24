@@ -395,7 +395,7 @@ func (srv *Srv) clunkPost(req *Req) {
 func (srv *Srv) remove(req *Req) { (req.Conn.Srv.ops).(ReqOps).Remove(req) }
 
 func (srv *Srv) removePost(req *Req) {
-	if req.Rc != nil && req.Rc.Type == p.Rremove && req.Fid != nil {
+	if req.Rc != nil && req.Fid != nil {
 		req.Fid.DecRef()
 	}
 }
