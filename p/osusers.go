@@ -4,8 +4,9 @@
 
 package p
 
-import "once"
 import "sync"
+
+var once sync.Once
 
 type osUser struct {
 	uid int
