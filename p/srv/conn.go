@@ -65,7 +65,7 @@ func (conn *Conn) recv() {
 		for pos > 4 {
 			sz, _ := p.Gint32(buf)
 			if sz > conn.Msize {
-				log.Stderr("bad client connection: ", conn.conn.RemoteAddr())
+				log.Println("bad client connection: ", conn.conn.RemoteAddr())
 				conn.conn.Close()
 				goto closed
 			}
@@ -78,7 +78,7 @@ func (conn *Conn) recv() {
 			}
 			fc, err, fcsize := p.Unpack(buf, conn.Dotu)
 			if err != nil {
-				log.Stderr(fmt.Sprintf("invalid packet : %v %v", err, buf))
+				log.Println(fmt.Sprintf("invalid packet : %v %v", err, buf))
 				conn.conn.Close()
 				goto closed
 			}
@@ -95,11 +95,11 @@ func (conn *Conn) recv() {
 			if conn.Debuglevel > 0 {
 				conn.logFcall(req.Tc)
 				if conn.Debuglevel&DbgPrintPackets != 0 {
-					log.Stderr(">->", conn.Id, fmt.Sprint(req.Tc.Pkt))
+					log.Println(">->", conn.Id, fmt.Sprint(req.Tc.Pkt))
 				}
 
 				if conn.Debuglevel&DbgPrintFcalls != 0 {
-					log.Stderr(">>>", conn.Id, req.Tc.String())
+					log.Println(">>>", conn.Id, req.Tc.String())
 				}
 			}
 
@@ -171,11 +171,11 @@ func (conn *Conn) send() {
 			if conn.Debuglevel > 0 {
 				conn.logFcall(req.Rc)
 				if conn.Debuglevel&DbgPrintPackets != 0 {
-					log.Stderr("<-<", conn.Id, fmt.Sprint(req.Rc.Pkt))
+					log.Println("<-<", conn.Id, fmt.Sprint(req.Rc.Pkt))
 				}
 
 				if conn.Debuglevel&DbgPrintFcalls != 0 {
-					log.Stderr("<<<", conn.Id, req.Rc.String())
+					log.Println("<<<", conn.Id, req.Rc.String())
 				}
 			}
 
@@ -183,7 +183,7 @@ func (conn *Conn) send() {
 				n, err := conn.conn.Write(buf)
 				if err != nil {
 					/* just close the socket, will get signal on conn.done */
-					log.Stderr("error while writing")
+					log.Println("error while writing")
 					conn.conn.Close()
 					break
 				}
@@ -226,7 +226,7 @@ func (conn *Conn) logFcall(fc *p.Fcall) {
 func StartListener(network, laddr string, srv *Srv) os.Error {
 	l, err := net.Listen(network, laddr)
 	if err != nil {
-		log.Stderr("listen fail: ", network, listen, err)
+		log.Println("listen fail: ", network, listen, err)
 		return err
 	}
 

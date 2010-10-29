@@ -180,13 +180,13 @@ func dir2Dir(path string, d *os.FileInfo, dotu bool, upool p.Users) *p.Dir {
 
 func (*Ufs) ConnOpened(conn *srv.Conn) {
 	if conn.Srv.Debuglevel > 0 {
-		log.Stderr("connected")
+		log.Println("connected")
 	}
 }
 
 func (*Ufs) ConnClosed(conn *srv.Conn) {
 	if conn.Srv.Debuglevel > 0 {
-		log.Stderr("disconnected")
+		log.Println("disconnected")
 	}
 }
 

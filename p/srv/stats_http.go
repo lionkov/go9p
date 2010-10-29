@@ -11,7 +11,7 @@ func (srv *Srv) statsRegister() {
 	http.Handle("/go9p/srv/"+srv.Id, srv)
 }
 
-func (srv *Srv) ServeHTTP(c *http.Conn, r *http.Request) {
+func (srv *Srv) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 	io.WriteString(c, fmt.Sprintf("<html><body><h1>Server %s</h1>", srv.Id))
 	defer io.WriteString(c, "</body></html>")
 
@@ -36,7 +36,7 @@ func (conn *Conn) statsUnregister() {
 	http.Handle("/go9p/srv/"+conn.Srv.Id+"/conn/"+conn.Id, nil)
 }
 
-func (conn *Conn) ServeHTTP(c *http.Conn, r *http.Request) {
+func (conn *Conn) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 	io.WriteString(c, fmt.Sprintf("<html><body><h1>Connection %s/%s</h1>", conn.Srv.Id, conn.Id))
 	defer io.WriteString(c, "</body></html>")
 

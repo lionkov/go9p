@@ -420,7 +420,7 @@ func interactive(c *clnt.Clnt) {
 		}
 		str := strings.TrimSpace(string(line))
 		// TODO: handle larger input lines by doubling buffer
-		in := strings.Split(str, "\n", 0)
+		in := strings.Split(str, "\n", -1)
 		for i := range in {
 			if len(in[i]) > 0 {
 				cmd(c, in[i])

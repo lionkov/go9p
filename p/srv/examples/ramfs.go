@@ -239,5 +239,5 @@ func main() {
 	return
 
 error:
-	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
+	log.Println(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
 }

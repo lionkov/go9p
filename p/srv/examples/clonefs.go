@@ -74,7 +74,7 @@ func (cl *ClFile) Write(fid *srv.FFid, data []byte, offset uint64) (int, *p.Erro
 }
 
 func (cl *ClFile) Remove(fid *srv.FFid) *p.Error {
-	log.Stderr("Remove")
+	log.Println("Remove")
 	return nil
 }
 
@@ -135,5 +135,5 @@ func main() {
 	return
 
 error:
-	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
+	log.Println(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
 }

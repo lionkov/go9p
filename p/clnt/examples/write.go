@@ -29,7 +29,7 @@ func main() {
 	}
 
 	if flag.NArg() != 1 {
-		log.Stderr("invalid arguments")
+		log.Println("invalid arguments")
 		return
 	}
 
@@ -68,5 +68,5 @@ func main() {
 	return
 
 error:
-	log.Stderr(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
+	log.Println(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
 }

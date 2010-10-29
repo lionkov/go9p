@@ -515,7 +515,7 @@ func (*Fsrv) Remove(req *Req) {
 			req.RespondRremove()
 		}
 	} else {
-		log.Stderr("remove not implemented")
+		log.Println("remove not implemented")
 		req.RespondError(Eperm)
 	}
 }

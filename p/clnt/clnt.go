@@ -189,11 +189,11 @@ func (clnt *Clnt) recv() {
 			if clnt.Debuglevel > 0 {
 				clnt.logFcall(fc)
 				if clnt.Debuglevel&DbgPrintPackets != 0 {
-					log.Stderr("}-}", clnt.Id, fmt.Sprint(fc.Pkt))
+					log.Println("}-}", clnt.Id, fmt.Sprint(fc.Pkt))
 				}
 
 				if clnt.Debuglevel&DbgPrintFcalls != 0 {
-					log.Stderr("}}}", clnt.Id, fc.String())
+					log.Println("}}}", clnt.Id, fc.String())
 				}
 			}
 
@@ -228,8 +228,8 @@ func (clnt *Clnt) recv() {
 			if r.Tc.Type != r.Rc.Type-1 {
 				if r.Rc.Type != p.Rerror {
 					r.Err = &p.Error{"invalid response", syscall.EINVAL}
-					log.Stderr(fmt.Sprintf("TTT %v", r.Tc))
-					log.Stderr(fmt.Sprintf("RRR %v", r.Rc))
+					log.Println(fmt.Sprintf("TTT %v", r.Tc))
+					log.Println(fmt.Sprintf("RRR %v", r.Rc))
 				} else {
 					if r.Err != nil {
 						r.Err = &p.Error{r.Rc.Error, int(r.Rc.Errornum)}
@@ -291,11 +291,11 @@ func (clnt *Clnt) send() {
 			if clnt.Debuglevel > 0 {
 				clnt.logFcall(req.Tc)
 				if clnt.Debuglevel&DbgPrintPackets != 0 {
-					log.Stderr("{-{", clnt.Id, fmt.Sprint(req.Tc.Pkt))
+					log.Println("{-{", clnt.Id, fmt.Sprint(req.Tc.Pkt))
 				}
 
 				if clnt.Debuglevel&DbgPrintFcalls != 0 {
-					log.Stderr("{{{", clnt.Id, req.Tc.String())
+					log.Println("{{{", clnt.Id, req.Tc.String())
 				}
 			}
 
