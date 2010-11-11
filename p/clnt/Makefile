@@ -15,5 +15,6 @@ GOFILES=\
 	walk.go\
 	write.go\
 	stats_$(STATS).go\
+	tag.go\
 
 include $(GOROOT)/src/Make.pkg

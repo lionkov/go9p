@@ -4,7 +4,7 @@
 
 include $(GOROOT)/src/Make.inc
 
-TARG=ls read write cl
+TARG=ls read write cl tag
 OFILES=$(TARG:%=%.$O)
 
 all: $(TARG)

@@ -30,11 +30,15 @@ func (srv *Srv) version(req *Req) {
 
 	/* make sure that the responses of all current requests will be ignored */
 	conn.Lock()
-	for r := conn.reqfirst; r != nil; r = r.next {
-		if r != req {
-			r.Lock()
-			r.status |= reqFlush
-			r.Unlock()
+	for tag, r := range conn.reqs {
+		if tag==p.NOTAG {
+			continue
+		}
+
+		for rr:=r; rr!=nil; rr=rr.next {
+			rr.Lock()
+			rr.status |= reqFlush
+			rr.Unlock()
 		}
 	}
 	conn.Unlock()
@@ -143,39 +147,37 @@ func (srv *Srv) attachPost(req *Req) {
 }
 
 func (srv *Srv) flush(req *Req) {
-	var r *Req
-
 	conn := req.Conn
 	tag := req.Tc.Oldtag
 	p.PackRflush(req.Rc)
 	conn.Lock()
-	for r = conn.reqfirst; r != nil; r = r.next {
-		if r.Tc.Tag == tag {
-			break
-		}
+	r := conn.reqs[tag]
+	if r!=nil {
+		r.flushreq = req.flushreq
+		req.flushreq = r
 	}
 	conn.Unlock()
 
-	if r != nil {
-		r.Lock()
-		r.flushreq = req.flushreq
-		r.flushreq = req
-		status := r.status
-		if (status & (reqWork | reqSaved)) == 0 {
-			/* the request is not worked on yet */
-			r.status |= reqFlush
-		}
-		r.Unlock()
-
-		if (status & (reqWork | reqSaved)) == 0 {
-			r.Respond()
-		} else {
-			if op, ok := (srv.ops).(FlushOp); ok {
-				op.Flush(r)
-			}
-		}
-	} else {
+	if r==nil {
+		// there are no requests with that tag
 		req.Respond()
+		return
+	}
+
+	r.Lock()
+	status := r.status
+	if (status & (reqWork | reqSaved)) == 0 {
+		/* the request is not worked on yet */
+		r.status |= reqFlush
+	}
+	r.Unlock()
+
+	if (status & (reqWork | reqSaved)) == 0 {
+		r.Respond()
+	} else {
+		if op, ok := (srv.ops).(FlushOp); ok {
+			op.Flush(r)
+		}
 	}
 }
 

@@ -411,7 +411,7 @@ func interactive(c *clnt.Clnt) {
 	if ok != nil {
 		fmt.Fprintf(os.Stderr, "can't create reader buffer: %s\n", ok)
 	}
-	for c.Finished != true {
+	for {
 		fmt.Print(*prompt)
 		line, ok := reader.ReadSlice('\n')
 		if ok != nil {
