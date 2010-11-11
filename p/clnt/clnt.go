@@ -87,6 +87,7 @@ type Req struct {
 	Done       chan *Req
 	tag        uint16
 	prev, next *Req
+	fid	   *Fid
 }
 
 var DefaultDebuglevel int
@@ -394,6 +395,12 @@ func (clnt *Clnt) NewFcall() *p.Fcall {
 	return tc
 }
 
+func (clnt *Clnt) FreeFcall(fc *p.Fcall) {
+	if fc != nil && len(fc.Buf) >= int(clnt.Msize) {
+		_ = clnt.tchan <- fc
+	}
+}
+
 func (clnt *Clnt) ReqAlloc() *Req {
 	req, ok := <-clnt.reqchan
 	if !ok {
@@ -406,10 +413,7 @@ func (clnt *Clnt) ReqAlloc() *Req {
 }
 
 func (clnt *Clnt) ReqFree(req *Req) {
-	if req.Tc != nil && len(req.Tc.Buf) >= int(clnt.Msize) {
-		_ = clnt.tchan <- req.Tc
-	}
-
+	clnt.FreeFcall(req.Tc)
 	req.Tc = nil
 	req.Rc = nil
 	req.Err = nil

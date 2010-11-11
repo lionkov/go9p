@@ -226,10 +226,8 @@ func (f *File) Rename(name string) *p.Error {
 	}
 
 	f.Name = name
-
 	return nil
 }
-
 
 // Looks for a file in a directory. Returns nil if the file is not found.
 func (p *File) Find(name string) *File {

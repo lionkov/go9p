@@ -166,8 +166,7 @@ type Conn struct {
 
 	conn     net.Conn
 	fidpool  map[uint32]*Fid
-	reqfirst *Req
-	reqlast  *Req
+	reqs	 map[uint16]*Req	// all outstanding requests
 
 	reqout     chan *Req
 	rchan      chan *p.Fcall
@@ -253,6 +252,10 @@ func (srv *Srv) Start(ops interface{}) bool {
 
 	srv.statsRegister()
 	return true
+}
+
+func (srv *Srv) String() string {
+	return srv.Id
 }
 
 func (req *Req) process() {
@@ -408,6 +411,8 @@ func (req *Req) PostProcess() {
 // the file server implementer shouldn't call this method directly. Instead
 // one of the RespondR* methods should be used.
 func (req *Req) Respond() {
+	var flushreqs *Req
+
 	conn := req.Conn
 	req.Lock()
 	status := req.status
@@ -421,30 +426,27 @@ func (req *Req) Respond() {
 
 	/* remove the request and all requests flushing it */
 	conn.Lock()
-	if req.prev != nil {
-		req.prev.next = req.next
-	} else {
-		conn.reqfirst = req.next
-	}
+	nextreq := req.prev
+	if nextreq!=nil {
+		nextreq.next = nil
+		// if there are flush requests, move them to the next request
+		if req.flushreq!=nil {
+			var p *Req = nil
+			r :=nextreq.flushreq
+			for ;r!=nil; p, r = r, r.flushreq {
+			}
 
-	if req.next != nil {
-		req.next.prev = req.prev
-	} else {
-		conn.reqlast = req.prev
-	}
-
-	for freq := req.flushreq; freq != nil; freq = freq.flushreq {
-		if freq.prev != nil {
-			freq.prev.next = freq.next
-		} else {
-			conn.reqfirst = freq.next
+			if p==nil {
+				nextreq.flushreq = req.flushreq
+			} else {
+				p.next = req.flushreq
+			}
 		}
 
-		if freq.next != nil {
-			freq.next.prev = freq.prev
-		} else {
-			conn.reqlast = freq.prev
-		}
+		flushreqs = nil
+	} else {
+		conn.reqs[req.Tc.Tag] = nil
+		flushreqs = req.flushreq
 	}
 	conn.Unlock()
 
@@ -458,19 +460,30 @@ func (req *Req) Respond() {
 		conn.reqout <- req
 	}
 
-	for freq := req.flushreq; freq != nil; freq = freq.flushreq {
-		if (freq.status & reqFlush) == 0 {
-			conn.reqout <- freq
+	// process the next request with the same tag (if available)
+	if nextreq!=nil {
+		if conn.Srv.Ngoroutines == 0 {
+			go nextreq.process()
+		} else {
+			conn.Srv.Reqin <- nextreq
 		}
+	}
+
+	// respond to the flush messages
+	// can't send the responses directly to conn.reqout, because the
+	// the flushes may be in a tag group too
+	for freq := flushreqs; freq != nil; freq = freq.flushreq {
+		freq.Respond()
 	}
 }
 
-// Should be called to cancel a request. Should only be callled
+// Should be called to cancel a request. Should only be called
 // from the Flush operation if the FlushOp is implemented.
 func (req *Req) Flush() {
 	req.Lock()
 	req.status |= reqFlush
 	req.Unlock()
+	req.Respond()
 }
 
 // Lookup a Fid struct based on the 32-bit identifier sent over the wire.
@@ -507,6 +520,10 @@ func (conn *Conn) FidNew(fidno uint32) *Fid {
 	conn.Unlock()
 
 	return fid
+}
+
+func (conn *Conn) String() string {
+	return conn.Srv.Id + "/" + conn.Id
 }
 
 // Increase the reference count for the fid.

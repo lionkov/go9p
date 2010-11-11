@@ -155,7 +155,6 @@ func (fc *Fcall) String() string {
 		ret = fmt.Sprintf("Rremove tag %d", fc.Tag)
 	case Rwstat:
 		ret = fmt.Sprintf("Rwstat tag %d", fc.Tag)
-
 	}
 
 	return ret

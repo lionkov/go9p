@@ -20,6 +20,7 @@ func newConn(srv *Srv, c net.Conn) {
 	conn.Debuglevel = srv.Debuglevel
 	conn.conn = c
 	conn.fidpool = make(map[uint32]*Fid)
+	conn.reqs = make(map[uint16] *Req)
 	conn.reqout = make(chan *Req, srv.Maxpend)
 	conn.done = make(chan bool)
 	conn.rchan = make(chan *p.Fcall, 64)
@@ -83,6 +84,7 @@ func (conn *Conn) recv() {
 				goto closed
 			}
 
+			tag := fc.Tag
 			req := new(Req)
 			rc, ok := <-conn.rchan
 			if !ok {
@@ -111,19 +113,21 @@ func (conn *Conn) recv() {
 				conn.maxpend = conn.npend
 			}
 
-			if conn.reqlast != nil {
-				conn.reqlast.next = req
-			} else {
-				conn.reqfirst = req
+			req.next = conn.reqs[tag]
+			conn.reqs[tag] = req
+			process := req.next == nil
+			if req.next!=nil {
+				req.next.prev = req
 			}
-			req.prev = conn.reqlast
-			conn.reqlast = req
 			conn.Unlock()
-			if conn.Srv.Ngoroutines == 0 {
-				go req.process()
-			} else {
-				conn.Srv.Reqin <- req
+			if process {
+				if conn.Srv.Ngoroutines == 0 {
+					go req.process()
+				} else {
+					conn.Srv.Reqin <- req
+				}
 			}
+
 			buf = buf[fcsize:]
 			pos -= fcsize
 		}
