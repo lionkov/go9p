@@ -28,7 +28,6 @@ const (
 // the files exported by the server.
 type Clnt struct {
 	sync.Mutex
-	Finished   bool   // client is no longer connected to server
 	Debuglevel int    // =0 don't print anything, >0 print Fcalls, >1 print raw packets
 	Msize      uint32 // Maximum size of the 9P messages
 	Dotu       bool   // If true, 9P2000.u protocol is spoken
@@ -99,9 +98,6 @@ var clntList, clntLast *Clnt
 func (clnt *Clnt) Rpcnb(r *Req) *p.Error {
 	var tag uint16
 
-	if clnt.Finished {
-		return &p.Error{"Client no longer connected", 0}
-	}
 	if r.Tc.Type == p.Tversion {
 		tag = p.NOTAG
 	} else {
@@ -284,7 +280,6 @@ func (clnt *Clnt) send() {
 	for {
 		select {
 		case <-clnt.done:
-			clnt.Finished = true
 			return
 
 		case req := <-clnt.reqout:
