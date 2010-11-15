@@ -31,11 +31,11 @@ func (srv *Srv) version(req *Req) {
 	/* make sure that the responses of all current requests will be ignored */
 	conn.Lock()
 	for tag, r := range conn.reqs {
-		if tag==p.NOTAG {
+		if tag == p.NOTAG {
 			continue
 		}
 
-		for rr:=r; rr!=nil; rr=rr.next {
+		for rr := r; rr != nil; rr = rr.next {
 			rr.Lock()
 			rr.status |= reqFlush
 			rr.Unlock()
@@ -152,13 +152,13 @@ func (srv *Srv) flush(req *Req) {
 	p.PackRflush(req.Rc)
 	conn.Lock()
 	r := conn.reqs[tag]
-	if r!=nil {
+	if r != nil {
 		r.flushreq = req.flushreq
 		req.flushreq = r
 	}
 	conn.Unlock()
 
-	if r==nil {
+	if r == nil {
 		// there are no requests with that tag
 		req.Respond()
 		return
@@ -326,9 +326,13 @@ func (srv *Srv) read(req *Req) {
 		return
 	}
 
-	if (fid.Type&p.QTDIR) != 0 && tc.Offset > 0 && tc.Offset != fid.Diroffset {
-		req.RespondError(Ebadoffset)
-		return
+	if (fid.Type & p.QTDIR) != 0 {
+		if tc.Offset == 0 {
+			fid.Diroffset = 0
+		} else if tc.Offset != fid.Diroffset {
+			req.RespondError(Ebadoffset)
+			return
+		}
 	}
 
 	(req.Conn.Srv.ops).(ReqOps).Read(req)
