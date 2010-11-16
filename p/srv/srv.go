@@ -164,9 +164,9 @@ type Conn struct {
 	Id         string // used for debugging and stats
 	Debuglevel int
 
-	conn     net.Conn
-	fidpool  map[uint32]*Fid
-	reqs	 map[uint16]*Req	// all outstanding requests
+	conn    net.Conn
+	fidpool map[uint32]*Fid
+	reqs    map[uint16]*Req // all outstanding requests
 
 	reqout     chan *Req
 	rchan      chan *p.Fcall
@@ -427,16 +427,16 @@ func (req *Req) Respond() {
 	/* remove the request and all requests flushing it */
 	conn.Lock()
 	nextreq := req.prev
-	if nextreq!=nil {
+	if nextreq != nil {
 		nextreq.next = nil
 		// if there are flush requests, move them to the next request
-		if req.flushreq!=nil {
+		if req.flushreq != nil {
 			var p *Req = nil
-			r :=nextreq.flushreq
-			for ;r!=nil; p, r = r, r.flushreq {
+			r := nextreq.flushreq
+			for ; r != nil; p, r = r, r.flushreq {
 			}
 
-			if p==nil {
+			if p == nil {
 				nextreq.flushreq = req.flushreq
 			} else {
 				p.next = req.flushreq
@@ -461,7 +461,7 @@ func (req *Req) Respond() {
 	}
 
 	// process the next request with the same tag (if available)
-	if nextreq!=nil {
+	if nextreq != nil {
 		if conn.Srv.Ngoroutines == 0 {
 			go nextreq.process()
 		} else {

@@ -30,7 +30,7 @@ func main() {
 	}
 
 	ba := make([][]byte, 100)
-	for i:=0; i<len(ba); i++ {
+	for i := 0; i < len(ba); i++ {
 		ba[i] = make([]byte, 8192)
 	}
 
@@ -45,14 +45,14 @@ func main() {
 	}
 
 	fid := c.FidAlloc()
-	for root:=c.Root; len(wnames) > 0; root = fid {
+	for root := c.Root; len(wnames) > 0; root = fid {
 		n := len(wnames)
 		if n > 8 {
 			n = 8
 		}
 
 		err = tag.Walk(root, fid, wnames[0:n])
-		if err!=nil {
+		if err != nil {
 			goto error
 		}
 
@@ -60,13 +60,13 @@ func main() {
 		wnames = wnames[n:]
 	}
 	err = tag.Open(fid, p.OREAD)
-	if err!=nil {
+	if err != nil {
 		goto error
 	}
 
-	for i:=0; i<len(ba); i++ {
+	for i := 0; i < len(ba); i++ {
 		err = tag.Read(fid, uint64(i*8192), 8192)
-		if err!=nil {
+		if err != nil {
 			goto error
 		}
 		nreqs++
@@ -76,7 +76,7 @@ func main() {
 
 	// now start reading...
 	for nreqs > 0 {
-		r := <- rchan
+		r := <-rchan
 		if r.Tc.Type == p.Tread {
 			i := r.Tc.Offset / 8192
 			copy(ba[i], r.Rc.Data)
@@ -85,7 +85,7 @@ func main() {
 		nreqs--
 	}
 
-	for i:=0; i<len(ba); i++ {
+	for i := 0; i < len(ba); i++ {
 		os.Stdout.Write(ba[i])
 	}
 

@@ -20,7 +20,7 @@ func newConn(srv *Srv, c net.Conn) {
 	conn.Debuglevel = srv.Debuglevel
 	conn.conn = c
 	conn.fidpool = make(map[uint32]*Fid)
-	conn.reqs = make(map[uint16] *Req)
+	conn.reqs = make(map[uint16]*Req)
 	conn.reqout = make(chan *Req, srv.Maxpend)
 	conn.done = make(chan bool)
 	conn.rchan = make(chan *p.Fcall, 64)
@@ -116,7 +116,7 @@ func (conn *Conn) recv() {
 			req.next = conn.reqs[tag]
 			conn.reqs[tag] = req
 			process := req.next == nil
-			if req.next!=nil {
+			if req.next != nil {
 				req.next.prev = req
 			}
 			conn.Unlock()
