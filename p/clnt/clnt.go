@@ -87,7 +87,7 @@ type Req struct {
 	Done       chan *Req
 	tag        uint16
 	prev, next *Req
-	fid	   *Fid
+	fid        *Fid
 }
 
 var DefaultDebuglevel int

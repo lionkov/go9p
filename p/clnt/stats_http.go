@@ -8,7 +8,6 @@ import (
 )
 
 
-
 func (clnt *Clnt) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 	io.WriteString(c, fmt.Sprintf("<html><body><h1>Client %s</h1>", clnt.Id))
 	defer io.WriteString(c, "</body></html>")
@@ -53,5 +52,3 @@ func (clnt *Clnt) statsUnregister() {
 func statsRegister() {
 	http.HandleFunc("/go9p/clnt", clntServeHTTP)
 }
-
-

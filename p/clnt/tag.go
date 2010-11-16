@@ -11,11 +11,11 @@ import (
 )
 
 type Tag struct {
-	clnt		*Clnt
-	tag		uint16
-	reqchan		chan *Req
-	respchan	chan *Req
-	donechan	chan bool
+	clnt     *Clnt
+	tag      uint16
+	reqchan  chan *Req
+	respchan chan *Req
+	donechan chan bool
 }
 
 func (clnt *Clnt) TagAlloc(reqchan chan *Req) *Tag {
@@ -52,10 +52,10 @@ func (tag *Tag) ReqFree(r *Req) {
 func (tag *Tag) reqproc() {
 	for {
 		select {
-		case <- tag.donechan:
+		case <-tag.donechan:
 			return
 
-		case r := <- tag.respchan:
+		case r := <-tag.respchan:
 			rc := r.Rc
 			fid := r.fid
 			err := r.Rc.Type == p.Rerror
@@ -72,13 +72,12 @@ func (tag *Tag) reqproc() {
 				} else {
 					fid.User = nil
 				}
-					
 
 			case p.Twalk:
 				if !err {
 					fid.walked = true
 					if len(rc.Wqid) > 0 {
-						fid.Qid = rc.Wqid[len(rc.Wqid) - 1]
+						fid.Qid = rc.Wqid[len(rc.Wqid)-1]
 					}
 				} else {
 					fid.User = nil
@@ -92,7 +91,7 @@ func (tag *Tag) reqproc() {
 				} else {
 					fid.Mode = 0
 				}
-					
+
 			case p.Tclunk:
 			case p.Tremove:
 				tag.clnt.fidpool.putId(fid.Fid)
@@ -102,7 +101,7 @@ func (tag *Tag) reqproc() {
 		}
 	}
 }
-			
+
 
 func (tag *Tag) Auth(afid *Fid, user p.User, aname string) *p.Error {
 	req := tag.reqAlloc()
