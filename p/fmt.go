@@ -99,9 +99,9 @@ func (fc *Fcall) String() string {
 		ret = fmt.Sprintf("Tauth tag %d afid %d uname '%s' nuname %d aname '%s'",
 			fc.Tag, fc.Afid, fc.Uname, fc.Unamenum, fc.Aname)
 	case Rauth:
-		ret = fmt.Sprintf("Rauth tag %d aqid %v", fc.Tag, fc.Qid)
+		ret = fmt.Sprintf("Rauth tag %d aqid %v", fc.Tag, &fc.Qid)
 	case Rattach:
-		ret = fmt.Sprintf("Rattach tag %d aqid %v", fc.Tag, fc.Qid)
+		ret = fmt.Sprintf("Rattach tag %d aqid %v", fc.Tag, &fc.Qid)
 	case Tattach:
 		ret = fmt.Sprintf("Tattach tag %d fid %d afid %d uname '%s' nuname %d aname '%s'",
 			fc.Tag, fc.Fid, fc.Afid, fc.Uname, fc.Unamenum, fc.Aname)
@@ -124,7 +124,7 @@ func (fc *Fcall) String() string {
 	case Ropen:
 		ret = fmt.Sprintf("Ropen tag %d qid %v iounit %d", fc.Tag, &fc.Qid, fc.Iounit)
 	case Rcreate:
-		ret = fmt.Sprintf("Rcreate tag %d qid %v iounit %d", fc.Tag, fc.Qid, fc.Iounit)
+		ret = fmt.Sprintf("Rcreate tag %d qid %v iounit %d", fc.Tag, &fc.Qid, fc.Iounit)
 	case Tcreate:
 		ret = fmt.Sprintf("Tcreate tag %d fid %d name '%s' perm ", fc.Tag, fc.Fid, fc.Name)
 		ret += permToString(fc.Perm)
