@@ -130,7 +130,13 @@ func dir2Npmode(d *os.FileInfo, dotu bool) uint32 {
 			ret |= p.DMDEVICE
 		}
 
-		/* TODO: setuid and setgid */
+		if d.Mode&syscall.S_ISUID > 0 {
+			ret |= p.DMSETUID
+		}
+
+		if d.Mode&syscall.S_ISGID > 0 {
+			ret |= p.DMSETGID
+		}
 	}
 
 	return ret
