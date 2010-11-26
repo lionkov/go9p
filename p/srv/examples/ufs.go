@@ -515,7 +515,16 @@ func (*Ufs) Wstat(req *srv.Req) {
 	}
 
 	if dir.Mode != 0xFFFFFFFF {
-		e := os.Chmod(fid.path, dir.Mode&0777)
+		mode := dir.Mode & 0777
+		if req.Conn.Dotu {
+			if dir.Mode&p.DMSETUID > 0 {
+				mode |= syscall.S_ISUID
+			}
+			if dir.Mode&p.DMSETGID > 0 {
+				mode |= syscall.S_ISGID
+			}
+		}
+		e := os.Chmod(fid.path, mode)
 		if e != nil {
 			req.RespondError(toError(e))
 			return
