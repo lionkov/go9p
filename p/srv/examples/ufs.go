@@ -333,7 +333,16 @@ func (*Ufs) Create(req *srv.Req) {
 		return
 
 	default:
-		file, e = os.Open(path, omode2uflags(tc.Mode)|os.O_CREATE, tc.Perm&0777)
+		var mode uint32 = tc.Perm & 0777
+		if req.Conn.Dotu {
+			if tc.Perm&p.DMSETUID > 0 {
+				mode |= syscall.S_ISUID
+			}
+			if tc.Perm&p.DMSETGID > 0 {
+				mode |= syscall.S_ISGID
+			}
+		}
+		file, e = os.Open(path, omode2uflags(tc.Mode)|os.O_CREATE, mode)
 	}
 
 	if file == nil && e == nil {
