@@ -133,6 +133,11 @@ type ReqOps interface {
 	Wstat(*Req)
 }
 
+type StatsOps interface {
+	statsRegister()
+	statsUnregister()
+}
+
 // The Srv type contains the basic fields used to control the 9P2000
 // file server. Each file server implementation should create a value
 // of Srv type, initialize the values it cares about and pass the
@@ -250,7 +255,10 @@ func (srv *Srv) Start(ops interface{}) bool {
 		go srv.work()
 	}
 
-	srv.statsRegister()
+	if sop, ok := (interface{}(srv)).(StatsOps); ok {
+		sop.statsRegister()
+	}
+
 	return true
 }
 

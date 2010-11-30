@@ -11,6 +11,10 @@ func (srv *Srv) statsRegister() {
 	http.Handle("/go9p/srv/"+srv.Id, srv)
 }
 
+func (srv *Srv) statsUnregister() {
+	http.Handle("/go9p/srv/"+srv.Id, nil)
+}
+
 func (srv *Srv) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 	io.WriteString(c, fmt.Sprintf("<html><body><h1>Server %s</h1>", srv.Id))
 	defer io.WriteString(c, "</body></html>")
