@@ -29,15 +29,15 @@ func clntServeHTTP(c http.ResponseWriter, r *http.Request) {
 	io.WriteString(c, fmt.Sprintf("<html><body>"))
 	defer io.WriteString(c, "</body></html>")
 
-	clntLock.Lock()
-	if clntList == nil {
+	clnts.Lock()
+	if clnts.clntList == nil {
 		io.WriteString(c, "no clients")
 	}
 
-	for clnt := clntList; clnt != nil; clnt = clnt.next {
+	for clnt := clnts.clntList; clnt != nil; clnt = clnt.next {
 		io.WriteString(c, fmt.Sprintf("<a href='/go9p/clnt/%s'>%s</a><br>", clnt.Id, clnt.Id))
 	}
-	clntLock.Unlock()
+	clnts.Unlock()
 }
 
 func (clnt *Clnt) statsRegister() {
@@ -49,6 +49,10 @@ func (clnt *Clnt) statsUnregister() {
 }
 
 
-func statsRegister() {
+func (c *ClntList) statsRegister() {
 	http.HandleFunc("/go9p/clnt", clntServeHTTP)
+}
+
+func (c *ClntList) statsUnregister() {
+	http.HandleFunc("/go9p/clnt", nil)
 }
