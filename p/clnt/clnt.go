@@ -23,6 +23,11 @@ const (
 	DbgLogPackets                 // keep the last N 9P messages (can be accessed over http)
 )
 
+type StatsOps interface {
+	statsRegister()
+	statsUnregister()
+}
+
 // The Clnt type represents a 9P2000 client. The client is connected to
 // a 9P2000 file server and its methods can be used to access and manipulate
 // the files exported by the server.
@@ -90,11 +95,14 @@ type Req struct {
 	fid        *Fid
 }
 
+type ClntList struct {
+	sync.Mutex
+	clntList, clntLast *Clnt
+}
+
+var clnts *ClntList
 var DefaultDebuglevel int
 var DefaultLogger *p.Logger
-
-var clntLock sync.Mutex
-var clntList, clntLast *Clnt
 
 func (clnt *Clnt) Rpcnb(r *Req) *p.Error {
 	var tag uint16
@@ -262,19 +270,23 @@ closed:
 		}
 	}
 
-	clntLock.Lock()
+	clnts.Lock()
 	if clnt.prev != nil {
 		clnt.prev.next = clnt.next
 	} else {
-		clntList = clnt.next
+		clnts.clntList = clnt.next
 	}
 
 	if clnt.next != nil {
 		clnt.next.prev = clnt.prev
 	} else {
-		clntLast = clnt.prev
+		clnts.clntLast = clnt.prev
 	}
-	clntLock.Unlock()
+	clnts.Unlock()
+
+        if sop, ok := (interface{}(clnt)).(StatsOps); ok {
+                sop.statsUnregister()
+        }
 }
 
 func (clnt *Clnt) send() {
@@ -328,16 +340,20 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 	go clnt.recv()
 	go clnt.send()
 
-	clntLock.Lock()
-	if clntLast != nil {
-		clntLast.next = clnt
+	clnts.Lock()
+	if clnts.clntLast != nil {
+		clnts.clntLast.next = clnt
 	} else {
-		clntList = clnt
+		clnts.clntList = clnt
 	}
 
-	clnt.prev = clntLast
-	clntLast = clnt
-	clntLock.Unlock()
+	clnt.prev = clnts.clntLast
+	clnts.clntLast = clnt
+	clnts.Unlock()
+
+        if sop, ok := (interface{}(clnt)).(StatsOps); ok {
+                sop.statsRegister()
+        }
 
 	return clnt
 }
@@ -442,5 +458,8 @@ func (clnt *Clnt) logFcall(fc *p.Fcall) {
 }
 
 func init() {
-	statsRegister()
+	clnts = new(ClntList)
+        if sop, ok := (interface{}(clnts)).(StatsOps); ok {
+                sop.statsRegister()
+        }
 }

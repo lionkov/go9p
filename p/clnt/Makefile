@@ -1,7 +1,7 @@
 include $(GOROOT)/src/Make.inc
 
-#STATS=none
-STATS=http
+STATS=
+#STATS=stats_http.go
 TARG=go9p.googlecode.com/hg/p/clnt
 GOFILES=\
 	clnt.go\
@@ -14,7 +14,7 @@ GOFILES=\
 	stat.go\
 	walk.go\
 	write.go\
-	stats_$(STATS).go\
+	$(STATS)\
 	tag.go\
 
 include $(GOROOT)/src/Make.pkg
