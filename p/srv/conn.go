@@ -9,10 +9,11 @@ import (
 	"log"
 	"net"
 	"os"
+	"syscall"
 	"go9p.googlecode.com/hg/p"
 )
 
-func newConn(srv *Srv, c net.Conn) {
+func (srv *Srv) NewConn(c net.Conn) {
 	conn := new(Conn)
 	conn.Srv = srv
 	conn.Msize = srv.Msize
@@ -227,36 +228,27 @@ func (conn *Conn) logFcall(fc *p.Fcall) {
 	}
 }
 
+func (srv *Srv) StartNetListener(ntype, addr string) *p.Error {
+	l, err := net.Listen(ntype, addr)
+	if err!=nil {
+		return &p.Error{ err.String(), syscall.EIO }
+	}
+
+	return srv.StartListener(l)
+}
+
 // Start listening on the specified network and address for incoming
 // connections. Once a connection is established, create a new Conn
 // value, read messages from the socket, send them to the specified
 // server, and send back responses received from the server.
-func StartListener(network, laddr string, srv *Srv) os.Error {
-	l, err := net.Listen(network, laddr)
-	if err != nil {
-		log.Println("listen fail: ", network, listen, err)
-		return err
-	}
-
-	//go listen(l, srv);
+func (srv *Srv) StartListener(l net.Listener) *p.Error {
 	for {
 		c, err := l.Accept()
 		if err != nil {
-			break
+			return &p.Error{ err.String(), syscall.EIO }
 		}
 
-		newConn(srv, c)
+		srv.NewConn(c)
 	}
 	return nil
-}
-
-func listen(l net.Listener, srv *Srv) {
-	for {
-		c, err := l.Accept()
-		if err != nil {
-			break
-		}
-
-		newConn(srv, c)
-	}
 }
