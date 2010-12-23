@@ -578,5 +578,8 @@ func main() {
 	ufs.Debuglevel = *debug
 	ufs.Start(ufs)
 	go http.ListenAndServe(":6060", nil)
-	srv.StartListener("tcp", *addr, &ufs.Srv)
+	err := ufs.StartNetListener("tcp", *addr)
+	if err!=nil {
+		log.Println(err)
+	}
 }

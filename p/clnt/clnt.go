@@ -361,14 +361,9 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 // Establishes a new socket connection to the 9P server and creates
 // a client object for it. Negotiates the dialect and msize for the
 // connection. Returns a Clnt object, or Error.
-func Connect(ntype, addr string, msize uint32, dotu bool) (*Clnt, *p.Error) {
-	c, e := net.Dial(ntype, "", addr)
-	if e != nil {
-		return nil, &p.Error{e.String(), syscall.EIO}
-	}
-
+func Connect(c net.Conn, msize uint32, dotu bool) (*Clnt, *p.Error) {
 	clnt := NewClnt(c, msize, dotu)
-	clnt.Id = addr + ":"
+	clnt.Id = c.RemoteAddr().String() + ":"
 	ver := "9P2000"
 	if clnt.Dotu {
 		ver = "9P2000.u"
