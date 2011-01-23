@@ -51,10 +51,13 @@ func init() {
 // normalize user-supplied path. path starting with '/' is left untouched, otherwise is considered
 // local from cwd
 func normpath(s string) string {
-	if s[0] == '/' {
-		return path.Clean(s)
+	if len(s) > 0 {
+		if s[0] == '/' {
+			return path.Clean(s)
+		}
+		return path.Clean(cwd + "/" + s)
 	}
-	return path.Clean(cwd + "/" + s)
+	return "/"
 }
 
 func b(mode uint32, s uint8) string {
