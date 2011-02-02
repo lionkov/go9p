@@ -81,9 +81,10 @@ func (f *RFile) Write(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) 
 	for n, off := offset/uint64(rsrv.blksz), offset%uint64(rsrv.blksz); len(buf) > 0; n++ {
 		blk := f.data[n]
 		if len(blk) == 0 {
-			var ok bool
-			blk, ok = <-rsrv.blkchan
-			if !ok {
+			select {
+			case blk = <-rsrv.blkchan:
+				break;
+			default:
 				blk = make([]byte, rsrv.blksz)
 			}
 
@@ -189,7 +190,11 @@ func (f *RFile) shrink(sz uint64) {
 			continue
 		}
 
-		_ = rsrv.blkchan <- f.data[i]
+		select {
+		case rsrv.blkchan <- f.data[i]:
+			break
+		default:
+		}
 	}
 
 	f.data = f.data[0:blknum]

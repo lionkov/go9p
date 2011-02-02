@@ -89,14 +89,16 @@ func (conn *Conn) recv() {
 
 			tag := fc.Tag
 			req := new(Req)
-			rc, ok := <-conn.rchan
-			if !ok {
-				rc = p.NewFcall(conn.Msize)
+			select {
+			case req.Rc = <-conn.rchan:
+				break
+			default:
+				req.Rc = p.NewFcall(conn.Msize)
 			}
 
 			req.Conn = conn
 			req.Tc = fc
-			req.Rc = rc
+//			req.Rc = rc
 			if conn.Debuglevel > 0 {
 				conn.logFcall(req.Tc)
 				if conn.Debuglevel&DbgPrintPackets != 0 {
@@ -200,7 +202,11 @@ func (conn *Conn) send() {
 				buf = buf[n:]
 			}
 
-			_ = conn.rchan <- req.Rc
+			select {
+			case conn.rchan <- req.Rc:
+				break
+			default:
+			}
 		}
 	}
 }

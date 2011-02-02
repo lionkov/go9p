@@ -398,28 +398,34 @@ func (clnt *Clnt) FidAlloc() *Fid {
 }
 
 func (clnt *Clnt) NewFcall() *p.Fcall {
-	tc, ok := <-clnt.tchan
-	if !ok {
-		tc = p.NewFcall(clnt.Msize)
+	select {
+	case tc := <-clnt.tchan:
+		return tc
+	default:
 	}
-
-	return tc
+	return p.NewFcall(clnt.Msize)
 }
 
 func (clnt *Clnt) FreeFcall(fc *p.Fcall) {
 	if fc != nil && len(fc.Buf) >= int(clnt.Msize) {
-		_ = clnt.tchan <- fc
+		select {
+		case clnt.tchan <- fc:
+			break
+		default:
+		}
 	}
 }
 
 func (clnt *Clnt) ReqAlloc() *Req {
-	req, ok := <-clnt.reqchan
-	if !ok {
+	var req *Req
+	select {
+	case req = <-clnt.reqchan:
+		break
+	default:
 		req = new(Req)
 		req.Clnt = clnt
 		req.tag = uint16(clnt.tagpool.getId())
 	}
-
 	return req
 }
 
@@ -432,7 +438,10 @@ func (clnt *Clnt) ReqFree(req *Req) {
 	req.next = nil
 	req.prev = nil
 
-	if ok := clnt.reqchan <- req; !ok {
+	select {
+	case  clnt.reqchan <- req:
+		break
+	default:
 		clnt.tagpool.putId(uint32(req.tag))
 	}
 }
