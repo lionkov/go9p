@@ -26,6 +26,7 @@ func (clnt *Clnt) Auth(user p.User, aname string) (*Fid, *p.Error) {
 	}
 
 	fid.User = user
+	fid.walked = true
 	return fid, nil
 }
 
@@ -58,6 +59,7 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, *p.Error) 
 
 	fid.Qid = rc.Qid
 	fid.User = user
+	fid.walked = true
 	return fid, nil
 }
 
