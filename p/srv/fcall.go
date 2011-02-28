@@ -153,8 +153,8 @@ func (srv *Srv) flush(req *Req) {
 	conn.Lock()
 	r := conn.reqs[tag]
 	if r != nil {
-		r.flushreq = req.flushreq
-		req.flushreq = r
+		req.flushreq = r.flushreq
+		r.flushreq = req
 	}
 	conn.Unlock()
 
