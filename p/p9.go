@@ -177,9 +177,10 @@ type Users interface {
 
 // Represents a user
 type User interface {
-	Name() string    // user name
-	Id() int         // user id
-	Groups() []Group // groups the user belongs to (can return nil)
+	Name() string          // user name
+	Id() int               // user id
+	Groups() []Group       // groups the user belongs to (can return nil)
+	IsMember(g Group) bool // returns true if the user is member of the specified group
 }
 
 // Represents a group of users

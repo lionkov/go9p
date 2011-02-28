@@ -98,7 +98,7 @@ func (conn *Conn) recv() {
 
 			req.Conn = conn
 			req.Tc = fc
-//			req.Rc = rc
+			//			req.Rc = rc
 			if conn.Debuglevel > 0 {
 				conn.logFcall(req.Tc)
 				if conn.Debuglevel&DbgPrintPackets != 0 {
@@ -236,8 +236,8 @@ func (conn *Conn) logFcall(fc *p.Fcall) {
 
 func (srv *Srv) StartNetListener(ntype, addr string) *p.Error {
 	l, err := net.Listen(ntype, addr)
-	if err!=nil {
-		return &p.Error{ err.String(), syscall.EIO }
+	if err != nil {
+		return &p.Error{err.String(), syscall.EIO}
 	}
 
 	return srv.StartListener(l)
@@ -251,7 +251,7 @@ func (srv *Srv) StartListener(l net.Listener) *p.Error {
 	for {
 		c, err := l.Accept()
 		if err != nil {
-			return &p.Error{ err.String(), syscall.EIO }
+			return &p.Error{err.String(), syscall.EIO}
 		}
 
 		srv.NewConn(c)

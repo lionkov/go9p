@@ -132,7 +132,7 @@ func main() {
 
 	s.Start(s)
 	err = s.StartNetListener("tcp", *addr)
-	if err!=nil {
+	if err != nil {
 		goto error
 	}
 	return

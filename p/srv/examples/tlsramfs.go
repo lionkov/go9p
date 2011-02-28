@@ -91,7 +91,7 @@ func (f *RFile) Write(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) 
 		if len(blk) == 0 {
 			select {
 			case blk = <-rsrv.blkchan:
-				break;
+				break
 			default:
 				blk = make([]byte, rsrv.blksz)
 			}
@@ -250,22 +250,22 @@ func main() {
 	go http.ListenAndServe(":6060", nil)
 
 	cert := make([]tls.Certificate, 1)
-        cert[0].Certificate = [][]byte{testCertificate}
-        cert[0].PrivateKey = testPrivateKey
+	cert[0].Certificate = [][]byte{testCertificate}
+	cert[0].PrivateKey = testPrivateKey
 
-	ls, oerr := tls.Listen("tcp", *addr, &tls.Config {
-		Rand: rand.Reader,
-		Time: time.Nanoseconds,
+	ls, oerr := tls.Listen("tcp", *addr, &tls.Config{
+		Rand:         rand.Reader,
+		Time:         time.Nanoseconds,
 		Certificates: cert,
 		CipherSuites: []uint16{tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA},
 	})
-	if oerr!=nil {
+	if oerr != nil {
 		log.Println("can't listen:", oerr)
 		return
 	}
 
 	err = rsrv.srv.StartListener(ls)
-	if err!=nil {
+	if err != nil {
 		goto error
 	}
 	return
