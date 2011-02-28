@@ -453,7 +453,7 @@ func (req *Req) Respond() {
 
 		flushreqs = nil
 	} else {
-		conn.reqs[req.Tc.Tag] = nil
+		conn.reqs[req.Tc.Tag] = nil, false
 		flushreqs = req.flushreq
 	}
 	conn.Unlock()
