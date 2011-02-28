@@ -284,9 +284,9 @@ closed:
 	}
 	clnts.Unlock()
 
-        if sop, ok := (interface{}(clnt)).(StatsOps); ok {
-                sop.statsUnregister()
-        }
+	if sop, ok := (interface{}(clnt)).(StatsOps); ok {
+		sop.statsUnregister()
+	}
 }
 
 func (clnt *Clnt) send() {
@@ -351,9 +351,9 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 	clnts.clntLast = clnt
 	clnts.Unlock()
 
-        if sop, ok := (interface{}(clnt)).(StatsOps); ok {
-                sop.statsRegister()
-        }
+	if sop, ok := (interface{}(clnt)).(StatsOps); ok {
+		sop.statsRegister()
+	}
 
 	return clnt
 }
@@ -439,7 +439,7 @@ func (clnt *Clnt) ReqFree(req *Req) {
 	req.prev = nil
 
 	select {
-	case  clnt.reqchan <- req:
+	case clnt.reqchan <- req:
 		break
 	default:
 		clnt.tagpool.putId(uint32(req.tag))
@@ -463,7 +463,7 @@ func (clnt *Clnt) logFcall(fc *p.Fcall) {
 
 func init() {
 	clnts = new(ClntList)
-        if sop, ok := (interface{}(clnts)).(StatsOps); ok {
-                sop.statsRegister()
-        }
+	if sop, ok := (interface{}(clnts)).(StatsOps); ok {
+		sop.statsRegister()
+	}
 }

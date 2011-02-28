@@ -28,6 +28,8 @@ func (u *osUser) Id() int { return u.uid }
 
 func (u *osUser) Groups() []Group { return nil }
 
+func (u *osUser) IsMember(g Group) bool { return false }
+
 type osGroup struct {
 	gid int
 }

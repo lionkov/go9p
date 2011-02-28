@@ -83,7 +83,7 @@ func (f *RFile) Write(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) 
 		if len(blk) == 0 {
 			select {
 			case blk = <-rsrv.blkchan:
-				break;
+				break
 			default:
 				blk = make([]byte, rsrv.blksz)
 			}
@@ -242,7 +242,7 @@ func main() {
 	go http.ListenAndServe(":6060", nil)
 
 	err = rsrv.srv.StartNetListener("tcp", *addr)
-	if err!=nil {
+	if err != nil {
 		goto error
 	}
 	return

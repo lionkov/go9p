@@ -24,9 +24,9 @@ func main() {
 	flag.Parse()
 	user = p.OsUsers.Uid2User(os.Geteuid())
 	clnt.DefaultDebuglevel = *debuglevel
-	
-	c, oerr := tls.Dial("tcp", "", *addr, &tls.Config { Rand: rand.Reader, Time: time.Nanoseconds,})
-	if oerr!=nil {
+
+	c, oerr := tls.Dial("tcp", "", *addr, &tls.Config{Rand: rand.Reader, Time: time.Nanoseconds})
+	if oerr != nil {
 		log.Println("can't dial", oerr)
 		return
 	}
