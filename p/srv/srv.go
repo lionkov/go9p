@@ -320,7 +320,6 @@ func (req *Req) Process() {
 
 	switch req.Tc.Type {
 	default:
-	unknown:
 		req.RespondError(&p.Error{"unknown message type", syscall.ENOSYS})
 
 	case p.Tversion:
