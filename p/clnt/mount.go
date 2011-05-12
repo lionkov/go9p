@@ -65,7 +65,7 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, *p.Error) 
 
 // Connects to a file server and attaches to it as the specified user.
 func Mount(ntype, addr, aname string, user p.User) (*Clnt, *p.Error) {
-	c, e := net.Dial(ntype, "", addr)
+	c, e := net.Dial(ntype, addr)
 	if e != nil {
 		return nil, &p.Error{e.String(), syscall.EIO}
 	}
