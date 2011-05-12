@@ -258,7 +258,7 @@ func cmdget(c *clnt.Clnt, s []string) {
 		fmt.Fprintf(os.Stderr, "from arguments; usage: get from to\n")
 	}
 
-	tofile, err := os.Open(to, os.O_CREATE|os.O_WRONLY, 0666)
+	tofile, err := os.Create(to)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening %s for writing: %s\n", to, err)
 		return
@@ -310,7 +310,7 @@ func cmdput(c *clnt.Clnt, s []string) {
 		fmt.Fprintf(os.Stderr, "incorrect arguments; usage: put local [remote]\n")
 	}
 
-	fromfile, err := os.Open(from, os.O_RDONLY, 0)
+	fromfile, err := os.Open(from)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening %s for reading: %s\n", from, err)
 		return
