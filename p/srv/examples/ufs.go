@@ -284,7 +284,7 @@ func (*Ufs) Open(req *srv.Req) {
 	}
 
 	var e os.Error
-	fid.file, e = os.Open(fid.path, omode2uflags(tc.Mode), 0)
+	fid.file, e = os.OpenFile(fid.path, omode2uflags(tc.Mode), 0)
 	if e != nil {
 		req.RespondError(toError(e))
 		return
@@ -342,11 +342,11 @@ func (*Ufs) Create(req *srv.Req) {
 				mode |= syscall.S_ISGID
 			}
 		}
-		file, e = os.Open(path, omode2uflags(tc.Mode)|os.O_CREATE, mode)
+		file, e = os.OpenFile(path, omode2uflags(tc.Mode)|os.O_CREATE, mode)
 	}
 
 	if file == nil && e == nil {
-		file, e = os.Open(path, omode2uflags(tc.Mode), 0)
+		file, e = os.OpenFile(path, omode2uflags(tc.Mode), 0)
 	}
 
 	if e != nil {
@@ -382,7 +382,7 @@ func (*Ufs) Read(req *srv.Req) {
 		b := rc.Data
 		if tc.Offset == 0 {
 			fid.file.Close()
-			fid.file, e = os.Open(fid.path, omode2uflags(req.Fid.Omode), 0)
+			fid.file, e = os.OpenFile(fid.path, omode2uflags(req.Fid.Omode), 0)
 			if e != nil {
 				req.RespondError(toError(e))
 				return
