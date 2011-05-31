@@ -168,6 +168,9 @@ func (clnt *Clnt) recv() {
 		n, oerr := clnt.conn.Read(buf[pos:len(buf)])
 		if oerr != nil || n == 0 {
 			err = &p.Error{oerr.String(), syscall.EIO}
+			clnt.Lock()
+			clnt.err = err
+			clnt.Unlock()
 			goto closed
 		}
 
