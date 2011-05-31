@@ -392,7 +392,7 @@ func (*Ufs) Read(req *srv.Req) {
 		for len(b) > 0 {
 			if fid.dirs == nil {
 				fid.dirs, e = fid.file.Readdir(16)
-				if e != nil {
+				if e != nil && e != os.EOF {
 					req.RespondError(toError(e))
 					return
 				}
