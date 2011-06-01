@@ -16,6 +16,7 @@ func main() {
 	var n int
 	var user p.User
 	var err *p.Error
+	var oerr os.Error
 	var c *clnt.Clnt
 	var file *clnt.File
 
@@ -32,16 +33,16 @@ func main() {
 		return
 	}
 
-	file, err = c.FOpen(flag.Arg(0), p.OREAD)
-	if err != nil {
-		goto error
+	file, oerr = c.FOpen(flag.Arg(0), p.OREAD)
+	if oerr != nil {
+		goto oerror
 	}
 
 	buf := make([]byte, 8192)
 	for {
-		n, err = file.Read(buf)
-		if err != nil {
-			goto error
+		n, oerr = file.Read(buf)
+		if oerr != nil {
+			goto oerror
 		}
 
 		if n == 0 {
@@ -56,4 +57,8 @@ func main() {
 
 error:
 	log.Println(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
+	return
+
+oerror:
+	log.Println("Error", oerr)
 }

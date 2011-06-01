@@ -5,6 +5,7 @@
 package clnt
 
 import (
+	"os"
 	"strings"
 	"go9p.googlecode.com/hg/p"
 )
@@ -63,7 +64,7 @@ func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, ext str
 
 // Creates and opens a named file.
 // Returns the file if the operation is successful, or an Error.
-func (clnt *Clnt) FCreate(path string, perm uint32, mode uint8) (*File, *p.Error) {
+func (clnt *Clnt) FCreate(path string, perm uint32, mode uint8) (*File, os.Error) {
 	n := strings.LastIndex(path, "/")
 	if n < 0 {
 		n = 0
@@ -88,7 +89,7 @@ func (clnt *Clnt) FCreate(path string, perm uint32, mode uint8) (*File, *p.Error
 }
 
 // Opens a named file. Returns the opened file, or an Error.
-func (clnt *Clnt) FOpen(path string, mode uint8) (*File, *p.Error) {
+func (clnt *Clnt) FOpen(path string, mode uint8) (*File, os.Error) {
 	fid, err := clnt.FWalk(path)
 	if err != nil {
 		return nil, err

@@ -79,19 +79,19 @@ func modetostr(mode uint32) string {
 // Write the string s to remote file f. Create f if it doesn't exist
 func writeone(c *clnt.Clnt, f, s string) {
 	fname := normpath(f)
-	file, err := c.FOpen(fname, p.OWRITE|p.OTRUNC)
-	if err != nil {
-		file, err = c.FCreate(fname, 0666, p.OWRITE)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error opening %s: %s\n", fname, err.Error)
+	file, oserr := c.FOpen(fname, p.OWRITE|p.OTRUNC)
+	if oserr != nil {
+		file, oserr = c.FCreate(fname, 0666, p.OWRITE)
+		if oserr != nil {
+			fmt.Fprintf(os.Stderr, "error opening %s: %v\n", fname, oserr)
 			return
 		}
 	}
 	defer file.Close()
 
-	m, err := file.Write([]byte(s))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error writing to %s: %s\n", fname, err.Error)
+	m, oserr := file.Write([]byte(s))
+	if oserr != nil {
+		fmt.Fprintf(os.Stderr, "error writing to %s: %v\n", fname, oserr)
 		return
 	}
 
@@ -119,9 +119,9 @@ func cmdecho(c *clnt.Clnt, s []string) {
 func statone(c *clnt.Clnt, f string) {
 	fname := normpath(f)
 
-	stat, err := c.FStat(fname)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error in stat %s: %s\n", fname, err.Error)
+	stat, oserr := c.FStat(fname)
+	if oserr != nil {
+		fmt.Fprintf(os.Stderr, "error in stat %s: %v\n", fname, oserr)
 		return
 	}
 	fmt.Fprintf(os.Stdout, "%s\n", stat)
@@ -138,22 +138,22 @@ func dirtostr(d *p.Dir) string {
 }
 
 func lsone(c *clnt.Clnt, s string, long bool) {
-	st, err := c.FStat(normpath(s))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error stat: %s\n", err.Error)
+	st, oserr := c.FStat(normpath(s))
+	if oserr != nil {
+		fmt.Fprintf(os.Stderr, "error stat: %v\n", oserr)
 		return
 	}
 	if st.Mode&p.DMDIR != 0 {
-		file, err := c.FOpen(s, p.OREAD)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error opening dir: %s\n", err.Error)
+		file, oserr := c.FOpen(s, p.OREAD)
+		if oserr != nil {
+			fmt.Fprintf(os.Stderr, "error opening dir: %s\n", oserr)
 			return
 		}
 		defer file.Close()
 		for {
-			d, err := file.Readdir(0)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "error reading dir: %s\n", err.Error)
+			d, oserr := file.Readdir(0)
+			if oserr != nil {
+				fmt.Fprintf(os.Stderr, "error reading dir: %v\n", oserr)
 			}
 			if d == nil || len(d) == 0 {
 				break
@@ -207,16 +207,16 @@ func cmdcat(c *clnt.Clnt, s []string) {
 	buf := make([]byte, 8192)
 	for _, f := range s {
 		fname := normpath(f)
-		file, err := c.FOpen(fname, p.OREAD)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error opening %s: %s\n", f, err.Error)
+		file, oserr := c.FOpen(fname, p.OREAD)
+		if oserr != nil {
+			fmt.Fprintf(os.Stderr, "error opening %s: %v\n", f, oserr)
 			continue
 		}
 		defer file.Close()
 		for {
-			n, err := file.Read(buf)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "error reading %s: %s\n", f, err.Error)
+			n, oserr := file.Read(buf)
+			if oserr != nil {
+				fmt.Fprintf(os.Stderr, "error reading %s: %v\n", f, oserr)
 				continue
 			}
 			if n == 0 {
@@ -230,9 +230,9 @@ func cmdcat(c *clnt.Clnt, s []string) {
 // Create a single directory on remote server
 func mkone(c *clnt.Clnt, s string) {
 	fname := normpath(s)
-	file, err := c.FCreate(fname, 0777|p.DMDIR, p.OWRITE)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error creating directory %s: %s\n", fname, err.Error)
+	file, oserr := c.FCreate(fname, 0777|p.DMDIR, p.OWRITE)
+	if oserr != nil {
+		fmt.Fprintf(os.Stderr, "error creating directory %s: %v\n", fname, oserr)
 		return
 	}
 	file.Close()
@@ -339,9 +339,9 @@ func cmdput(c *clnt.Clnt, s []string) {
 			break
 		}
 
-		m, err := file.Write(buf[0:n])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error writing %s: %s\n", to, err.Error)
+		m, oserr := file.Write(buf[0:n])
+		if oserr != nil {
+			fmt.Fprintf(os.Stderr, "error writing %s: %v\n", to, oserr)
 			return
 		}
 

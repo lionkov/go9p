@@ -4,6 +4,7 @@
 
 package clnt
 
+import "os"
 import "go9p.googlecode.com/hg/p"
 
 
@@ -29,8 +30,8 @@ func (clnt *Clnt) Write(fid *Fid, data []byte, offset uint64) (int, *p.Error) {
 
 // Writes up to len(buf) bytes to a file. Returns the number of
 // bytes written, or an Error.
-func (file *File) Write(buf []byte) (int, *p.Error) {
-	n, err := file.WriteAt(buf, file.offset)
+func (file *File) Write(buf []byte) (int, os.Error) {
+	n, err := file.WriteAt(buf, int64(file.offset))
 	if err == nil {
 		file.offset += uint64(n)
 	}
@@ -40,17 +41,17 @@ func (file *File) Write(buf []byte) (int, *p.Error) {
 
 // Writes up to len(buf) bytes starting from offset. Returns the number
 // of bytes written, or an Error.
-func (file *File) WriteAt(buf []byte, offset uint64) (int, *p.Error) {
-	return file.fid.Clnt.Write(file.fid, buf, offset)
+func (file *File) WriteAt(buf []byte, offset int64) (int, os.Error) {
+	return file.fid.Clnt.Write(file.fid, buf, uint64(offset))
 }
 
 // Writes exactly len(buf) bytes starting from offset. Returns the number of
 // bytes written. If Error is returned the number of bytes can be less
 // than len(buf).
-func (file *File) Writen(buf []byte, offset uint64) (int, *p.Error) {
+func (file *File) Writen(buf []byte, offset uint64) (int, os.Error) {
 	ret := 0
 	for len(buf) > 0 {
-		n, err := file.WriteAt(buf, offset)
+		n, err := file.WriteAt(buf, int64(offset))
 		if err != nil {
 			return ret, err
 		}

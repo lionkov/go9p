@@ -33,11 +33,11 @@ func main() {
 		return
 	}
 
-	file, err = c.FOpen(flag.Arg(0), p.OWRITE|p.OTRUNC)
-	if err != nil {
-		file, err = c.FCreate(flag.Arg(0), 0666, p.OWRITE)
-		if err != nil {
-			goto error
+	file, oserr = c.FOpen(flag.Arg(0), p.OWRITE|p.OTRUNC)
+	if oserr != nil {
+		file, oserr = c.FCreate(flag.Arg(0), 0666, p.OWRITE)
+		if oserr != nil {
+			goto oerror
 		}
 	}
 
@@ -45,17 +45,16 @@ func main() {
 	for {
 		n, oserr = os.Stdin.Read(buf)
 		if oserr != nil && oserr != os.EOF {
-			err = &p.Error{oserr.String(), 0}
-			goto error
+			goto oerror
 		}
 
 		if n == 0 {
 			break
 		}
 
-		m, err = file.Write(buf[0:n])
-		if err != nil {
-			goto error
+		m, oserr = file.Write(buf[0:n])
+		if oserr != nil {
+			goto oerror
 		}
 
 		if m != n {
@@ -69,4 +68,7 @@ func main() {
 
 error:
 	log.Println(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
+	return
+oerror:
+	log.Println("Error", oserr)
 }
