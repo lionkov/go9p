@@ -4,6 +4,7 @@
 
 package clnt
 
+import "os"
 import "go9p.googlecode.com/hg/p"
 
 
@@ -27,7 +28,7 @@ func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, *p.Error) {
 }
 
 // Returns the metadata for a named file, or an Error.
-func (clnt *Clnt) FStat(path string) (*p.Dir, *p.Error) {
+func (clnt *Clnt) FStat(path string) (*p.Dir, os.Error) {
 	fid, err := clnt.FWalk(path)
 	if err != nil {
 		return nil, err

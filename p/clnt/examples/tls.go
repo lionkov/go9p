@@ -19,7 +19,6 @@ var addr = flag.String("addr", "127.0.0.1:5640", "network address")
 func main() {
 	var user p.User
 	var file *clnt.File
-	var d []*p.Dir
 
 	flag.Parse()
 	user = p.OsUsers.Uid2User(os.Geteuid())
@@ -41,15 +40,15 @@ func main() {
 		return
 	}
 
-	file, err = clnt.FOpen(flag.Arg(0), p.OREAD)
-	if err != nil {
-		goto error
+	file, oerr = clnt.FOpen(flag.Arg(0), p.OREAD)
+	if oerr != nil {
+		goto oerror
 	}
 
 	for {
-		d, err = file.Readdir(0)
-		if err != nil {
-			goto error
+		d, oerr := file.Readdir(0)
+		if oerr != nil {
+			goto oerror
 		}
 
 		if d == nil || len(d) == 0 {
@@ -66,4 +65,8 @@ func main() {
 
 error:
 	log.Println(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
+	return
+
+oerror:
+	log.Println("Error", oerr)
 }

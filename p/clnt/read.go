@@ -4,6 +4,7 @@
 
 package clnt
 
+import "os"
 import "go9p.googlecode.com/hg/p"
 
 
@@ -30,8 +31,8 @@ func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, *p.Error)
 
 // Reads up to len(buf) bytes from the File. Returns the number
 // of bytes read, or an Error.
-func (file *File) Read(buf []byte) (int, *p.Error) {
-	n, err := file.ReadAt(buf, file.offset)
+func (file *File) Read(buf []byte) (int, os.Error) {
+	n, err := file.ReadAt(buf, int64(file.offset))
 	if err == nil {
 		file.offset += uint64(n)
 	}
@@ -41,11 +42,16 @@ func (file *File) Read(buf []byte) (int, *p.Error) {
 
 // Reads up to len(buf) bytes from the file starting from offset.
 // Returns the number of bytes read, or an Error.
-func (file *File) ReadAt(buf []byte, offset uint64) (int, *p.Error) {
+func (file *File) ReadAt(buf []byte, offset int64) (int, os.Error) {
 	b, err := file.fid.Clnt.Read(file.fid, uint64(offset), uint32(len(buf)))
 	if err != nil {
 		return 0, err
 	}
+
+	if len(b) == 0 {
+		return 0, os.EOF
+	}
+
 	copy(buf, b)
 	return len(b), nil
 }
@@ -53,10 +59,10 @@ func (file *File) ReadAt(buf []byte, offset uint64) (int, *p.Error) {
 // Reads exactly len(buf) bytes from the File starting from offset.
 // Returns the number of bytes read (could be less than len(buf) if
 // end-of-file is reached), or an Error.
-func (file *File) Readn(buf []byte, offset uint64) (int, *p.Error) {
+func (file *File) Readn(buf []byte, offset uint64) (int, os.Error) {
 	ret := 0
 	for len(buf) > 0 {
-		n, err := file.ReadAt(buf, offset)
+		n, err := file.ReadAt(buf, int64(offset))
 		if err != nil {
 			return 0, err
 		}
@@ -77,7 +83,7 @@ func (file *File) Readn(buf []byte, offset uint64) (int, *p.Error) {
 // Returns an array of maximum num entries (if num is 0, returns
 // all entries from the directory). If the operation fails, returns
 // an Error.
-func (file *File) Readdir(num int) ([]*p.Dir, *p.Error) {
+func (file *File) Readdir(num int) ([]*p.Dir, os.Error) {
 	buf := make([]byte, file.fid.Clnt.Msize-p.IOHDRSZ)
 	dirs := make([]*p.Dir, 32)
 	pos := 0
