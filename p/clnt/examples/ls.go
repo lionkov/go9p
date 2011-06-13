@@ -40,10 +40,6 @@ func main() {
 
 	for {
 		d, oerr = file.Readdir(0)
-		if oerr != nil {
-			goto oerror
-		}
-
 		if d == nil || len(d) == 0 {
 			break
 		}
@@ -54,6 +50,10 @@ func main() {
 	}
 
 	file.Close()
+	if oerr != nil && oerr != os.EOF {
+		goto oerror
+	}
+
 	return
 
 error:
