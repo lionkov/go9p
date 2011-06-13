@@ -93,7 +93,7 @@ func (file *File) Readdir(num int) ([]*p.Dir, os.Error) {
 	pos := 0
 	for {
 		n, err := file.Read(buf)
-		if err != nil {
+		if err != nil && err!=os.EOF {
 			return nil, err
 		}
 
@@ -102,10 +102,9 @@ func (file *File) Readdir(num int) ([]*p.Dir, os.Error) {
 		}
 
 		for b := buf[0:n]; len(b) > 0; {
-			var d *p.Dir
-			d, err = p.UnpackDir(b, file.fid.Clnt.Dotu)
-			if err != nil {
-				return nil, err
+			d, perr := p.UnpackDir(b, file.fid.Clnt.Dotu)
+			if perr != nil {
+				return nil, perr
 			}
 
 			b = b[d.Size+2 : len(b)]
