@@ -41,10 +41,6 @@ func main() {
 	buf := make([]byte, 8192)
 	for {
 		n, oerr = file.Read(buf)
-		if oerr != nil {
-			goto oerror
-		}
-
 		if n == 0 {
 			break
 		}
@@ -53,6 +49,11 @@ func main() {
 	}
 
 	file.Close()
+
+	if oerr != nil && oerr!=os.EOF {
+		goto oerror
+	}
+
 	return
 
 error:
