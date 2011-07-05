@@ -19,6 +19,7 @@ func main() {
 	var oserr os.Error
 	var c *clnt.Clnt
 	var file *clnt.File
+	var buf []byte
 
 	flag.Parse()
 	user = p.OsUsers.Uid2User(os.Geteuid())
@@ -41,7 +42,7 @@ func main() {
 		}
 	}
 
-	buf := make([]byte, 8192)
+	buf = make([]byte, 8192)
 	for {
 		n, oserr = os.Stdin.Read(buf)
 		if oserr != nil && oserr != os.EOF {

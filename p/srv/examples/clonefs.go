@@ -108,6 +108,8 @@ func (cl *Clone) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) 
 
 func main() {
 	var err *p.Error
+	var cl *Clone
+	var s *srv.Fsrv
 
 	flag.Parse()
 	user := p.OsUsers.Uid2User(os.Geteuid())
@@ -117,13 +119,13 @@ func main() {
 		goto error
 	}
 
-	cl := new(Clone)
+	cl = new(Clone)
 	err = cl.Add(root, "clone", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, cl)
 	if err != nil {
 		goto error
 	}
 
-	s := srv.NewFileSrv(root)
+	s = srv.NewFileSrv(root)
 	s.Dotu = true
 
 	if *debug {

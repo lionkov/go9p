@@ -58,6 +58,9 @@ func (*Time) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
 
 func main() {
 	var err *p.Error
+	var tm *Time
+	var ntm *InfTime
+	var s *srv.Fsrv
 
 	flag.Parse()
 	user := p.OsUsers.Uid2User(os.Geteuid())
@@ -67,18 +70,18 @@ func main() {
 		goto error
 	}
 
-	tm := new(Time)
+	tm = new(Time)
 	err = tm.Add(root, "time", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, tm)
 	if err != nil {
 		goto error
 	}
-	ntm := new(InfTime)
+	ntm = new(InfTime)
 	err = ntm.Add(root, "inftime", p.OsUsers.Uid2User(os.Geteuid()), nil, 0444, ntm)
 	if err != nil {
 		goto error
 	}
 
-	s := srv.NewFileSrv(root)
+	s = srv.NewFileSrv(root)
 	s.Dotu = true
 
 	if *debug {

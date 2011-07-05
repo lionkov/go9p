@@ -46,7 +46,7 @@ func (clnt *Clnt) FWalk(path string) (*Fid, *p.Error) {
 		path = path[i:len(path)]
 	}
 
-	wnames := strings.Split(path, "/", -1)
+	wnames := strings.Split(path, "/")
 	newfid := clnt.FidAlloc()
 	fid := clnt.Root
 	newfid.User = fid.User

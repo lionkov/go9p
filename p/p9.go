@@ -461,8 +461,7 @@ func UnpackDir(buf []byte, dotu bool) (d *Dir, err *Error) {
 	}
 
 	if len(buf) < sz {
-	szerror:
-		return nil, &Error{"short buffer", syscall.EINVAL}
+		goto szerror
 	}
 
 	d = new(Dir)
@@ -472,6 +471,10 @@ func UnpackDir(buf []byte, dotu bool) (d *Dir, err *Error) {
 	}
 
 	return d, nil
+
+szerror:
+	return nil, &Error{"short buffer", syscall.EINVAL}
+
 }
 
 // Allocates a new Fcall.

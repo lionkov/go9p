@@ -53,7 +53,6 @@ func (conn *Conn) recv() {
 	pos := 0
 	for {
 		if len(buf) < int(conn.Msize) {
-		resize:
 			b := make([]byte, conn.Msize*8)
 			copy(b, buf[0:pos])
 			buf = b
@@ -75,7 +74,10 @@ func (conn *Conn) recv() {
 			}
 			if pos < int(sz) {
 				if len(buf) < int(sz) {
-					goto resize
+					b := make([]byte, conn.Msize*8)
+					copy(b, buf[0:pos])
+					buf = b
+					b = nil
 				}
 
 				break

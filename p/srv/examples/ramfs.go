@@ -218,6 +218,7 @@ func (f *RFile) expand(sz uint64) {
 
 func main() {
 	var err *p.Error
+	var l *p.Logger
 
 	flag.Parse()
 	rsrv.user = p.OsUsers.Uid2User(os.Geteuid())
@@ -232,7 +233,7 @@ func main() {
 		goto error
 	}
 
-	l := p.NewLogger(*logsz)
+	l = p.NewLogger(*logsz)
 	rsrv.srv = srv.NewFileSrv(&root.File)
 	rsrv.srv.Dotu = true
 	rsrv.srv.Debuglevel = *debug

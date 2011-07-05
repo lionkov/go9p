@@ -158,7 +158,6 @@ func (clnt *Clnt) recv() {
 	pos := 0
 	for {
 		if len(buf) < int(clnt.Msize) {
-		resize:
 			b := make([]byte, clnt.Msize*8)
 			copy(b, buf[0:pos])
 			buf = b
@@ -179,7 +178,10 @@ func (clnt *Clnt) recv() {
 			sz, _ := p.Gint32(buf)
 			if pos < int(sz) {
 				if len(buf) < int(sz) {
-					goto resize
+					b := make([]byte, clnt.Msize*8)
+					copy(b, buf[0:pos])
+					buf = b
+					b = nil
 				}
 
 				break
