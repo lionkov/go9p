@@ -15,6 +15,12 @@ var addr = flag.String("addr", "127.0.0.1:5640", "network address")
 
 func main() {
 	var user p.User
+	var ba [][]byte
+	var nreqs int
+	var rchan chan *clnt.Req
+	var tag *clnt.Tag
+	var fid *clnt.Fid
+	var wnames []string
 
 	flag.Parse()
 	user = p.OsUsers.Uid2User(os.Geteuid())
@@ -29,22 +35,22 @@ func main() {
 		return
 	}
 
-	ba := make([][]byte, 100)
+	ba = make([][]byte, 100)
 	for i := 0; i < len(ba); i++ {
 		ba[i] = make([]byte, 8192)
 	}
 
-	nreqs := 0
-	rchan := make(chan *clnt.Req)
-	tag := c.TagAlloc(rchan)
+	nreqs = 0
+	rchan = make(chan *clnt.Req)
+	tag = c.TagAlloc(rchan)
 
 	// walk the file
-	wnames := strings.Split(flag.Arg(0), "/", -1)
+	wnames = strings.Split(flag.Arg(0), "/")
 	for wnames[0] == "" {
 		wnames = wnames[1:]
 	}
 
-	fid := c.FidAlloc()
+	fid = c.FidAlloc()
 	for root := c.Root; len(wnames) > 0; root = fid {
 		n := len(wnames)
 		if n > 8 {

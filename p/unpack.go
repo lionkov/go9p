@@ -49,8 +49,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 	}
 
 	if fc.Size < sz {
-	szerror:
-		return nil, &Error{"invalid size", syscall.EINVAL}, 0
+		goto szerror
 	}
 
 	err = nil
@@ -219,4 +218,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
 	}
 
 	return
+
+szerror:
+	return nil, &Error{"invalid size", syscall.EINVAL}, 0
 }
