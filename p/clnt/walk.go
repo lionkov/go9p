@@ -5,6 +5,7 @@
 package clnt
 
 import (
+	"os"
 	"strings"
 	"syscall"
 	"go9p.googlecode.com/hg/p"
@@ -14,7 +15,7 @@ import (
 // sequence and associates the resulting file with newfid. If no wnames
 // were walked successfully, an Error is returned. Otherwise a slice with a
 // Qid for each walked name is returned.
-func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]p.Qid, *p.Error) {
+func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]p.Qid, os.Error) {
 	tc := clnt.NewFcall()
 	err := p.PackTwalk(tc, fid.Fid, newfid.Fid, wnames)
 	if err != nil {
@@ -32,8 +33,8 @@ func (clnt *Clnt) Walk(fid *Fid, newfid *Fid, wnames []string) ([]p.Qid, *p.Erro
 
 // Walks to a named file. Returns a Fid associated with the file,
 // or an Error.
-func (clnt *Clnt) FWalk(path string) (*Fid, *p.Error) {
-	var err *p.Error = nil
+func (clnt *Clnt) FWalk(path string) (*Fid, os.Error) {
+	var err os.Error = nil
 
 	var i, m int
 	for i = 0; i < len(path); i++ {

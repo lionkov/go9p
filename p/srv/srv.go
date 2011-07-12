@@ -8,6 +8,7 @@ package srv
 
 import (
 	"net"
+	"os"
 	"sync"
 	"syscall"
 	"go9p.googlecode.com/hg/p"
@@ -30,18 +31,18 @@ const (
 	DbgLogPackets                 // keep the last N 9P messages (can be accessed over http)
 )
 
-var Eunknownfid *p.Error = &p.Error{"unknown fid", syscall.EINVAL}
-var Enoauth *p.Error = &p.Error{"no authentication required", syscall.EINVAL}
-var Einuse *p.Error = &p.Error{"fid already in use", syscall.EINVAL}
-var Ebaduse *p.Error = &p.Error{"bad use of fid", syscall.EINVAL}
-var Eopen *p.Error = &p.Error{"fid already opened", syscall.EINVAL}
-var Enotdir *p.Error = &p.Error{"not a directory", syscall.ENOTDIR}
-var Eperm *p.Error = &p.Error{"permission denied", syscall.EPERM}
-var Etoolarge *p.Error = &p.Error{"i/o count too large", syscall.EINVAL}
-var Ebadoffset *p.Error = &p.Error{"bad offset in directory read", syscall.EINVAL}
-var Edirchange *p.Error = &p.Error{"cannot convert between files and directories", syscall.EINVAL}
-var Enouser *p.Error = &p.Error{"unknown user", syscall.EINVAL}
-var Enotimpl *p.Error = &p.Error{"not implemented", syscall.EINVAL}
+var Eunknownfid os.Error = &p.Error{"unknown fid", syscall.EINVAL}
+var Enoauth os.Error = &p.Error{"no authentication required", syscall.EINVAL}
+var Einuse os.Error = &p.Error{"fid already in use", syscall.EINVAL}
+var Ebaduse os.Error = &p.Error{"bad use of fid", syscall.EINVAL}
+var Eopen os.Error = &p.Error{"fid already opened", syscall.EINVAL}
+var Enotdir os.Error = &p.Error{"not a directory", syscall.ENOTDIR}
+var Eperm os.Error = &p.Error{"permission denied", syscall.EPERM}
+var Etoolarge os.Error = &p.Error{"i/o count too large", syscall.EINVAL}
+var Ebadoffset os.Error = &p.Error{"bad offset in directory read", syscall.EINVAL}
+var Edirchange os.Error = &p.Error{"cannot convert between files and directories", syscall.EINVAL}
+var Enouser os.Error = &p.Error{"unknown user", syscall.EINVAL}
+var Enotimpl os.Error = &p.Error{"not implemented", syscall.EINVAL}
 
 // Authentication operations. The file server should implement them if
 // it requires user authentication. The authentication in 9P2000 is
@@ -54,7 +55,7 @@ type AuthOps interface {
 	// is referred by afid.User. The function should return the Qid
 	// for the authentication file, or an Error if the user can't be
 	// authenticated
-	AuthInit(afid *Fid, aname string) (*p.Qid, *p.Error)
+	AuthInit(afid *Fid, aname string) (*p.Qid, os.Error)
 
 	// AuthDestroy is called when an authentication fid is destroyed.
 	AuthDestroy(afid *Fid)
@@ -63,15 +64,15 @@ type AuthOps interface {
 	// when the user tries to attach to the file server. If the function
 	// returns nil, the authentication was successful and the user has
 	// permission to access the files.
-	AuthCheck(fid *Fid, afid *Fid, aname string) *p.Error
+	AuthCheck(fid *Fid, afid *Fid, aname string) os.Error
 
 	// AuthRead is called when the user attempts to read data from an
 	// authentication fid.
-	AuthRead(afid *Fid, offset uint64, data []byte) (count int, err *p.Error)
+	AuthRead(afid *Fid, offset uint64, data []byte) (count int, err os.Error)
 
 	// AuthWrite is called when the user attempts to write data to an
 	// authentication fid.
-	AuthWrite(afid *Fid, offset uint64, data []byte) (count int, err *p.Error)
+	AuthWrite(afid *Fid, offset uint64, data []byte) (count int, err os.Error)
 }
 
 // Connection operations. These should be implemented if the file server

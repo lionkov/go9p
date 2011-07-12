@@ -37,7 +37,7 @@ var debug = flag.Bool("d", false, "print debug messages")
 
 var root *srv.File
 
-func (cl *ClFile) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
+func (cl *ClFile) Read(fid *srv.FFid, buf []byte, offset uint64) (int, os.Error) {
 	var b []byte
 	if len(cl.data) == 0 {
 		str := strconv.Itoa(cl.id) + " created on:" + cl.created
@@ -60,7 +60,7 @@ func (cl *ClFile) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error)
 	return n, nil
 }
 
-func (cl *ClFile) Write(fid *srv.FFid, data []byte, offset uint64) (int, *p.Error) {
+func (cl *ClFile) Write(fid *srv.FFid, data []byte, offset uint64) (int, os.Error) {
 	n := uint64(len(cl.data))
 	nlen := offset + uint64(len(data))
 	if nlen > n {
@@ -73,12 +73,12 @@ func (cl *ClFile) Write(fid *srv.FFid, data []byte, offset uint64) (int, *p.Erro
 	return len(data), nil
 }
 
-func (cl *ClFile) Remove(fid *srv.FFid) *p.Error {
+func (cl *ClFile) Remove(fid *srv.FFid) os.Error {
 	log.Println("Remove")
 	return nil
 }
 
-func (cl *Clone) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) {
+func (cl *Clone) Read(fid *srv.FFid, buf []byte, offset uint64) (int, os.Error) {
 	// we only allow a single read from us, change the offset and we're done
 	if offset > uint64(0) {
 		return 0, nil
@@ -107,7 +107,7 @@ func (cl *Clone) Read(fid *srv.FFid, buf []byte, offset uint64) (int, *p.Error) 
 }
 
 func main() {
-	var err *p.Error
+	var err os.Error
 	var cl *Clone
 	var s *srv.Fsrv
 
@@ -140,5 +140,5 @@ func main() {
 	return
 
 error:
-	log.Println(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
+	log.Println(fmt.Sprintf("Error: %s", err))
 }

@@ -236,7 +236,7 @@ func (conn *Conn) logFcall(fc *p.Fcall) {
 	}
 }
 
-func (srv *Srv) StartNetListener(ntype, addr string) *p.Error {
+func (srv *Srv) StartNetListener(ntype, addr string) os.Error {
 	l, err := net.Listen(ntype, addr)
 	if err != nil {
 		return &p.Error{err.String(), syscall.EIO}
@@ -249,7 +249,7 @@ func (srv *Srv) StartNetListener(ntype, addr string) *p.Error {
 // connections. Once a connection is established, create a new Conn
 // value, read messages from the socket, send them to the specified
 // server, and send back responses received from the server.
-func (srv *Srv) StartListener(l net.Listener) *p.Error {
+func (srv *Srv) StartListener(l net.Listener) os.Error {
 	for {
 		c, err := l.Accept()
 		if err != nil {

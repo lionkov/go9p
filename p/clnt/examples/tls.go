@@ -64,7 +64,7 @@ func main() {
 	return
 
 error:
-	log.Println(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
+	log.Println(fmt.Sprintf("Error: %s", err))
 	return
 
 oerror:

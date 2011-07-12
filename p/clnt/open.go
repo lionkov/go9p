@@ -12,7 +12,7 @@ import (
 
 // Opens the file associated with the fid. Returns nil if
 // the operation is successful.
-func (clnt *Clnt) Open(fid *Fid, mode uint8) *p.Error {
+func (clnt *Clnt) Open(fid *Fid, mode uint8) os.Error {
 	tc := clnt.NewFcall()
 	err := p.PackTopen(tc, fid.Fid, mode)
 	if err != nil {
@@ -38,7 +38,7 @@ func (clnt *Clnt) Open(fid *Fid, mode uint8) *p.Error {
 
 // Creates a file in the directory associated with the fid. Returns nil
 // if the operation is successful.
-func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, ext string) *p.Error {
+func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, ext string) os.Error {
 	tc := clnt.NewFcall()
 	err := p.PackTcreate(tc, fid.Fid, name, perm, mode, ext, clnt.Dotu)
 	if err != nil {
