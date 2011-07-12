@@ -11,7 +11,7 @@ import "go9p.googlecode.com/hg/p"
 // Reads count bytes starting from offset from the file associated with the fid.
 // Returns a slice with the data read, if the operation was successful, or an
 // Error.
-func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, *p.Error) {
+func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, os.Error) {
 	if count > fid.Iounit {
 		count = fid.Iounit
 	}

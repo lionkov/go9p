@@ -4,13 +4,16 @@
 
 package p
 
-import "syscall"
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"syscall"
+)
 
 // Creates a Fcall value from the on-the-wire representation. If
 // dotu is true, reads 9P2000.u messages. Returns the unpacked message,
 // error and how many bytes from the buffer were used by the message.
-func Unpack(buf []byte, dotu bool) (fc *Fcall, err *Error, fcsz int) {
+func Unpack(buf []byte, dotu bool) (fc *Fcall, err os.Error, fcsz int) {
 	var m uint16
 
 	if len(buf) < 7 {

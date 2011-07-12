@@ -205,19 +205,19 @@ func cmdcd(c *clnt.Clnt, s []string) {
 // Print the contents of f
 func cmdcat(c *clnt.Clnt, s []string) {
 	buf := make([]byte, 8192)
+Outer:
 	for _, f := range s {
 		fname := normpath(f)
 		file, oserr := c.FOpen(fname, p.OREAD)
 		if oserr != nil {
 			fmt.Fprintf(os.Stderr, "error opening %s: %v\n", f, oserr)
-			continue
+			continue Outer
 		}
 		defer file.Close()
 		for {
 			n, oserr := file.Read(buf)
-			if oserr != nil {
+			if oserr != nil && oserr != os.EOF{
 				fmt.Fprintf(os.Stderr, "error reading %s: %v\n", f, oserr)
-				continue
 			}
 			if n == 0 {
 				break
@@ -360,7 +360,7 @@ func rmone(c *clnt.Clnt, f string) {
 
 	err := c.FRemove(fname)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error in stat %s: %s\n", fname, err.Error)
+		fmt.Fprintf(os.Stderr, "error in stat %s", err)
 		return
 	}
 }
@@ -434,7 +434,7 @@ func interactive(c *clnt.Clnt) {
 
 func main() {
 	var user p.User
-	var err *p.Error
+	var err os.Error
 	var c *clnt.Clnt
 	var file *clnt.File
 
@@ -452,7 +452,7 @@ func main() {
 	}
 	c, err = clnt.Mount("tcp", naddr, "", user)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error mounting %s: %s\n", naddr, err.Error)
+		fmt.Fprintf(os.Stderr, "error mounting %s: %s\n", naddr, err)
 		os.Exit(1)
 	}
 

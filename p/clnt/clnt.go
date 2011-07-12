@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"sync"
 	"syscall"
 	"go9p.googlecode.com/hg/p"
@@ -47,7 +48,7 @@ type Clnt struct {
 	done     chan bool
 	reqfirst *Req
 	reqlast  *Req
-	err      *p.Error
+	err      os.Error
 
 	reqchan chan *Req
 	tchan   chan *p.Fcall
@@ -88,7 +89,7 @@ type Req struct {
 	Clnt       *Clnt
 	Tc         *p.Fcall
 	Rc         *p.Fcall
-	Err        *p.Error
+	Err        os.Error
 	Done       chan *Req
 	tag        uint16
 	prev, next *Req
@@ -104,7 +105,7 @@ var clnts *ClntList
 var DefaultDebuglevel int
 var DefaultLogger *p.Logger
 
-func (clnt *Clnt) Rpcnb(r *Req) *p.Error {
+func (clnt *Clnt) Rpcnb(r *Req) os.Error {
 	var tag uint16
 
 	if r.Tc.Type == p.Tversion {
@@ -134,7 +135,7 @@ func (clnt *Clnt) Rpcnb(r *Req) *p.Error {
 	return nil
 }
 
-func (clnt *Clnt) Rpc(tc *p.Fcall) (rc *p.Fcall, err *p.Error) {
+func (clnt *Clnt) Rpc(tc *p.Fcall) (rc *p.Fcall, err os.Error) {
 	r := clnt.ReqAlloc()
 	r.Tc = tc
 	r.Done = make(chan *Req)
@@ -151,7 +152,7 @@ func (clnt *Clnt) Rpc(tc *p.Fcall) (rc *p.Fcall, err *p.Error) {
 }
 
 func (clnt *Clnt) recv() {
-	var err *p.Error
+	var err os.Error
 
 	err = nil
 	buf := make([]byte, clnt.Msize*8)
@@ -366,7 +367,7 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 // Establishes a new socket connection to the 9P server and creates
 // a client object for it. Negotiates the dialect and msize for the
 // connection. Returns a Clnt object, or Error.
-func Connect(c net.Conn, msize uint32, dotu bool) (*Clnt, *p.Error) {
+func Connect(c net.Conn, msize uint32, dotu bool) (*Clnt, os.Error) {
 	clnt := NewClnt(c, msize, dotu)
 	clnt.Id = c.RemoteAddr().String() + ":"
 	ver := "9P2000"

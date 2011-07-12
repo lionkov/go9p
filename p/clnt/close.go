@@ -8,7 +8,7 @@ import "os"
 import "go9p.googlecode.com/hg/p"
 
 // Clunks a fid. Returns nil if successful.
-func (clnt *Clnt) Clunk(fid *Fid) (err *p.Error) {
+func (clnt *Clnt) Clunk(fid *Fid) (err os.Error) {
 	err = nil
 	if fid.walked {
 		tc := clnt.NewFcall()

@@ -6,6 +6,7 @@
 // the 9P2000 protocol.
 package p
 
+import "os"
 import "syscall"
 
 // 9P2000 message types
@@ -451,7 +452,7 @@ func PackDir(d *Dir, buf []byte, dotu bool) int {
 // Converts the on-the-wire representation of a stat to Stat value.
 // Returns an error if the conversion is impossible, otherwise
 // a pointer to a Stat value.
-func UnpackDir(buf []byte, dotu bool) (d *Dir, err *Error) {
+func UnpackDir(buf []byte, dotu bool) (d *Dir, err os.Error) {
 	sz := 2 + 2 + 4 + 13 + 4 + /* size[2] type[2] dev[4] qid[13] mode[4] */
 		4 + 4 + 8 + /* atime[4] mtime[4] length[8] */
 		2 + 2 + 2 + 2 /* name[s] uid[s] gid[s] muid[s] */
@@ -491,7 +492,7 @@ func SetTag(fc *Fcall, tag uint16) {
 	pint16(tag, fc.Pkt[5:len(fc.Pkt)])
 }
 
-func packCommon(fc *Fcall, size int, id uint8) ([]byte, *Error) {
+func packCommon(fc *Fcall, size int, id uint8) ([]byte, os.Error) {
 	size += 4 + 1 + 2 /* size[4] id[1] tag[2] */
 	if len(fc.Buf) < int(size) {
 		return nil, &Error{"buffer too small", syscall.EINVAL}

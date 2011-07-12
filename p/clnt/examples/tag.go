@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -98,5 +97,5 @@ func main() {
 	return
 
 error:
-	log.Println(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
+	log.Println("error: ", err)
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"go9p.googlecode.com/hg/p"
@@ -15,8 +14,7 @@ var addr = flag.String("addr", "127.0.0.1:5640", "network address")
 func main() {
 	var n int
 	var user p.User
-	var err *p.Error
-	var oerr os.Error
+	var err os.Error
 	var c *clnt.Clnt
 	var file *clnt.File
 	var buf []byte
@@ -34,14 +32,14 @@ func main() {
 		return
 	}
 
-	file, oerr = c.FOpen(flag.Arg(0), p.OREAD)
-	if oerr != nil {
-		goto oerror
+	file, err = c.FOpen(flag.Arg(0), p.OREAD)
+	if err != nil {
+		goto error
 	}
 
 	buf = make([]byte, 8192)
 	for {
-		n, oerr = file.Read(buf)
+		n, err = file.Read(buf)
 		if n == 0 {
 			break
 		}
@@ -51,16 +49,12 @@ func main() {
 
 	file.Close()
 
-	if oerr != nil && oerr!=os.EOF {
-		goto oerror
+	if err != nil && err!=os.EOF {
+		goto error
 	}
 
 	return
 
 error:
-	log.Println(fmt.Sprintf("Error: %s %d", err.Error, err.Errornum))
-	return
-
-oerror:
-	log.Println("Error", oerr)
+	log.Println("Error", err)
 }
