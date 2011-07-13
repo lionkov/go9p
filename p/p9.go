@@ -6,8 +6,11 @@
 // the 9P2000 protocol.
 package p
 
-import "os"
-import "syscall"
+import (
+	"fmt"
+	"os"
+	"syscall"
+)
 
 // 9P2000 message types
 const (
@@ -512,7 +515,7 @@ func packCommon(fc *Fcall, size int, id uint8) ([]byte, os.Error) {
 
 func (err *Error) String() string {
 	if err != nil {
-		return err.Error
+		return fmt.Sprintf("%s: %d", err.Error, err.Errornum)
 	}
 
 	return ""
