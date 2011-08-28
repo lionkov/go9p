@@ -79,9 +79,9 @@ func modetostr(mode uint32) string {
 // Write the string s to remote file f. Create f if it doesn't exist
 func writeone(c *clnt.Clnt, f, s string) {
 	fname := normpath(f)
-	file, oserr := c.FOpen(fname, p.OWRITE|p.OTRUNC)
+	file, oserr := c.FCreate(fname, 0666, p.OWRITE)
 	if oserr != nil {
-		file, oserr = c.FCreate(fname, 0666, p.OWRITE)
+		file, oserr = c.FOpen(fname, p.OWRITE|p.OTRUNC)
 		if oserr != nil {
 			fmt.Fprintf(os.Stderr, "error opening %s: %v\n", fname, oserr)
 			return
