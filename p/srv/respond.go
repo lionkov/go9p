@@ -10,7 +10,7 @@ import "go9p.googlecode.com/hg/p"
 // Respond to the request with Rerror message
 func (req *Req) RespondError(err interface{}) {
 	e := err.(*p.Error)
-	p.PackRerror(req.Rc, e.Error, uint32(e.Errornum), req.Conn.Dotu)
+	p.PackRerror(req.Rc, e.Error(), uint32(e.Errornum), req.Conn.Dotu)
 	req.Respond()
 }
 

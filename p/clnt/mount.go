@@ -6,14 +6,13 @@ package clnt
 
 import (
 	"net"
-	"os"
 	"syscall"
 	"go9p.googlecode.com/hg/p"
 )
 
 // Creates an authentication fid for the specified user. Returns the fid, if
 // successful, or an Error.
-func (clnt *Clnt) Auth(user p.User, aname string) (*Fid, os.Error) {
+func (clnt *Clnt) Auth(user p.User, aname string) (*Fid, error) {
 	fid := clnt.FidAlloc()
 	tc := clnt.NewFcall()
 	err := p.PackTauth(tc, fid.Fid, user.Name(), aname, uint32(user.Id()), clnt.Dotu)
@@ -34,7 +33,7 @@ func (clnt *Clnt) Auth(user p.User, aname string) (*Fid, os.Error) {
 // Creates a fid for the specified user that points to the root
 // of the file server's file tree. Returns a Fid pointing to the root,
 // if successful, or an Error.
-func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, os.Error) {
+func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, error) {
 	var afno uint32
 
 	if afid != nil {
@@ -65,16 +64,16 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, os.Error) 
 }
 
 // Connects to a file server and attaches to it as the specified user.
-func Mount(ntype, addr, aname string, user p.User) (*Clnt, os.Error) {
+func Mount(ntype, addr, aname string, user p.User) (*Clnt, error) {
 	c, e := net.Dial(ntype, addr)
 	if e != nil {
-		return nil, &p.Error{e.String(), syscall.EIO}
+		return nil, &p.Error{e.Error(), syscall.EIO}
 	}
 
 	return MountConn(c, aname, user)
 }
 
-func MountConn(c net.Conn, aname string, user p.User) (*Clnt, os.Error) {
+func MountConn(c net.Conn, aname string, user p.User) (*Clnt, error) {
 	clnt, err := Connect(c, 8192+p.IOHDRSZ, true)
 	if err != nil {
 		return nil, err

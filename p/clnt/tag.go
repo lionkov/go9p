@@ -6,10 +6,7 @@
 // a 9P2000 file client.
 package clnt
 
-import (
-	"os"
-	"go9p.googlecode.com/hg/p"
-)
+import "go9p.googlecode.com/hg/p"
 
 type Tag struct {
 	clnt     *Clnt
@@ -103,8 +100,7 @@ func (tag *Tag) reqproc() {
 	}
 }
 
-
-func (tag *Tag) Auth(afid *Fid, user p.User, aname string) os.Error {
+func (tag *Tag) Auth(afid *Fid, user p.User, aname string) error {
 	req := tag.reqAlloc()
 	req.fid = afid
 	err := p.PackTauth(req.Tc, afid.Fid, user.Name(), aname, uint32(user.Id()), tag.clnt.Dotu)
@@ -116,7 +112,7 @@ func (tag *Tag) Auth(afid *Fid, user p.User, aname string) os.Error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Attach(fid, afid *Fid, user p.User, aname string) os.Error {
+func (tag *Tag) Attach(fid, afid *Fid, user p.User, aname string) error {
 	var afno uint32
 
 	if afid != nil {
@@ -136,7 +132,7 @@ func (tag *Tag) Attach(fid, afid *Fid, user p.User, aname string) os.Error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Walk(fid *Fid, newfid *Fid, wnames []string) os.Error {
+func (tag *Tag) Walk(fid *Fid, newfid *Fid, wnames []string) error {
 	req := tag.reqAlloc()
 	req.fid = newfid
 	if len(wnames) == 0 {
@@ -152,7 +148,7 @@ func (tag *Tag) Walk(fid *Fid, newfid *Fid, wnames []string) os.Error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Open(fid *Fid, mode uint8) os.Error {
+func (tag *Tag) Open(fid *Fid, mode uint8) error {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := p.PackTopen(req.Tc, fid.Fid, mode)
@@ -164,7 +160,7 @@ func (tag *Tag) Open(fid *Fid, mode uint8) os.Error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, ext string) os.Error {
+func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, ext string) error {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := p.PackTcreate(req.Tc, fid.Fid, name, perm, mode, ext, tag.clnt.Dotu)
@@ -176,7 +172,7 @@ func (tag *Tag) Create(fid *Fid, name string, perm uint32, mode uint8, ext strin
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Read(fid *Fid, offset uint64, count uint32) os.Error {
+func (tag *Tag) Read(fid *Fid, offset uint64, count uint32) error {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := p.PackTread(req.Tc, fid.Fid, offset, count)
@@ -187,7 +183,7 @@ func (tag *Tag) Read(fid *Fid, offset uint64, count uint32) os.Error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Write(fid *Fid, data []byte, offset uint64) os.Error {
+func (tag *Tag) Write(fid *Fid, data []byte, offset uint64) error {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := p.PackTwrite(req.Tc, fid.Fid, offset, uint32(len(data)), data)
@@ -198,7 +194,7 @@ func (tag *Tag) Write(fid *Fid, data []byte, offset uint64) os.Error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Clunk(fid *Fid) os.Error {
+func (tag *Tag) Clunk(fid *Fid) error {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := p.PackTclunk(req.Tc, fid.Fid)
@@ -209,7 +205,7 @@ func (tag *Tag) Clunk(fid *Fid) os.Error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Remove(fid *Fid) os.Error {
+func (tag *Tag) Remove(fid *Fid) error {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := p.PackTremove(req.Tc, fid.Fid)
@@ -220,7 +216,7 @@ func (tag *Tag) Remove(fid *Fid) os.Error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Stat(fid *Fid) os.Error {
+func (tag *Tag) Stat(fid *Fid) error {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := p.PackTstat(req.Tc, fid.Fid)
@@ -231,7 +227,7 @@ func (tag *Tag) Stat(fid *Fid) os.Error {
 	return tag.clnt.Rpcnb(req)
 }
 
-func (tag *Tag) Wstat(fid *Fid, dir *p.Dir) os.Error {
+func (tag *Tag) Wstat(fid *Fid, dir *p.Dir) error {
 	req := tag.reqAlloc()
 	req.fid = fid
 	err := p.PackTwstat(req.Tc, fid.Fid, dir, tag.clnt.Dotu)

@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"http"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -33,10 +34,10 @@ var addr = flag.String("addr", ":5640", "network address")
 var debug = flag.Int("d", 0, "print debug messages")
 var Enoent = &p.Error{"file not found", syscall.ENOENT}
 
-func toError(err os.Error) *p.Error {
+func toError(err error) *p.Error {
 	var ecode os.Errno
 
-	ename := err.String()
+	ename := err.Error()
 	if e, ok := err.(os.Errno); ok {
 		ecode = e
 	} else {
@@ -47,7 +48,7 @@ func toError(err os.Error) *p.Error {
 }
 
 func (fid *Fid) stat() *p.Error {
-	var err os.Error
+	var err error
 
 	fid.st, err = os.Lstat(fid.path)
 	if err != nil {
@@ -168,7 +169,7 @@ func dir2Dir(path string, d *os.FileInfo, dotu bool, upool p.Users) *p.Dir {
 		dir.Gidnum = uint32(g.Id())
 		dir.Muidnum = p.NOUID
 		if d.IsSymlink() {
-			var err os.Error
+			var err error
 			dir.Ext, err = os.Readlink(path)
 			if err != nil {
 				dir.Ext = ""
@@ -283,7 +284,7 @@ func (*Ufs) Open(req *srv.Req) {
 		return
 	}
 
-	var e os.Error
+	var e error
 	fid.file, e = os.OpenFile(fid.path, omode2uflags(tc.Mode), 0)
 	if e != nil {
 		req.RespondError(toError(e))
@@ -303,7 +304,7 @@ func (*Ufs) Create(req *srv.Req) {
 	}
 
 	path := fid.path + "/" + tc.Name
-	var e os.Error = nil
+	var e error = nil
 	var file *os.File = nil
 	switch {
 	case tc.Perm&p.DMDIR != 0:
@@ -377,7 +378,7 @@ func (*Ufs) Read(req *srv.Req) {
 
 	p.InitRread(rc, tc.Count)
 	var count int
-	var e os.Error
+	var e error
 	if fid.st.IsDirectory() {
 		b := rc.Data
 		if tc.Offset == 0 {
@@ -392,7 +393,7 @@ func (*Ufs) Read(req *srv.Req) {
 		for len(b) > 0 {
 			if fid.dirs == nil {
 				fid.dirs, e = fid.file.Readdir(16)
-				if e != nil && e != os.EOF {
+				if e != nil && e != io.EOF {
 					req.RespondError(toError(e))
 					return
 				}
@@ -424,7 +425,7 @@ func (*Ufs) Read(req *srv.Req) {
 		}
 	} else {
 		count, e = fid.file.ReadAt(rc.Data, int64(tc.Offset))
-		if e != nil && e != os.EOF {
+		if e != nil && e != io.EOF {
 			req.RespondError(toError(e))
 			return
 		}

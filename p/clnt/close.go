@@ -4,11 +4,10 @@
 
 package clnt
 
-import "os"
 import "go9p.googlecode.com/hg/p"
 
 // Clunks a fid. Returns nil if successful.
-func (clnt *Clnt) Clunk(fid *Fid) (err os.Error) {
+func (clnt *Clnt) Clunk(fid *Fid) (err error) {
 	err = nil
 	if fid.walked {
 		tc := clnt.NewFcall()
@@ -27,7 +26,7 @@ func (clnt *Clnt) Clunk(fid *Fid) (err os.Error) {
 }
 
 // Closes a file. Returns nil if successful.
-func (file *File) Close() os.Error {
+func (file *File) Close() error {
 	// Should we cancel all pending requests for the File
 	return file.fid.Clnt.Clunk(file.fid)
 }

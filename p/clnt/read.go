@@ -4,14 +4,13 @@
 
 package clnt
 
-import "os"
+import "io"
 import "go9p.googlecode.com/hg/p"
-
 
 // Reads count bytes starting from offset from the file associated with the fid.
 // Returns a slice with the data read, if the operation was successful, or an
 // Error.
-func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, os.Error) {
+func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, error) {
 	if count > fid.Iounit {
 		count = fid.Iounit
 	}
@@ -35,7 +34,7 @@ func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, os.Error)
 
 // Reads up to len(buf) bytes from the File. Returns the number
 // of bytes read, or an Error.
-func (file *File) Read(buf []byte) (int, os.Error) {
+func (file *File) Read(buf []byte) (int, error) {
 	n, err := file.ReadAt(buf, int64(file.offset))
 	if err == nil {
 		file.offset += uint64(n)
@@ -46,14 +45,14 @@ func (file *File) Read(buf []byte) (int, os.Error) {
 
 // Reads up to len(buf) bytes from the file starting from offset.
 // Returns the number of bytes read, or an Error.
-func (file *File) ReadAt(buf []byte, offset int64) (int, os.Error) {
+func (file *File) ReadAt(buf []byte, offset int64) (int, error) {
 	b, err := file.fid.Clnt.Read(file.fid, uint64(offset), uint32(len(buf)))
 	if err != nil {
 		return 0, err
 	}
 
 	if len(b) == 0 {
-		return 0, os.EOF
+		return 0, io.EOF
 	}
 
 	copy(buf, b)
@@ -63,7 +62,7 @@ func (file *File) ReadAt(buf []byte, offset int64) (int, os.Error) {
 // Reads exactly len(buf) bytes from the File starting from offset.
 // Returns the number of bytes read (could be less than len(buf) if
 // end-of-file is reached), or an Error.
-func (file *File) Readn(buf []byte, offset uint64) (int, os.Error) {
+func (file *File) Readn(buf []byte, offset uint64) (int, error) {
 	ret := 0
 	for len(buf) > 0 {
 		n, err := file.ReadAt(buf, int64(offset))
@@ -87,13 +86,13 @@ func (file *File) Readn(buf []byte, offset uint64) (int, os.Error) {
 // Returns an array of maximum num entries (if num is 0, returns
 // all entries from the directory). If the operation fails, returns
 // an Error.
-func (file *File) Readdir(num int) ([]*p.Dir, os.Error) {
+func (file *File) Readdir(num int) ([]*p.Dir, error) {
 	buf := make([]byte, file.fid.Clnt.Msize-p.IOHDRSZ)
 	dirs := make([]*p.Dir, 32)
 	pos := 0
 	for {
 		n, err := file.Read(buf)
-		if err != nil && err!=os.EOF {
+		if err != nil && err != io.EOF {
 			return nil, err
 		}
 

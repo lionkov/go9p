@@ -42,7 +42,7 @@ var blksize = flag.Int("b", 8192, "block size")
 var logsz = flag.Int("l", 2048, "log size")
 var rsrv Ramfs
 
-func (f *RFile) Read(fid *srv.FFid, buf []byte, offset uint64) (int, os.Error) {
+func (f *RFile) Read(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
 	f.Lock()
 	defer f.Unlock()
 
@@ -75,7 +75,7 @@ func (f *RFile) Read(fid *srv.FFid, buf []byte, offset uint64) (int, os.Error) {
 	return int(count), nil
 }
 
-func (f *RFile) Write(fid *srv.FFid, buf []byte, offset uint64) (int, os.Error) {
+func (f *RFile) Write(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
 	f.Lock()
 	defer f.Unlock()
 
@@ -112,19 +112,19 @@ func (f *RFile) Write(fid *srv.FFid, buf []byte, offset uint64) (int, os.Error) 
 	return count, nil
 }
 
-func (f *RFile) Create(fid *srv.FFid, name string, perm uint32) (*srv.File, os.Error) {
+func (f *RFile) Create(fid *srv.FFid, name string, perm uint32) (*srv.File, error) {
 	ff := new(RFile)
 	err := ff.Add(&f.File, name, rsrv.user, rsrv.group, perm, ff)
 	return &ff.File, err
 }
 
-func (f *RFile) Remove(fid *srv.FFid) os.Error {
+func (f *RFile) Remove(fid *srv.FFid) error {
 	f.trunc(0)
 
 	return nil
 }
 
-func (f *RFile) Wstat(fid *srv.FFid, dir *p.Dir) os.Error {
+func (f *RFile) Wstat(fid *srv.FFid, dir *p.Dir) error {
 	var uid, gid uint32
 
 	f.Lock()
@@ -225,7 +225,7 @@ func (f *RFile) expand(sz uint64) {
 }
 
 func main() {
-	var err os.Error
+	var err error
 
 	flag.Parse()
 	rsrv.user = p.OsUsers.Uid2User(os.Geteuid())

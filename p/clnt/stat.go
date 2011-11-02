@@ -4,12 +4,10 @@
 
 package clnt
 
-import "os"
 import "go9p.googlecode.com/hg/p"
 
-
 // Returns the metadata for the file associated with the Fid, or an Error.
-func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, os.Error) {
+func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, error) {
 	tc := clnt.NewFcall()
 	err := p.PackTstat(tc, fid.Fid)
 	if err != nil {
@@ -28,7 +26,7 @@ func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, os.Error) {
 }
 
 // Returns the metadata for a named file, or an Error.
-func (clnt *Clnt) FStat(path string) (*p.Dir, os.Error) {
+func (clnt *Clnt) FStat(path string) (*p.Dir, error) {
 	fid, err := clnt.FWalk(path)
 	if err != nil {
 		return nil, err
@@ -40,7 +38,7 @@ func (clnt *Clnt) FStat(path string) (*p.Dir, os.Error) {
 }
 
 // Modifies the data of the file associated with the Fid, or an Error.
-func (clnt *Clnt) Wstat(fid *Fid, dir *p.Dir) os.Error {
+func (clnt *Clnt) Wstat(fid *Fid, dir *p.Dir) error {
 	tc := clnt.NewFcall()
 	err := p.PackTwstat(tc, fid.Fid, dir, clnt.Dotu)
 	if err != nil {

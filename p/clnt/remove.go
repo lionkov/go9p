@@ -4,13 +4,11 @@
 
 package clnt
 
-import "os"
 import "go9p.googlecode.com/hg/p"
-
 
 // Removes the file associated with the Fid. Returns nil if the
 // operation is successful.
-func (clnt *Clnt) Remove(fid *Fid) os.Error {
+func (clnt *Clnt) Remove(fid *Fid) error {
 	tc := clnt.NewFcall()
 	err := p.PackTremove(tc, fid.Fid)
 	if err != nil {
@@ -29,8 +27,8 @@ func (clnt *Clnt) Remove(fid *Fid) os.Error {
 }
 
 // Removes the named file. Returns nil if the operation is successful.
-func (clnt *Clnt) FRemove(path string) os.Error {
-	var err os.Error
+func (clnt *Clnt) FRemove(path string) error {
+	var err error
 	fid, err := clnt.FWalk(path)
 	if err != nil {
 		return err
