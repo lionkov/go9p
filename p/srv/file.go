@@ -6,7 +6,6 @@ package srv
 
 import (
 	"log"
-	"os"
 	"sync"
 	"syscall"
 	"time"
@@ -17,7 +16,7 @@ import (
 // called before a file stat is sent back to the client. If implemented,
 // the operation should update the data in the File struct.
 type FStatOp interface {
-	Stat(fid *FFid) os.Error
+	Stat(fid *FFid) error
 }
 
 // The FWstatOp interface provides a single operation (Wstat) that will be
@@ -26,7 +25,7 @@ type FStatOp interface {
 // If not implemented, "permission denied" error will be sent back. If the
 // operation returns an Error, the error is send back to the client.
 type FWstatOp interface {
-	Wstat(*FFid, *p.Dir) os.Error
+	Wstat(*FFid, *p.Dir) error
 }
 
 // If the FReadOp interface is implemented, the Read operation will be called
@@ -34,7 +33,7 @@ type FWstatOp interface {
 // be send back. The operation returns the number of bytes read, or the
 // error occured while reading.
 type FReadOp interface {
-	Read(fid *FFid, buf []byte, offset uint64) (int, os.Error)
+	Read(fid *FFid, buf []byte, offset uint64) (int, error)
 }
 
 // If the FWriteOp interface is implemented, the Write operation will be called
@@ -42,7 +41,7 @@ type FReadOp interface {
 // be send back. The operation returns the number of bytes written, or the
 // error occured while writing.
 type FWriteOp interface {
-	Write(fid *FFid, data []byte, offset uint64) (int, os.Error)
+	Write(fid *FFid, data []byte, offset uint64) (int, error)
 }
 
 // If the FCreateOp interface is implemented, the Create operation will be called
@@ -51,7 +50,7 @@ type FWriteOp interface {
 // the operation should call (*File)Add() to add the created file to the directory.
 // The operation returns the created file, or the error occured while creating it.
 type FCreateOp interface {
-	Create(fid *FFid, name string, perm uint32) (*File, os.Error)
+	Create(fid *FFid, name string, perm uint32) (*File, error)
 }
 
 // If the FRemoveOp interface is implemented, the Remove operation will be called
@@ -60,15 +59,15 @@ type FCreateOp interface {
 // The operation returns nil if successful, or the error that occured while removing
 // the file.
 type FRemoveOp interface {
-	Remove(*FFid) os.Error
+	Remove(*FFid) error
 }
 
 type FOpenOp interface {
-	Open(fid *FFid, mode uint8) os.Error
+	Open(fid *FFid, mode uint8) error
 }
 
 type FClunkOp interface {
-	Clunk(fid *FFid) os.Error
+	Clunk(fid *FFid) error
 }
 
 type FDestroyOp interface {
@@ -123,7 +122,7 @@ func NewFileSrv(root *File) *Fsrv {
 
 // Initializes the fields of a file and add it to a directory.
 // Returns nil if successful, or an error.
-func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32, ops interface{}) os.Error {
+func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32, ops interface{}) error {
 
 	lock.Lock()
 	qpath := qnext
@@ -216,7 +215,7 @@ func (f *File) Remove() {
 	p.Unlock()
 }
 
-func (f *File) Rename(name string) os.Error {
+func (f *File) Rename(name string) error {
 	p := f.parent
 	p.Lock()
 	defer p.Unlock()
@@ -402,7 +401,7 @@ func (*Fsrv) Create(req *Req) {
 
 func (*Fsrv) Read(req *Req) {
 	var i, n int
-	var err os.Error
+	var err error
 
 	fid := req.Fid.Aux.(*FFid)
 	f := fid.F

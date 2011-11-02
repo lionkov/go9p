@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"syscall"
 	"go9p.googlecode.com/hg/p"
 )
@@ -46,7 +45,7 @@ func (srv *Srv) NewConn(c net.Conn) {
 }
 
 func (conn *Conn) recv() {
-	var err os.Error
+	var err error
 	var n int
 
 	buf := make([]byte, conn.Msize*8)
@@ -236,10 +235,10 @@ func (conn *Conn) logFcall(fc *p.Fcall) {
 	}
 }
 
-func (srv *Srv) StartNetListener(ntype, addr string) os.Error {
+func (srv *Srv) StartNetListener(ntype, addr string) error {
 	l, err := net.Listen(ntype, addr)
 	if err != nil {
-		return &p.Error{err.String(), syscall.EIO}
+		return &p.Error{err.Error(), syscall.EIO}
 	}
 
 	return srv.StartListener(l)
@@ -249,11 +248,11 @@ func (srv *Srv) StartNetListener(ntype, addr string) os.Error {
 // connections. Once a connection is established, create a new Conn
 // value, read messages from the socket, send them to the specified
 // server, and send back responses received from the server.
-func (srv *Srv) StartListener(l net.Listener) os.Error {
+func (srv *Srv) StartListener(l net.Listener) error {
 	for {
 		c, err := l.Accept()
 		if err != nil {
-			return &p.Error{err.String(), syscall.EIO}
+			return &p.Error{err.Error(), syscall.EIO}
 		}
 
 		srv.NewConn(c)

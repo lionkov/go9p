@@ -25,7 +25,7 @@ var addr = flag.String("addr", ":5640", "network address")
 var debug = flag.Bool("d", false, "print debug messages")
 var debugall = flag.Bool("D", false, "print packets as well as debug messages")
 
-func (*InfTime) Read(fid *srv.FFid, buf []byte, offset uint64) (int, os.Error) {
+func (*InfTime) Read(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
 	// push out time ignoring offset (infinite read)
 	t := time.LocalTime().String() + "\n"
 	b := []byte(t)
@@ -38,7 +38,7 @@ func (*InfTime) Read(fid *srv.FFid, buf []byte, offset uint64) (int, os.Error) {
 	return ml, nil
 }
 
-func (*Time) Read(fid *srv.FFid, buf []byte, offset uint64) (int, os.Error) {
+func (*Time) Read(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
 	t := time.LocalTime().String()
 	b := []byte(t)
 	n := len(b)
@@ -57,7 +57,7 @@ func (*Time) Read(fid *srv.FFid, buf []byte, offset uint64) (int, os.Error) {
 }
 
 func main() {
-	var err os.Error
+	var err error
 	var tm *Time
 	var ntm *InfTime
 	var s *srv.Fsrv

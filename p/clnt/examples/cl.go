@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -216,7 +217,7 @@ Outer:
 		defer file.Close()
 		for {
 			n, oserr := file.Read(buf)
-			if oserr != nil && oserr != os.EOF{
+			if oserr != nil && oserr != io.EOF {
 				fmt.Fprintf(os.Stderr, "error reading %s: %v\n", f, oserr)
 			}
 			if n == 0 {
@@ -330,7 +331,7 @@ func cmdput(c *clnt.Clnt, s []string) {
 	buf := make([]byte, 8192)
 	for {
 		n, oserr := fromfile.Read(buf)
-		if oserr != nil && oserr != os.EOF {
+		if oserr != nil && oserr != io.EOF {
 			fmt.Fprintf(os.Stderr, "error reading %s: %s\n", from, oserr)
 			return
 		}
@@ -434,7 +435,7 @@ func interactive(c *clnt.Clnt) {
 
 func main() {
 	var user p.User
-	var err os.Error
+	var err error
 	var c *clnt.Clnt
 	var file *clnt.File
 

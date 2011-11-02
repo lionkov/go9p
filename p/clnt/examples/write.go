@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"log"
 	"os"
 	"go9p.googlecode.com/hg/p"
@@ -14,7 +15,7 @@ var addr = flag.String("addr", "127.0.0.1:5640", "network address")
 func main() {
 	var n, m int
 	var user p.User
-	var err os.Error
+	var err error
 	var c *clnt.Clnt
 	var file *clnt.File
 	var buf []byte
@@ -43,7 +44,7 @@ func main() {
 	buf = make([]byte, 8192)
 	for {
 		n, err = os.Stdin.Read(buf)
-		if err != nil && err != os.EOF {
+		if err != nil && err != io.EOF {
 			goto error
 		}
 

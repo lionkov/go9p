@@ -8,7 +8,6 @@ package p
 
 import (
 	"fmt"
-	"os"
 	"syscall"
 )
 
@@ -103,7 +102,7 @@ const (
 
 // Error represents a 9P2000 (and 9P2000.u) error
 type Error struct {
-	Error    string // textual representation of the error
+	Err      string // textual representation of the error
 	Errornum int    // numeric representation of the error (9P2000.u)
 }
 
@@ -451,11 +450,10 @@ func PackDir(d *Dir, buf []byte, dotu bool) int {
 	return sz
 }
 
-
 // Converts the on-the-wire representation of a stat to Stat value.
 // Returns an error if the conversion is impossible, otherwise
 // a pointer to a Stat value.
-func UnpackDir(buf []byte, dotu bool) (d *Dir, err os.Error) {
+func UnpackDir(buf []byte, dotu bool) (d *Dir, err error) {
 	sz := 2 + 2 + 4 + 13 + 4 + /* size[2] type[2] dev[4] qid[13] mode[4] */
 		4 + 4 + 8 + /* atime[4] mtime[4] length[8] */
 		2 + 2 + 2 + 2 /* name[s] uid[s] gid[s] muid[s] */
@@ -495,7 +493,7 @@ func SetTag(fc *Fcall, tag uint16) {
 	pint16(tag, fc.Pkt[5:len(fc.Pkt)])
 }
 
-func packCommon(fc *Fcall, size int, id uint8) ([]byte, os.Error) {
+func packCommon(fc *Fcall, size int, id uint8) ([]byte, error) {
 	size += 4 + 1 + 2 /* size[4] id[1] tag[2] */
 	if len(fc.Buf) < int(size) {
 		return nil, &Error{"buffer too small", syscall.EINVAL}
@@ -513,9 +511,9 @@ func packCommon(fc *Fcall, size int, id uint8) ([]byte, os.Error) {
 	return p, nil
 }
 
-func (err *Error) String() string {
+func (err *Error) Error() string {
 	if err != nil {
-		return fmt.Sprintf("%s: %d", err.Error, err.Errornum)
+		return fmt.Sprintf("%s: %d", err.Err, err.Errornum)
 	}
 
 	return ""
