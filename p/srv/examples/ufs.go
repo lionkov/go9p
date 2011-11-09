@@ -7,15 +7,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	"http"
+	"go9p.googlecode.com/hg/p"
+	"go9p.googlecode.com/hg/p/srv"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"syscall"
-	"go9p.googlecode.com/hg/p"
-	"go9p.googlecode.com/hg/p/srv"
 )
 
 type Fid struct {
