@@ -5,13 +5,13 @@
 package main
 
 import (
-	"http"
 	"flag"
 	"fmt"
-	"log"
-	"os"
 	"go9p.googlecode.com/hg/p"
 	"go9p.googlecode.com/hg/p/srv"
+	"log"
+	"net/http"
+	"os"
 )
 
 type Ramfs struct {

@@ -2,11 +2,10 @@ package clnt
 
 import (
 	"fmt"
-	"io"
-	"http"
 	"go9p.googlecode.com/hg/p"
+	"io"
+	"net/http"
 )
-
 
 func (clnt *Clnt) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 	io.WriteString(c, fmt.Sprintf("<html><body><h1>Client %s</h1>", clnt.Id))
@@ -47,7 +46,6 @@ func (clnt *Clnt) statsRegister() {
 func (clnt *Clnt) statsUnregister() {
 	http.Handle("/go9p/clnt/"+clnt.Id, nil)
 }
-
 
 func (c *ClntList) statsRegister() {
 	http.HandleFunc("/go9p/clnt", clntServeHTTP)

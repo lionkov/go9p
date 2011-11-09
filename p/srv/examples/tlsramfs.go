@@ -7,19 +7,19 @@
 package main
 
 import (
-	"big"
-	"crypto/tls"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"encoding/hex"
-	"http"
 	"flag"
 	"fmt"
-	"log"
-	"os"
-	"time"
 	"go9p.googlecode.com/hg/p"
 	"go9p.googlecode.com/hg/p/srv"
+	"log"
+	"math/big"
+	"net/http"
+	"os"
+	"time"
 )
 
 type Ramfs struct {

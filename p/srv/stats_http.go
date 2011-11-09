@@ -2,9 +2,9 @@ package srv
 
 import (
 	"fmt"
-	"io"
-	"http"
 	"go9p.googlecode.com/hg/p"
+	"io"
+	"net/http"
 )
 
 func (srv *Srv) statsRegister() {
