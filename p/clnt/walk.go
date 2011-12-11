@@ -7,6 +7,7 @@ package clnt
 import (
 	"go9p.googlecode.com/hg/p"
 	"strings"
+	"syscall"
 )
 
 // Starting from the file associated with fid, walks all wnames in
@@ -77,7 +78,7 @@ func (clnt *Clnt) FWalk(path string) (*Fid, error) {
 			goto error
 		}
 		if rc.Type == p.Rerror {
-			err = &p.Error{rc.Error, int(rc.Errornum)}
+			err = &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 			goto error
 		}
 

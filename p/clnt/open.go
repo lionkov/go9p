@@ -7,6 +7,7 @@ package clnt
 import (
 	"go9p.googlecode.com/hg/p"
 	"strings"
+	"syscall"
 )
 
 // Opens the file associated with the fid. Returns nil if
@@ -23,7 +24,7 @@ func (clnt *Clnt) Open(fid *Fid, mode uint8) error {
 		return err
 	}
 	if rc.Type == p.Rerror {
-		return &p.Error{rc.Error, int(rc.Errornum)}
+		return &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	fid.Qid = rc.Qid
@@ -49,7 +50,7 @@ func (clnt *Clnt) Create(fid *Fid, name string, perm uint32, mode uint8, ext str
 		return err
 	}
 	if rc.Type == p.Rerror {
-		return &p.Error{rc.Error, int(rc.Errornum)}
+		return &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	fid.Qid = rc.Qid

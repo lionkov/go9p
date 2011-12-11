@@ -6,6 +6,7 @@ package clnt
 
 import "io"
 import "go9p.googlecode.com/hg/p"
+import "syscall"
 
 // Reads count bytes starting from offset from the file associated with the fid.
 // Returns a slice with the data read, if the operation was successful, or an
@@ -26,7 +27,7 @@ func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, error) {
 		return nil, err
 	}
 	if rc.Type == p.Rerror {
-		return nil, &p.Error{rc.Error, int(rc.Errornum)}
+		return nil, &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	return rc.Data, nil

@@ -5,6 +5,7 @@
 package clnt
 
 import "go9p.googlecode.com/hg/p"
+import "syscall"
 
 // Write up to len(data) bytes starting from offset. Returns the
 // number of bytes written, or an Error.
@@ -24,7 +25,7 @@ func (clnt *Clnt) Write(fid *Fid, data []byte, offset uint64) (int, error) {
 		return 0, err
 	}
 	if rc.Type == p.Rerror {
-		return 0, &p.Error{rc.Error, int(rc.Errornum)}
+		return 0, &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	return int(rc.Count), nil

@@ -5,6 +5,7 @@
 package clnt
 
 import "go9p.googlecode.com/hg/p"
+import "syscall"
 
 // Removes the file associated with the Fid. Returns nil if the
 // operation is successful.
@@ -20,7 +21,7 @@ func (clnt *Clnt) Remove(fid *Fid) error {
 	fid.Fid = p.NOFID
 
 	if rc.Type == p.Rerror {
-		return &p.Error{rc.Error, int(rc.Errornum)}
+		return &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	return err

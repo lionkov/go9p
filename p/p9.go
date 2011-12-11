@@ -102,20 +102,20 @@ const (
 
 // Error values
 const (
-	ECONNRESET int = int(syscall.ECONNRESET)
-	EEXIST     int = int(syscall.EEXIST)
-	EINVAL     int = int(syscall.EINVAL)
-	EIO        int = int(syscall.EIO)
-	ENOTDIR    int = int(syscall.ENOTDIR)
-	ENOENT     int = int(syscall.ENOENT)
-	ENOSYS     int = int(syscall.ENOSYS)
-	EPERM      int = int(syscall.EPERM)
+	ECONNRESET = syscall.ECONNRESET
+	EEXIST     = syscall.EEXIST
+	EINVAL     = syscall.EINVAL
+	EIO        = syscall.EIO
+	ENOTDIR    = syscall.ENOTDIR
+	ENOENT     = syscall.ENOENT
+	ENOSYS     = syscall.ENOSYS
+	EPERM      = syscall.EPERM
 )
 
 // Error represents a 9P2000 (and 9P2000.u) error
 type Error struct {
 	Err      string // textual representation of the error
-	Errornum int    // numeric representation of the error (9P2000.u)
+	Errornum syscall.Errno    // numeric representation of the error (9P2000.u)
 }
 
 // File identifier

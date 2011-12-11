@@ -7,6 +7,7 @@ package clnt
 import (
 	"go9p.googlecode.com/hg/p"
 	"net"
+	"syscall"
 )
 
 // Creates an authentication fid for the specified user. Returns the fid, if
@@ -53,7 +54,7 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, error) {
 		return nil, err
 	}
 	if rc.Type == p.Rerror {
-		return nil, &p.Error{rc.Error, int(rc.Errornum)}
+		return nil, &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	fid.Qid = rc.Qid
