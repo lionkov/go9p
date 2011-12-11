@@ -87,7 +87,7 @@ func (cl *Clone) Read(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
 	cl.clones += 1
 	ncl := new(ClFile)
 	ncl.id = cl.clones
-	ncl.created = time.LocalTime().String()
+	ncl.created = time.Now().String()
 	name := strconv.Itoa(ncl.id)
 
 	err := ncl.Add(root, name, p.OsUsers.Uid2User(os.Geteuid()), nil, 0666, ncl)

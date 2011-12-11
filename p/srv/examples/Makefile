@@ -4,7 +4,8 @@
 
 include $(GOROOT)/src/Make.inc
 
-TARG=ufs timefs clonefs ramfs tlsramfs
+#TARG=ufs timefs clonefs ramfs tlsramfs
+TARG=timefs clonefs ramfs tlsramfs
 OFILES=$(TARG:%=%.$O)
 
 all: $(TARG)

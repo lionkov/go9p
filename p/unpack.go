@@ -6,7 +6,6 @@ package p
 
 import (
 	"fmt"
-	"syscall"
 )
 
 // Creates a Fcall value from the on-the-wire representation. If
@@ -16,7 +15,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 	var m uint16
 
 	if len(buf) < 7 {
-		return nil, &Error{"buffer too short", syscall.EINVAL}, 0
+		return nil, &Error{"buffer too short", EINVAL}, 0
 	}
 
 	fc = new(Fcall)
@@ -32,7 +31,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 	if int(fc.Size) > len(buf) || fc.Size < 7 {
 		return nil, &Error{fmt.Sprintf("buffer too short: %d expected %d",
 			len(buf), fc.Size),
-			syscall.EINVAL},
+			EINVAL},
 			0
 	}
 
@@ -40,7 +39,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 	fc.Pkt = buf[0:fc.Size]
 	fcsz = int(fc.Size)
 	if fc.Type < Tversion || fc.Type >= Tlast {
-		return nil, &Error{"invalid id", syscall.EINVAL}, 0
+		return nil, &Error{"invalid id", EINVAL}, 0
 	}
 
 	var sz uint32
@@ -57,7 +56,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 	err = nil
 	switch fc.Type {
 	default:
-		return nil, &Error{"invalid message id", syscall.EINVAL}, 0
+		return nil, &Error{"invalid message id", EINVAL}, 0
 
 	case Tversion, Rversion:
 		fc.Msize, p = gint32(p)
@@ -222,5 +221,5 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 	return
 
 szerror:
-	return nil, &Error{"invalid size", syscall.EINVAL}, 0
+	return nil, &Error{"invalid size", EINVAL}, 0
 }

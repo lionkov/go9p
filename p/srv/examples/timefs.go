@@ -27,7 +27,7 @@ var debugall = flag.Bool("D", false, "print packets as well as debug messages")
 
 func (*InfTime) Read(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
 	// push out time ignoring offset (infinite read)
-	t := time.LocalTime().String() + "\n"
+	t := time.Now().String() + "\n"
 	b := []byte(t)
 	ml := len(b)
 	if ml > len(buf) {
@@ -39,7 +39,7 @@ func (*InfTime) Read(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
 }
 
 func (*Time) Read(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
-	t := time.LocalTime().String()
+	t := time.Now().String()
 	b := []byte(t)
 	n := len(b)
 	if offset >= uint64(n) {

@@ -9,7 +9,6 @@ package srv
 import (
 	"net"
 	"sync"
-	"syscall"
 	"go9p.googlecode.com/hg/p"
 )
 
@@ -30,18 +29,18 @@ const (
 	DbgLogPackets                 // keep the last N 9P messages (can be accessed over http)
 )
 
-var Eunknownfid error = &p.Error{"unknown fid", syscall.EINVAL}
-var Enoauth error = &p.Error{"no authentication required", syscall.EINVAL}
-var Einuse error = &p.Error{"fid already in use", syscall.EINVAL}
-var Ebaduse error = &p.Error{"bad use of fid", syscall.EINVAL}
-var Eopen error = &p.Error{"fid already opened", syscall.EINVAL}
-var Enotdir error = &p.Error{"not a directory", syscall.ENOTDIR}
-var Eperm error = &p.Error{"permission denied", syscall.EPERM}
-var Etoolarge error = &p.Error{"i/o count too large", syscall.EINVAL}
-var Ebadoffset error = &p.Error{"bad offset in directory read", syscall.EINVAL}
-var Edirchange error = &p.Error{"cannot convert between files and directories", syscall.EINVAL}
-var Enouser error = &p.Error{"unknown user", syscall.EINVAL}
-var Enotimpl error = &p.Error{"not implemented", syscall.EINVAL}
+var Eunknownfid error = &p.Error{"unknown fid", p.EINVAL}
+var Enoauth error = &p.Error{"no authentication required", p.EINVAL}
+var Einuse error = &p.Error{"fid already in use", p.EINVAL}
+var Ebaduse error = &p.Error{"bad use of fid", p.EINVAL}
+var Eopen error = &p.Error{"fid already opened", p.EINVAL}
+var Enotdir error = &p.Error{"not a directory", p.ENOTDIR}
+var Eperm error = &p.Error{"permission denied", p.EPERM}
+var Etoolarge error = &p.Error{"i/o count too large", p.EINVAL}
+var Ebadoffset error = &p.Error{"bad offset in directory read", p.EINVAL}
+var Edirchange error = &p.Error{"cannot convert between files and directories", p.EINVAL}
+var Enouser error = &p.Error{"unknown user", p.EINVAL}
+var Enotimpl error = &p.Error{"not implemented", p.EINVAL}
 
 // Authentication operations. The file server should implement them if
 // it requires user authentication. The authentication in 9P2000 is
@@ -320,7 +319,7 @@ func (req *Req) Process() {
 
 	switch req.Tc.Type {
 	default:
-		req.RespondError(&p.Error{"unknown message type", syscall.ENOSYS})
+		req.RespondError(&p.Error{"unknown message type", p.ENOSYS})
 
 	case p.Tversion:
 		srv.version(req)

@@ -32,7 +32,7 @@ type Ufs struct {
 
 var addr = flag.String("addr", ":5640", "network address")
 var debug = flag.Int("d", 0, "print debug messages")
-var Enoent = &p.Error{"file not found", syscall.ENOENT}
+var Enoent = &p.Error{"file not found", p.ENOENT}
 
 func toError(err error) *p.Error {
 	var ecode os.Errno
@@ -41,7 +41,7 @@ func toError(err error) *p.Error {
 	if e, ok := err.(os.Errno); ok {
 		ecode = e
 	} else {
-		ecode = syscall.EIO
+		ecode = p.EIO
 	}
 
 	return &p.Error{ename, int(ecode)}
@@ -330,7 +330,7 @@ func (*Ufs) Create(req *srv.Req) {
 
 	case tc.Perm&p.DMNAMEDPIPE != 0:
 	case tc.Perm&p.DMDEVICE != 0:
-		req.RespondError(&p.Error{"not implemented", syscall.EIO})
+		req.RespondError(&p.Error{"not implemented", p.EIO})
 		return
 
 	default:

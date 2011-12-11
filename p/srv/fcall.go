@@ -5,7 +5,6 @@
 package srv
 
 import (
-	"syscall"
 	"go9p.googlecode.com/hg/p"
 )
 
@@ -14,7 +13,7 @@ func (srv *Srv) version(req *Req) {
 	conn := req.Conn
 
 	if tc.Msize < p.IOHDRSZ {
-		req.RespondError(&p.Error{"msize too small", syscall.EINVAL})
+		req.RespondError(&p.Error{"msize too small", p.EINVAL})
 		return
 	}
 

@@ -6,7 +6,6 @@ package clnt
 
 import (
 	"strings"
-	"syscall"
 	"go9p.googlecode.com/hg/p"
 )
 
@@ -84,7 +83,7 @@ func (clnt *Clnt) FWalk(path string) (*Fid, error) {
 
 		newfid.walked = true
 		if len(rc.Wqid) != n {
-			err = &p.Error{"file not found", syscall.ENOENT}
+			err = &p.Error{"file not found", p.ENOENT}
 			goto error
 		}
 
