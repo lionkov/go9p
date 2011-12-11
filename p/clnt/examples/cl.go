@@ -187,19 +187,29 @@ func cmdls(c *clnt.Clnt, s []string) {
 	}
 }
 
-func walkone(c *clnt.Clnt, s string) {
+func walkone(c *clnt.Clnt, s string, fileok bool) {
 	ncwd := normpath(s)
-	_, err := c.FWalk(ncwd)
+	
+	fid, err := c.FWalk(ncwd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "walk error: %s\n", err)
+		c.Clunk(fid)
 		return
 	}
+
+	if fileok != true && (fid.Type & p.QTDIR == 0) {
+		fmt.Fprintf(os.Stderr, "can't cd to file [%s]\n", ncwd)
+		c.Clunk(fid)
+		return
+	}
+	
+	c.Clunk(fid)
 	cwd = ncwd
 }
 
 func cmdcd(c *clnt.Clnt, s []string) {
 	if s != nil {
-		walkone(c, strings.Join(s, "/"))
+		walkone(c, strings.Join(s, "/"), false)
 	}
 }
 
@@ -464,7 +474,7 @@ func main() {
 		c.Debuglevel = 2
 	}
 
-	walkone(c, "/")
+	walkone(c, "/", false)
 
 	if file != nil {
 		//process(c)
