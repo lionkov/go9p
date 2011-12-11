@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
+	"go9p.googlecode.com/hg/p"
+	"go9p.googlecode.com/hg/p/clnt"
 	"io"
 	"log"
 	"os"
-	"go9p.googlecode.com/hg/p"
-	"go9p.googlecode.com/hg/p/clnt"
 )
 
 var debuglevel = flag.Int("d", 0, "debuglevel")

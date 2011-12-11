@@ -6,9 +6,9 @@ package srv
 
 import (
 	"fmt"
+	"go9p.googlecode.com/hg/p"
 	"log"
 	"net"
-	"go9p.googlecode.com/hg/p"
 )
 
 func (srv *Srv) NewConn(c net.Conn) {

@@ -5,8 +5,8 @@
 package clnt
 
 import (
-	"net"
 	"go9p.googlecode.com/hg/p"
+	"net"
 )
 
 // Creates an authentication fid for the specified user. Returns the fid, if

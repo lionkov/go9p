@@ -8,10 +8,10 @@ package clnt
 
 import (
 	"fmt"
+	"go9p.googlecode.com/hg/p"
 	"log"
 	"net"
 	"sync"
-	"go9p.googlecode.com/hg/p"
 )
 
 // Debug flags
