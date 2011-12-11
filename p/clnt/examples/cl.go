@@ -6,12 +6,12 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"go9p.googlecode.com/hg/p"
+	"go9p.googlecode.com/hg/p/clnt"
 	"io"
 	"os"
 	"path"
 	"strings"
-	"go9p.googlecode.com/hg/p"
-	"go9p.googlecode.com/hg/p/clnt"
 )
 
 var addr = flag.String("addr", "127.0.0.1:5640", "network address")
@@ -189,7 +189,7 @@ func cmdls(c *clnt.Clnt, s []string) {
 
 func walkone(c *clnt.Clnt, s string, fileok bool) {
 	ncwd := normpath(s)
-	
+
 	fid, err := c.FWalk(ncwd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "walk error: %s\n", err)
@@ -197,12 +197,12 @@ func walkone(c *clnt.Clnt, s string, fileok bool) {
 		return
 	}
 
-	if fileok != true && (fid.Type & p.QTDIR == 0) {
+	if fileok != true && (fid.Type&p.QTDIR == 0) {
 		fmt.Fprintf(os.Stderr, "can't cd to file [%s]\n", ncwd)
 		c.Clunk(fid)
 		return
 	}
-	
+
 	c.Clunk(fid)
 	cwd = ncwd
 }

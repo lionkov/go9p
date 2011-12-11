@@ -23,7 +23,7 @@ type Fid struct {
 	file      *os.File
 	dirs      []os.FileInfo
 	diroffset uint64
-	st        *os.FileInfo
+	st        os.FileInfo
 }
 
 type Ufs struct {
@@ -85,19 +85,19 @@ func omode2uflags(mode uint8) int {
 	return ret
 }
 
-func dir2Qid(d *os.FileInfo) *p.Qid {
+func dir2Qid(d os.FileInfo) *p.Qid {
 	var qid p.Qid
 
 	qid.Path = d.Ino
-	qid.Version = uint32(d.Mtime_ns / 1000000)
+	qid.Version = uint32(d.ModTime() / 1000000)
 	qid.Type = dir2QidType(d)
 
 	return &qid
 }
 
-func dir2QidType(d *os.FileInfo) uint8 {
+func dir2QidType(d os.FileInfo) uint8 {
 	ret := uint8(0)
-	if d.IsDirectory() {
+	if d.IsDir() {
 		ret |= p.QTDIR
 	}
 
@@ -108,9 +108,9 @@ func dir2QidType(d *os.FileInfo) uint8 {
 	return ret
 }
 
-func dir2Npmode(d *os.FileInfo, dotu bool) uint32 {
-	ret := uint32(d.Mode & 0777)
-	if d.IsDirectory() {
+func dir2Npmode(d os.FileInfo, dotu bool) uint32 {
+	ret := uint32(d.Mode() & 0777)
+	if d.IsDir() {
 		ret |= p.DMDIR
 	}
 
@@ -131,11 +131,11 @@ func dir2Npmode(d *os.FileInfo, dotu bool) uint32 {
 			ret |= p.DMDEVICE
 		}
 
-		if d.Mode&syscall.S_ISUID > 0 {
+		if d.Mode()&syscall.S_ISUID > 0 {
 			ret |= p.DMSETUID
 		}
 
-		if d.Mode&syscall.S_ISGID > 0 {
+		if d.Mode()&syscall.S_ISGID > 0 {
 			ret |= p.DMSETGID
 		}
 	}
@@ -143,13 +143,13 @@ func dir2Npmode(d *os.FileInfo, dotu bool) uint32 {
 	return ret
 }
 
-func dir2Dir(path string, d *os.FileInfo, dotu bool, upool p.Users) *p.Dir {
+func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
 	dir := new(p.Dir)
 	dir.Qid = *dir2Qid(d)
 	dir.Mode = dir2Npmode(d, dotu)
 	dir.Atime = uint32(d.Atime_ns / 1000000000)
-	dir.Mtime = uint32(d.Mtime_ns / 1000000000)
-	dir.Length = uint64(d.Size)
+	dir.Mtime = uint32(d.ModTime() / 1000000000)
+	dir.Length = uint64(d.Size())
 
 	u := upool.Uid2User(int(d.Uid))
 	g := upool.Gid2Group(int(d.Gid))
@@ -314,7 +314,7 @@ func (*Ufs) Create(req *srv.Req) {
 		e = os.Symlink(tc.Ext, path)
 
 	case tc.Perm&p.DMLINK != 0:
-		n, e := strconv.Atoui(tc.Ext)
+		n, e := strconv.ParseUint(tc.Ext, 10, 0)
 		if e != nil {
 			break
 		}
@@ -379,7 +379,7 @@ func (*Ufs) Read(req *srv.Req) {
 	p.InitRread(rc, tc.Count)
 	var count int
 	var e error
-	if fid.st.IsDirectory() {
+	if fid.st.IsDir() {
 		b := rc.Data
 		if tc.Offset == 0 {
 			fid.file.Close()
@@ -405,7 +405,7 @@ func (*Ufs) Read(req *srv.Req) {
 
 			var i int
 			for i = 0; i < len(fid.dirs); i++ {
-				path := fid.path + "/" + fid.dirs[i].Name
+				path := fid.path + "/" + fid.dirs[i].Name()
 				st := dir2Dir(path, &fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
 				sz := p.PackDir(st, b, req.Conn.Dotu)
 				if sz == 0 {
