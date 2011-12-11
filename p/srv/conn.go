@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"syscall"
 	"go9p.googlecode.com/hg/p"
 )
 
@@ -238,7 +237,7 @@ func (conn *Conn) logFcall(fc *p.Fcall) {
 func (srv *Srv) StartNetListener(ntype, addr string) error {
 	l, err := net.Listen(ntype, addr)
 	if err != nil {
-		return &p.Error{err.Error(), syscall.EIO}
+		return &p.Error{err.Error(), p.EIO}
 	}
 
 	return srv.StartListener(l)
@@ -252,7 +251,7 @@ func (srv *Srv) StartListener(l net.Listener) error {
 	for {
 		c, err := l.Accept()
 		if err != nil {
-			return &p.Error{err.Error(), syscall.EIO}
+			return &p.Error{err.Error(), p.EIO}
 		}
 
 		srv.NewConn(c)

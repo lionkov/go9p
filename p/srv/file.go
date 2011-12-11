@@ -7,7 +7,6 @@ package srv
 import (
 	"log"
 	"sync"
-	"syscall"
 	"time"
 	"go9p.googlecode.com/hg/p"
 )
@@ -107,9 +106,9 @@ type Fsrv struct {
 
 var lock sync.Mutex
 var qnext uint64
-var Eexist = &p.Error{"file already exists", syscall.EEXIST}
-var Enoent = &p.Error{"file not found", syscall.ENOENT}
-var Enotempty = &p.Error{"directory not empty", syscall.EPERM}
+var Eexist = &p.Error{"file already exists", p.EEXIST}
+var Enoent = &p.Error{"file not found", p.ENOENT}
+var Enotempty = &p.Error{"directory not empty", p.EPERM}
 
 // Creates a file server with root as root directory
 func NewFileSrv(root *File) *Fsrv {
@@ -133,7 +132,7 @@ func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32,
 	f.Qid.Version = 0
 	f.Qid.Path = qpath
 	f.Mode = mode
-	f.Atime = uint32(time.LocalTime().Seconds())
+	f.Atime = uint32(time.Now().Unix())
 	f.Mtime = f.Atime
 	f.Length = 0
 	f.Name = name

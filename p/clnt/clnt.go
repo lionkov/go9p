@@ -11,7 +11,6 @@ import (
 	"log"
 	"net"
 	"sync"
-	"syscall"
 	"go9p.googlecode.com/hg/p"
 )
 
@@ -166,7 +165,7 @@ func (clnt *Clnt) recv() {
 
 		n, oerr := clnt.conn.Read(buf[pos:len(buf)])
 		if oerr != nil || n == 0 {
-			err = &p.Error{oerr.Error(), syscall.EIO}
+			err = &p.Error{oerr.Error(), p.EIO}
 			clnt.Lock()
 			clnt.err = err
 			clnt.Unlock()
@@ -215,7 +214,7 @@ func (clnt *Clnt) recv() {
 			}
 
 			if r == nil {
-				clnt.err = &p.Error{"unexpected response", syscall.EINVAL}
+				clnt.err = &p.Error{"unexpected response", p.EINVAL}
 				clnt.conn.Close()
 				clnt.Unlock()
 				goto closed
@@ -237,7 +236,7 @@ func (clnt *Clnt) recv() {
 
 			if r.Tc.Type != r.Rc.Type-1 {
 				if r.Rc.Type != p.Rerror {
-					r.Err = &p.Error{"invalid response", syscall.EINVAL}
+					r.Err = &p.Error{"invalid response", p.EINVAL}
 					log.Println(fmt.Sprintf("TTT %v", r.Tc))
 					log.Println(fmt.Sprintf("RRR %v", r.Rc))
 				} else {

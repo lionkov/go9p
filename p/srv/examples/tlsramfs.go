@@ -19,7 +19,6 @@ import (
 	"math/big"
 	"net/http"
 	"os"
-	"time"
 )
 
 type Ramfs struct {
@@ -256,7 +255,6 @@ func main() {
 
 	ls, oerr := tls.Listen("tcp", *addr, &tls.Config{
 		Rand:         rand.Reader,
-		Time:         time.Nanoseconds,
 		Certificates: cert,
 		CipherSuites: []uint16{tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA},
 	})

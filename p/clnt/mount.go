@@ -6,7 +6,6 @@ package clnt
 
 import (
 	"net"
-	"syscall"
 	"go9p.googlecode.com/hg/p"
 )
 
@@ -67,7 +66,7 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, error) {
 func Mount(ntype, addr, aname string, user p.User) (*Clnt, error) {
 	c, e := net.Dial(ntype, addr)
 	if e != nil {
-		return nil, &p.Error{e.Error(), syscall.EIO}
+		return nil, &p.Error{e.Error(), p.EIO}
 	}
 
 	return MountConn(c, aname, user)
@@ -92,7 +91,7 @@ func MountConn(c net.Conn, aname string, user p.User) (*Clnt, error) {
 // Closes the connection to the file sever.
 func (clnt *Clnt) Unmount() {
 	clnt.Lock()
-	clnt.err = &p.Error{"connection closed", syscall.ECONNRESET}
+	clnt.err = &p.Error{"connection closed", p.ECONNRESET}
 	clnt.conn.Close()
 	clnt.Unlock()
 }

@@ -100,6 +100,18 @@ const (
 	NOUID uint32 = 0xFFFFFFFF // no uid specified
 )
 
+// Error values
+const (
+	ECONNRESET int = int(syscall.ECONNRESET)
+	EEXIST     int = int(syscall.EEXIST)
+	EINVAL     int = int(syscall.EINVAL)
+	EIO        int = int(syscall.EIO)
+	ENOTDIR    int = int(syscall.ENOTDIR)
+	ENOENT     int = int(syscall.ENOENT)
+	ENOSYS     int = int(syscall.ENOSYS)
+	EPERM      int = int(syscall.EPERM)
+)
+
 // Error represents a 9P2000 (and 9P2000.u) error
 type Error struct {
 	Err      string // textual representation of the error
@@ -475,7 +487,7 @@ func UnpackDir(buf []byte, dotu bool) (d *Dir, err error) {
 	return d, nil
 
 szerror:
-	return nil, &Error{"short buffer", syscall.EINVAL}
+	return nil, &Error{"short buffer", EINVAL}
 
 }
 
@@ -496,7 +508,7 @@ func SetTag(fc *Fcall, tag uint16) {
 func packCommon(fc *Fcall, size int, id uint8) ([]byte, error) {
 	size += 4 + 1 + 2 /* size[4] id[1] tag[2] */
 	if len(fc.Buf) < int(size) {
-		return nil, &Error{"buffer too small", syscall.EINVAL}
+		return nil, &Error{"buffer too small", EINVAL}
 	}
 
 	fc.Size = uint32(size)
