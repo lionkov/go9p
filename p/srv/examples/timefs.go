@@ -7,11 +7,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"go9p.googlecode.com/hg/p"
+	"go9p.googlecode.com/hg/p/srv"
 	"log"
 	"os"
 	"time"
-	"go9p.googlecode.com/hg/p"
-	"go9p.googlecode.com/hg/p/srv"
 )
 
 type Time struct {

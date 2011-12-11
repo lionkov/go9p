@@ -7,9 +7,9 @@
 package srv
 
 import (
+	"go9p.googlecode.com/hg/p"
 	"net"
 	"sync"
-	"go9p.googlecode.com/hg/p"
 )
 
 type reqStatus int

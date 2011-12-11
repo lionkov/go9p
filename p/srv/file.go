@@ -5,10 +5,10 @@
 package srv
 
 import (
+	"go9p.googlecode.com/hg/p"
 	"log"
 	"sync"
 	"time"
-	"go9p.googlecode.com/hg/p"
 )
 
 // The FStatOp interface provides a single operation (Stat) that will be

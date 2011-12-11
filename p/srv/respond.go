@@ -6,7 +6,6 @@ package srv
 
 import "go9p.googlecode.com/hg/p"
 
-
 // Respond to the request with Rerror message
 func (req *Req) RespondError(err interface{}) {
 	e := err.(*p.Error)

@@ -5,8 +5,8 @@
 package clnt
 
 import (
-	"strings"
 	"go9p.googlecode.com/hg/p"
+	"strings"
 )
 
 // Starting from the file associated with fid, walks all wnames in

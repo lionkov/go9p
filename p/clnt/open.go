@@ -5,8 +5,8 @@
 package clnt
 
 import (
-	"strings"
 	"go9p.googlecode.com/hg/p"
+	"strings"
 )
 
 // Opens the file associated with the fid. Returns nil if

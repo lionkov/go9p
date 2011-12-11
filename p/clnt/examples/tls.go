@@ -6,10 +6,10 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"log"
-	"os"
 	"go9p.googlecode.com/hg/p"
 	"go9p.googlecode.com/hg/p/clnt"
+	"log"
+	"os"
 )
 
 var debuglevel = flag.Int("d", 0, "debuglevel")

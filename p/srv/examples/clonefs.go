@@ -12,11 +12,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"go9p.googlecode.com/hg/p"
+	"go9p.googlecode.com/hg/p/srv"
 	"log"
 	"os"
 	"strconv"
-	"go9p.googlecode.com/hg/p"
-	"go9p.googlecode.com/hg/p/srv"
 	"time"
 )
 
