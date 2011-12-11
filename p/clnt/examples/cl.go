@@ -191,19 +191,18 @@ func walkone(c *clnt.Clnt, s string, fileok bool) {
 	ncwd := normpath(s)
 
 	fid, err := c.FWalk(ncwd)
+	defer c.Clunk(fid)
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "walk error: %s\n", err)
-		c.Clunk(fid)
 		return
 	}
 
 	if fileok != true && (fid.Type&p.QTDIR == 0) {
 		fmt.Fprintf(os.Stderr, "can't cd to file [%s]\n", ncwd)
-		c.Clunk(fid)
 		return
 	}
 
-	c.Clunk(fid)
 	cwd = ncwd
 }
 
