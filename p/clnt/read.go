@@ -5,7 +5,7 @@
 package clnt
 
 import "io"
-import "go9p.googlecode.com/hg/p"
+import "code.google.com/p/go9p/p"
 import "syscall"
 
 // Reads count bytes starting from offset from the file associated with the fid.

@@ -4,7 +4,7 @@
 
 package clnt
 
-import "go9p.googlecode.com/hg/p"
+import "code.google.com/p/go9p/p"
 import "syscall"
 
 // Write up to len(data) bytes starting from offset. Returns the

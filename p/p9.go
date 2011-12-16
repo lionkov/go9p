@@ -114,8 +114,8 @@ const (
 
 // Error represents a 9P2000 (and 9P2000.u) error
 type Error struct {
-	Err      string // textual representation of the error
-	Errornum syscall.Errno    // numeric representation of the error (9P2000.u)
+	Err      string        // textual representation of the error
+	Errornum syscall.Errno // numeric representation of the error (9P2000.u)
 }
 
 // File identifier

@@ -5,10 +5,10 @@
 package main
 
 import (
+	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p/p/srv"
 	"flag"
 	"fmt"
-	"go9p.googlecode.com/hg/p"
-	"go9p.googlecode.com/hg/p/srv"
 	"io"
 	"log"
 	"net/http"

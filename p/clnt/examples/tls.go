@@ -2,12 +2,12 @@
 package main
 
 import (
+	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p/p/clnt"
 	"crypto/rand"
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"go9p.googlecode.com/hg/p"
-	"go9p.googlecode.com/hg/p/clnt"
 	"log"
 	"os"
 )
