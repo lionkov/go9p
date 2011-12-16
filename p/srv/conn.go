@@ -5,8 +5,8 @@
 package srv
 
 import (
+	"code.google.com/p/go9p/p"
 	"fmt"
-	"go9p.googlecode.com/hg/p"
 	"log"
 	"net"
 )

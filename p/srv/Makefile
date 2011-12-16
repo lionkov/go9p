@@ -3,7 +3,7 @@ include $(GOROOT)/src/Make.inc
 STATS=
 #STATS=stats_http.go
 
-TARG=go9p.googlecode.com/hg/p/srv
+TARG=code.google.com/p/go9p/p/srv
 GOFILES=\
 	conn.go\
 	fcall.go\

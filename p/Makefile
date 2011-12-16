@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.inc
 
-TARG=go9p.googlecode.com/hg/p
+TARG=code.google.com/p/go9p/p
 GOFILES=\
 	fmt.go\
 	log.go\

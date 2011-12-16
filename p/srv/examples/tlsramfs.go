@@ -7,14 +7,14 @@
 package main
 
 import (
+	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p/p/srv"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"go9p.googlecode.com/hg/p"
-	"go9p.googlecode.com/hg/p/srv"
 	"log"
 	"math/big"
 	"net/http"

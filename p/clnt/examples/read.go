@@ -1,9 +1,9 @@
 package main
 
 import (
+	"code.google.com/p/go9p/p"
+	"code.google.com/p/go9p/p/clnt"
 	"flag"
-	"go9p.googlecode.com/hg/p"
-	"go9p.googlecode.com/hg/p/clnt"
 	"io"
 	"log"
 	"os"

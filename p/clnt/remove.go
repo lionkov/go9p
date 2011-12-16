@@ -4,7 +4,7 @@
 
 package clnt
 
-import "go9p.googlecode.com/hg/p"
+import "code.google.com/p/go9p/p"
 import "syscall"
 
 // Removes the file associated with the Fid. Returns nil if the

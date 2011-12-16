@@ -6,7 +6,7 @@
 // a 9P2000 file client.
 package clnt
 
-import "go9p.googlecode.com/hg/p"
+import "code.google.com/p/go9p/p"
 
 type Tag struct {
 	clnt     *Clnt

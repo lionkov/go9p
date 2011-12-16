@@ -5,7 +5,7 @@
 package srv
 
 import (
-	"go9p.googlecode.com/hg/p"
+	"code.google.com/p/go9p/p"
 	"log"
 	"sync"
 	"time"
