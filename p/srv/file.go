@@ -85,7 +85,7 @@ type File struct {
 	p.Dir
 	flags FFlags
 
-	parent        *File // parent
+	Parent        *File // parent
 	next, prev    *File // siblings, guarded by parent.Lock
 	cfirst, clast *File // children (if directory)
 	ops           interface{}
@@ -114,7 +114,7 @@ var Enotempty = &p.Error{"directory not empty", p.EPERM}
 func NewFileSrv(root *File) *Fsrv {
 	srv := new(Fsrv)
 	srv.Root = root
-	root.parent = root // make sure we can .. in root
+	root.Parent = root // make sure we can .. in root
 
 	return srv
 }
@@ -157,7 +157,7 @@ func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32,
 	f.Ext = ""
 
 	if dir != nil {
-		f.parent = dir
+		f.Parent = dir
 		dir.Lock()
 		for p := dir.cfirst; p != nil; p = p.next {
 			if name == p.Name {
@@ -177,7 +177,7 @@ func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32,
 		dir.clast = f
 		dir.Unlock()
 	} else {
-		f.parent = f
+		f.Parent = f
 	}
 
 	f.ops = ops
@@ -195,7 +195,7 @@ func (f *File) Remove() {
 	f.flags |= Fremoved
 	f.Unlock()
 
-	p := f.parent
+	p := f.Parent
 	p.Lock()
 	if f.next != nil {
 		f.next.prev = f.prev
@@ -215,7 +215,7 @@ func (f *File) Remove() {
 }
 
 func (f *File) Rename(name string) error {
-	p := f.parent
+	p := f.Parent
 	p.Lock()
 	defer p.Unlock()
 	for c := p.cfirst; c != nil; c = c.next {
@@ -310,7 +310,7 @@ func (*Fsrv) Walk(req *Req) {
 	for ; i < len(tc.Wname); i++ {
 		if tc.Wname[i] == ".." {
 			// handle dotdot
-			f = f.parent
+			f = f.Parent
 			wqids[i] = f.Qid
 			continue
 		}
