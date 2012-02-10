@@ -1,4 +1,4 @@
-// Copyright 2009 The Go Authors.  All rights reserved.
+// Copyright 2009 The go9p Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -35,16 +35,28 @@ var debug = flag.Int("d", 0, "print debug messages")
 var Enoent = &p.Error{"file not found", p.ENOENT}
 
 func toError(err error) *p.Error {
-	var ecode os.Errno
+	var ecode syscall.Errno
 
 	ename := err.Error()
-	if e, ok := err.(os.Errno); ok {
+	if e, ok := err.(syscall.Errno); ok {
 		ecode = e
 	} else {
 		ecode = p.EIO
 	}
 
-	return &p.Error{ename, int(ecode)}
+	return &p.Error{ename, ecode}
+}
+
+// IsBlock reports if the file is a block device
+func isBlock (d os.FileInfo) bool {
+	stat := d.Sys().(*syscall.Stat_t)
+	return (stat.Mode & syscall.S_IFMT) == syscall.S_IFBLK
+}
+
+// IsChar reports if the file is a character device
+func isChar (d os.FileInfo) bool {
+	stat := d.Sys().(*syscall.Stat_t)
+	return (stat.Mode & syscall.S_IFMT) == syscall.S_IFCHR
 }
 
 func (fid *Fid) stat() *p.Error {
@@ -88,8 +100,8 @@ func omode2uflags(mode uint8) int {
 func dir2Qid(d os.FileInfo) *p.Qid {
 	var qid p.Qid
 
-	qid.Path = d.Ino
-	qid.Version = uint32(d.ModTime() / 1000000)
+	qid.Path = d.Sys().(*syscall.Stat_t).Ino
+	qid.Version = uint32(d.ModTime().UnixNano() / 1000000)
 	qid.Type = dir2QidType(d)
 
 	return &qid
@@ -101,7 +113,7 @@ func dir2QidType(d os.FileInfo) uint8 {
 		ret |= p.QTDIR
 	}
 
-	if d.IsSymlink() {
+	if d.Mode()&os.ModeSymlink != 0 {
 		ret |= p.QTSYMLINK
 	}
 
@@ -115,27 +127,28 @@ func dir2Npmode(d os.FileInfo, dotu bool) uint32 {
 	}
 
 	if dotu {
-		if d.IsSymlink() {
+		mode := d.Mode()
+		if mode&os.ModeSymlink != 0 {
 			ret |= p.DMSYMLINK
 		}
 
-		if d.IsSocket() {
+		if mode&os.ModeSocket != 0 {
 			ret |= p.DMSOCKET
 		}
 
-		if d.IsFifo() {
+		if mode&os.ModeNamedPipe != 0 {
 			ret |= p.DMNAMEDPIPE
 		}
 
-		if d.IsBlock() || d.IsChar() {
+		if mode&os.ModeDevice != 0 {
 			ret |= p.DMDEVICE
 		}
 
-		if d.Mode()&syscall.S_ISUID > 0 {
+		if mode&os.ModeSetuid != 0 {
 			ret |= p.DMSETUID
 		}
 
-		if d.Mode()&syscall.S_ISGID > 0 {
+		if mode&os.ModeSetgid != 0 {
 			ret |= p.DMSETGID
 		}
 	}
@@ -144,15 +157,17 @@ func dir2Npmode(d os.FileInfo, dotu bool) uint32 {
 }
 
 func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
+	sysMode := d.Sys().(*syscall.Stat_t)
+
 	dir := new(p.Dir)
 	dir.Qid = *dir2Qid(d)
 	dir.Mode = dir2Npmode(d, dotu)
-	dir.Atime = uint32(d.Atime_ns / 1000000000)
-	dir.Mtime = uint32(d.ModTime() / 1000000000)
+	dir.Atime = uint32(atime(sysMode).Unix())
+	dir.Mtime = uint32(d.ModTime().Unix())
 	dir.Length = uint64(d.Size())
 
-	u := upool.Uid2User(int(d.Uid))
-	g := upool.Gid2Group(int(d.Gid))
+	u := upool.Uid2User(int(sysMode.Uid))
+	g := upool.Gid2Group(int(sysMode.Gid))
 	dir.Uid = u.Name()
 	if dir.Uid == "" {
 		dir.Uid = "none"
@@ -168,16 +183,16 @@ func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
 		dir.Uidnum = uint32(u.Id())
 		dir.Gidnum = uint32(g.Id())
 		dir.Muidnum = p.NOUID
-		if d.IsSymlink() {
+		if d.Mode()&os.ModeSymlink != 0 {
 			var err error
 			dir.Ext, err = os.Readlink(path)
 			if err != nil {
 				dir.Ext = ""
 			}
-		} else if d.IsBlock() {
-			dir.Ext = fmt.Sprintf("b %d %d", d.Rdev>>24, d.Rdev&0xFFFFFF)
-		} else if d.IsChar() {
-			dir.Ext = fmt.Sprintf("c %d %d", d.Rdev>>24, d.Rdev&0xFFFFFF)
+		} else if isBlock(d) {
+			dir.Ext = fmt.Sprintf("b %d %d", sysMode.Rdev>>24, sysMode.Rdev&0xFFFFFF)
+		} else if isChar(d) {
+			dir.Ext = fmt.Sprintf("c %d %d", sysMode.Rdev>>24, sysMode.Rdev&0xFFFFFF)
 		}
 	}
 
@@ -308,7 +323,7 @@ func (*Ufs) Create(req *srv.Req) {
 	var file *os.File = nil
 	switch {
 	case tc.Perm&p.DMDIR != 0:
-		e = os.Mkdir(path, tc.Perm&0777)
+		e = os.Mkdir(path, os.FileMode(tc.Perm&0777))
 
 	case tc.Perm&p.DMSYMLINK != 0:
 		e = os.Symlink(tc.Ext, path)
@@ -343,7 +358,7 @@ func (*Ufs) Create(req *srv.Req) {
 				mode |= syscall.S_ISGID
 			}
 		}
-		file, e = os.OpenFile(path, omode2uflags(tc.Mode)|os.O_CREATE, mode)
+		file, e = os.OpenFile(path, omode2uflags(tc.Mode)|os.O_CREATE, os.FileMode(mode))
 	}
 
 	if file == nil && e == nil {
@@ -406,7 +421,7 @@ func (*Ufs) Read(req *srv.Req) {
 			var i int
 			for i = 0; i < len(fid.dirs); i++ {
 				path := fid.path + "/" + fid.dirs[i].Name()
-				st := dir2Dir(path, &fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
+				st := dir2Dir(path, fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
 				sz := p.PackDir(st, b, req.Conn.Dotu)
 				if sz == 0 {
 					break
@@ -534,7 +549,7 @@ func (*Ufs) Wstat(req *srv.Req) {
 				mode |= syscall.S_ISGID
 			}
 		}
-		e := os.Chmod(fid.path, mode)
+		e := os.Chmod(fid.path, os.FileMode(mode))
 		if e != nil {
 			req.RespondError(toError(e))
 			return
@@ -551,10 +566,9 @@ func (*Ufs) Wstat(req *srv.Req) {
 
 	if dir.Name != "" {
 		path := fid.path[0:strings.LastIndex(fid.path, "/")+1] + "/" + dir.Name
-		errno := syscall.Rename(fid.path, path)
-		if errno != 0 {
-			e := os.Errno(errno)
-			req.RespondError(toError(e))
+		err := syscall.Rename(fid.path, path)
+		if err != nil {
+			req.RespondError(toError(err))
 			return
 		}
 		fid.path = path
