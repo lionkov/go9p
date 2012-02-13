@@ -420,14 +420,11 @@ func cmd(c *clnt.Clnt, cmd string) {
 }
 
 func interactive(c *clnt.Clnt) {
-	reader, ok := bufio.NewReaderSize(os.Stdin, 8192)
-	if ok != nil {
-		fmt.Fprintf(os.Stderr, "can't create reader buffer: %s\n", ok)
-	}
+	reader := bufio.NewReaderSize(os.Stdin, 8192)
 	for {
 		fmt.Print(*prompt)
-		line, ok := reader.ReadSlice('\n')
-		if ok != nil {
+		line, err := reader.ReadSlice('\n')
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "exiting...\n")
 			break
 		}
