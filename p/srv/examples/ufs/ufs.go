@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -48,13 +47,13 @@ func toError(err error) *p.Error {
 }
 
 // IsBlock reports if the file is a block device
-func isBlock (d os.FileInfo) bool {
+func isBlock(d os.FileInfo) bool {
 	stat := d.Sys().(*syscall.Stat_t)
 	return (stat.Mode & syscall.S_IFMT) == syscall.S_IFBLK
 }
 
 // IsChar reports if the file is a character device
-func isChar (d os.FileInfo) bool {
+func isChar(d os.FileInfo) bool {
 	stat := d.Sys().(*syscall.Stat_t)
 	return (stat.Mode & syscall.S_IFMT) == syscall.S_IFCHR
 }
@@ -592,7 +591,7 @@ func main() {
 	ufs.Id = "ufs"
 	ufs.Debuglevel = *debug
 	ufs.Start(ufs)
-	go http.ListenAndServe(":6060", nil)
+	srv.StartStatsServer()
 	err := ufs.StartNetListener("tcp", *addr)
 	if err != nil {
 		log.Println(err)

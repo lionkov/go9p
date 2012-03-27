@@ -10,7 +10,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 )
 
@@ -89,7 +88,7 @@ func (f *RFile) Write(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
 			}
 
 			//			if off>0 {
-			copy(blk, rsrv.zero /*[0:off]*/ )
+			copy(blk, rsrv.zero /*[0:off]*/)
 			//			}
 
 			f.data[n] = blk
@@ -240,7 +239,8 @@ func main() {
 	rsrv.srv.Start(rsrv.srv)
 	rsrv.srv.Id = "ramfs"
 	rsrv.srv.Log = l
-	go http.ListenAndServe(":6060", nil)
+
+	srv.StartStatsServer()
 
 	err = rsrv.srv.StartNetListener("tcp", *addr)
 	if err != nil {
