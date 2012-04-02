@@ -256,6 +256,7 @@ func main() {
 		Rand:         rand.Reader,
 		Certificates: cert,
 		CipherSuites: []uint16{tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA},
+		InsecureSkipVerify: true,
 	})
 	if oerr != nil {
 		log.Println("can't listen:", oerr)
