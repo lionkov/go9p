@@ -4,12 +4,20 @@
 
 package srv
 
+import "fmt"
 import "code.google.com/p/go9p/p"
 
 // Respond to the request with Rerror message
 func (req *Req) RespondError(err interface{}) {
-	e := err.(*p.Error)
-	p.PackRerror(req.Rc, e.Error(), uint32(e.Errornum), req.Conn.Dotu)
+	switch e := err.(type) {
+	case *p.Error:
+		p.PackRerror(req.Rc, e.Error(), uint32(e.Errornum), req.Conn.Dotu)
+	case error:
+		p.PackRerror(req.Rc, e.Error(), uint32(p.EIO), req.Conn.Dotu)
+	default:
+		p.PackRerror(req.Rc, fmt.Sprintf("%v", e), uint32(p.EIO), req.Conn.Dotu)
+	}
+
 	req.Respond()
 }
 
