@@ -227,6 +227,11 @@ func (srv *Srv) walkPost(req *Req) {
 		req.Newfid.Type = req.Fid.Type
 	}
 
+	// Don't retain the fid if only a partial walk succeeded
+	if n != len(req.Tc.Wname) {
+		return
+	}
+
 	if req.Newfid.fid != req.Fid.fid {
 		req.Newfid.IncRef()
 	}
