@@ -73,8 +73,11 @@ func (cl *ClFile) Write(fid *srv.FFid, data []byte, offset uint64) (int, error) 
 	return len(data), nil
 }
 
+func (cl *ClFile) Wstat(fid *srv.FFid, dir *p.Dir) error {
+	return nil
+}
+
 func (cl *ClFile) Remove(fid *srv.FFid) error {
-	log.Println("Remove")
 	return nil
 }
 
