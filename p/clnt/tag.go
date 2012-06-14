@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// The srv package provides definitions and functions used to implement
-// a 9P2000 file client.
 package clnt
 
 import "code.google.com/p/go9p/p"
