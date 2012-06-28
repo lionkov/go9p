@@ -31,6 +31,7 @@ type Ufs struct {
 
 var addr = flag.String("addr", ":5640", "network address")
 var debug = flag.Int("d", 0, "print debug messages")
+var root = flag.String("root", "/", "root filesystem")
 var Enoent = &p.Error{"file not found", p.ENOENT}
 
 func toError(err error) *p.Error {
@@ -233,7 +234,7 @@ func (*Ufs) Attach(req *srv.Req) {
 	tc := req.Tc
 	fid := new(Fid)
 	if len(tc.Aname) == 0 {
-		fid.path = "/"
+		fid.path = *root
 	} else {
 		fid.path = tc.Aname
 	}
