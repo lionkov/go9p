@@ -307,7 +307,7 @@ func (srv *Srv) read(req *Req) {
 	if (fid.Type & p.QTAUTH) != 0 {
 		var n int
 
-		rc := req.Tc
+		rc := req.Rc
 		err := p.InitRread(rc, tc.Count)
 		if err != nil {
 			req.RespondError(err)
