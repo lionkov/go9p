@@ -1,4 +1,4 @@
-// Copyright 2009 The Go Authors.  All rights reserved.
+// Copyright 2009 The Go9p Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -30,8 +30,8 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 
 	if int(fc.Size) > len(buf) || fc.Size < 7 {
 		return nil, &Error{fmt.Sprintf("buffer too short: %d expected %d",
-			len(buf), fc.Size),
-			EINVAL},
+				len(buf), fc.Size),
+				EINVAL},
 			0
 	}
 

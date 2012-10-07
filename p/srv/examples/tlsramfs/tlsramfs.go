@@ -1,4 +1,4 @@
-// Copyright 2009 The Go Authors.  All rights reserved.
+// Copyright 2009 The Go9p Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -253,9 +253,9 @@ func main() {
 	cert[0].PrivateKey = testPrivateKey
 
 	ls, oerr := tls.Listen("tcp", *addr, &tls.Config{
-		Rand:         rand.Reader,
-		Certificates: cert,
-		CipherSuites: []uint16{tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA},
+		Rand:               rand.Reader,
+		Certificates:       cert,
+		CipherSuites:       []uint16{tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA},
 		InsecureSkipVerify: true,
 	})
 	if oerr != nil {
