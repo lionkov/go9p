@@ -1,4 +1,4 @@
-// Copyright 2009 The Go Authors.  All rights reserved.
+// Copyright 2009 The Go9p Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -49,20 +49,20 @@ func initOsusers() {
 func (up *osUsers) Uid2User(uid int) User {
 	once.Do(initOsusers)
 	OsUsers.Lock()
+	defer OsUsers.Unlock()
 	user, present := OsUsers.users[uid]
 	if present {
-		OsUsers.Unlock()
 		return user
 	}
 
 	user = new(osUser)
 	user.uid = uid
 	OsUsers.users[uid] = user
-	OsUsers.Unlock()
 	return user
 }
 
 func (up *osUsers) Uname2User(uname string) User {
+	// unimplemented
 	return nil
 }
 
