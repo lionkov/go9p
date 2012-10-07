@@ -1,4 +1,4 @@
-// Copyright 2009 The Go Authors.  All rights reserved.
+// Copyright 2009 The Go9p Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -288,7 +288,7 @@ func gint16(buf []byte) (uint16, []byte) {
 
 func gint32(buf []byte) (uint32, []byte) {
 	return uint32(buf[0]) | (uint32(buf[1]) << 8) | (uint32(buf[2]) << 16) |
-		(uint32(buf[3]) << 24),
+			(uint32(buf[3]) << 24),
 		buf[4:len(buf)]
 }
 
@@ -296,8 +296,8 @@ func Gint32(buf []byte) (uint32, []byte) { return gint32(buf) }
 
 func gint64(buf []byte) (uint64, []byte) {
 	return uint64(buf[0]) | (uint64(buf[1]) << 8) | (uint64(buf[2]) << 16) |
-		(uint64(buf[3]) << 24) | (uint64(buf[4]) << 32) | (uint64(buf[5]) << 40) |
-		(uint64(buf[6]) << 48) | (uint64(buf[7]) << 56),
+			(uint64(buf[3]) << 24) | (uint64(buf[4]) << 32) | (uint64(buf[5]) << 40) |
+			(uint64(buf[6]) << 48) | (uint64(buf[7]) << 56),
 		buf[8:len(buf)]
 }
 
