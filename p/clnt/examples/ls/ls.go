@@ -24,17 +24,19 @@ func main() {
 	clnt.DefaultDebuglevel = *debuglevel
 	c, err = clnt.Mount("tcp", *addr, "", user)
 	if err != nil {
-		goto error
+		log.Fatal(err)
 	}
 
-	if flag.NArg() != 1 {
-		log.Println("invalid arguments")
-		return
+	lsarg := "/"
+	if flag.NArg() == 1 {
+		lsarg = flag.Arg(0)
+	} else if flag.NArg() > 1 {
+		log.Fatal("error: only one argument expected")
 	}
 
-	file, err = c.FOpen(flag.Arg(0), p.OREAD)
+	file, err = c.FOpen(lsarg, p.OREAD)
 	if err != nil {
-		goto error
+		log.Fatal(err)
 	}
 
 	for {
@@ -50,11 +52,8 @@ func main() {
 
 	file.Close()
 	if err != nil && err != io.EOF {
-		goto error
+		log.Fatal(err)
 	}
 
 	return
-
-error:
-	log.Println(err)
 }
