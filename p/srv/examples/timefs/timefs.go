@@ -39,21 +39,15 @@ func (*InfTime) Read(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
 }
 
 func (*Time) Read(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
-	t := time.Now().String()
-	b := []byte(t)
-	n := len(b)
-	if offset >= uint64(n) {
+	b := []byte(time.Now().String())
+	have := len(b)
+	off := int(offset)
+
+	if off >= have {
 		return 0, nil
 	}
 
-	b = b[int(offset):n]
-	n -= int(offset)
-	if len(buf) < n {
-		n = len(buf)
-	}
-
-	copy(buf[offset:int(offset)+n], b[offset:])
-	return n, nil
+	return copy(buf, b[off:]), nil
 }
 
 func main() {
