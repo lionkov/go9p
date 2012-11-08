@@ -280,16 +280,16 @@ var minFcusize = [...]uint32{
 	0,  /* Rbtrunc */
 }
 
-func gint8(buf []byte) (uint8, []byte) { return buf[0], buf[1:len(buf)] }
+func gint8(buf []byte) (uint8, []byte) { return buf[0], buf[1:] }
 
 func gint16(buf []byte) (uint16, []byte) {
-	return uint16(buf[0]) | (uint16(buf[1]) << 8), buf[2:len(buf)]
+	return uint16(buf[0]) | (uint16(buf[1]) << 8), buf[2:]
 }
 
 func gint32(buf []byte) (uint32, []byte) {
 	return uint32(buf[0]) | (uint32(buf[1]) << 8) | (uint32(buf[2]) << 16) |
 			(uint32(buf[3]) << 24),
-		buf[4:len(buf)]
+		buf[4:]
 }
 
 func Gint32(buf []byte) (uint32, []byte) { return gint32(buf) }
@@ -298,7 +298,7 @@ func gint64(buf []byte) (uint64, []byte) {
 	return uint64(buf[0]) | (uint64(buf[1]) << 8) | (uint64(buf[2]) << 16) |
 			(uint64(buf[3]) << 24) | (uint64(buf[4]) << 32) | (uint64(buf[5]) << 40) |
 			(uint64(buf[6]) << 48) | (uint64(buf[7]) << 56),
-		buf[8:len(buf)]
+		buf[8:]
 }
 
 func gstr(buf []byte) (string, []byte) {
@@ -313,7 +313,7 @@ func gstr(buf []byte) (string, []byte) {
 		return "", nil
 	}
 
-	return string(buf[0:n]), buf[n:len(buf)]
+	return string(buf[0:n]), buf[n:]
 }
 
 func gqid(buf []byte, qid *Qid) []byte {
@@ -372,13 +372,13 @@ func gstat(buf []byte, d *Dir, dotu bool) []byte {
 
 func pint8(val uint8, buf []byte) []byte {
 	buf[0] = val
-	return buf[1:len(buf)]
+	return buf[1:]
 }
 
 func pint16(val uint16, buf []byte) []byte {
 	buf[0] = uint8(val)
 	buf[1] = uint8(val >> 8)
-	return buf[2:len(buf)]
+	return buf[2:]
 }
 
 func pint32(val uint32, buf []byte) []byte {
@@ -386,7 +386,7 @@ func pint32(val uint32, buf []byte) []byte {
 	buf[1] = uint8(val >> 8)
 	buf[2] = uint8(val >> 16)
 	buf[3] = uint8(val >> 24)
-	return buf[4:len(buf)]
+	return buf[4:]
 }
 
 func pint64(val uint64, buf []byte) []byte {
@@ -398,7 +398,7 @@ func pint64(val uint64, buf []byte) []byte {
 	buf[5] = uint8(val >> 40)
 	buf[6] = uint8(val >> 48)
 	buf[7] = uint8(val >> 56)
-	return buf[8:len(buf)]
+	return buf[8:]
 }
 
 func pstr(val string, buf []byte) []byte {
@@ -406,7 +406,7 @@ func pstr(val string, buf []byte) []byte {
 	buf = pint16(n, buf)
 	b := []byte(val)
 	copy(buf, b)
-	return buf[n:len(buf)]
+	return buf[n:]
 }
 
 func pqid(val *Qid, buf []byte) []byte {
@@ -502,7 +502,7 @@ func NewFcall(sz uint32) *Fcall {
 // Sets the tag of a Fcall.
 func SetTag(fc *Fcall, tag uint16) {
 	fc.Tag = tag
-	pint16(tag, fc.Pkt[5:len(fc.Pkt)])
+	pint16(tag, fc.Pkt[5:])
 }
 
 func packCommon(fc *Fcall, size int, id uint8) ([]byte, error) {

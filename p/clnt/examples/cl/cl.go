@@ -374,6 +374,7 @@ func rmone(c *clnt.Clnt, f string) {
 		return
 	}
 }
+
 // Remove one or more files from the server
 func cmdrm(c *clnt.Clnt, s []string) {
 	for _, f := range s {
@@ -395,7 +396,7 @@ func cmdhelp(c *clnt.Clnt, s []string) {
 		}
 	} else {
 		cmdstr = "available commands: "
-		for k, _ := range cmds {
+		for k := range cmds {
 			cmdstr = cmdstr + " " + k
 		}
 		cmdstr = cmdstr + "\n"

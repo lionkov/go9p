@@ -439,11 +439,11 @@ func (*Fsrv) Read(req *Req) {
 				break
 			}
 
-			b = b[sz:len(b)]
+			b = b[sz:]
 			n += sz
 		}
 
-		fid.dirs = fid.dirs[i:len(fid.dirs)]
+		fid.dirs = fid.dirs[i:]
 	} else {
 		// file
 		if rop, ok := f.ops.(FReadOp); ok {

@@ -75,7 +75,7 @@ func (file *File) Readn(buf []byte, offset uint64) (int, error) {
 			break
 		}
 
-		buf = buf[n:len(buf)]
+		buf = buf[n:]
 		offset += uint64(n)
 		ret += n
 	}
@@ -107,7 +107,7 @@ func (file *File) Readdir(num int) ([]*p.Dir, error) {
 				return nil, perr
 			}
 
-			b = b[d.Size+2 : len(b)]
+			b = b[d.Size+2:]
 			if pos >= len(dirs) {
 				s := make([]*p.Dir, len(dirs)+32)
 				copy(s, dirs)

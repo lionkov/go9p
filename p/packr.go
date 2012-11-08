@@ -149,7 +149,7 @@ func SetRreadCount(fc *Fcall, count uint32) {
 	/* we need to update both the packet size as well as the data count */
 	size := 4 + 1 + 2 + 4 + count /* size[4] id[1] tag[2] count[4] data[count] */
 	pint32(size, fc.Pkt)
-	pint32(count, fc.Pkt[7:len(fc.Pkt)])
+	pint32(count, fc.Pkt[7:])
 	fc.Size = size
 	fc.Count = count
 	fc.Pkt = fc.Pkt[0:size]

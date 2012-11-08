@@ -63,7 +63,7 @@ func (file *File) Writen(buf []byte, offset uint64) (int, error) {
 			break
 		}
 
-		buf = buf[n:len(buf)]
+		buf = buf[n:]
 		offset += uint64(n)
 		ret += n
 	}
