@@ -24,7 +24,7 @@ func main() {
 	clnt.DefaultDebuglevel = *debuglevel
 
 	c, oerr := tls.Dial("tcp", *addr, &tls.Config{
-		Rand: rand.Reader,
+		Rand:               rand.Reader,
 		InsecureSkipVerify: true,
 	})
 	if oerr != nil {

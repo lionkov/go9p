@@ -178,7 +178,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 			goto szerror
 		}
 		fc.Data = p
-		p = p[fc.Count:len(p)]
+		p = p[fc.Count:]
 
 	case Twrite:
 		fc.Fid, p = gint32(p)
@@ -190,7 +190,7 @@ func Unpack(buf []byte, dotu bool) (fc *Fcall, err error, fcsz int) {
 			p = p[len(p):]
 		} else {
 			fc.Data = p
-			p = p[fc.Count:len(p)]
+			p = p[fc.Count:]
 		}
 
 	case Rwrite:

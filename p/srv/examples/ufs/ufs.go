@@ -196,7 +196,7 @@ func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
 		}
 	}
 
-	dir.Name = path[strings.LastIndex(path, "/")+1 : len(path)]
+	dir.Name = path[strings.LastIndex(path, "/")+1:]
 	return dir
 }
 
@@ -427,12 +427,12 @@ func (*Ufs) Read(req *srv.Req) {
 					break
 				}
 
-				b = b[sz:len(b)]
+				b = b[sz:]
 				count += sz
 			}
 
 			if i < len(fid.dirs) {
-				fid.dirs = fid.dirs[i:len(fid.dirs)]
+				fid.dirs = fid.dirs[i:]
 				break
 			} else {
 				fid.dirs = nil

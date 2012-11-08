@@ -43,7 +43,7 @@ func (clnt *Clnt) FWalk(path string) (*Fid, error) {
 	}
 
 	if i > 0 {
-		path = path[i:len(path)]
+		path = path[i:]
 	}
 
 	wnames := strings.Split(path, "/")
@@ -94,7 +94,7 @@ func (clnt *Clnt) FWalk(path string) (*Fid, error) {
 			newfid.Qid = fid.Qid
 		}
 
-		wnames = wnames[n:len(wnames)]
+		wnames = wnames[n:]
 		fid = newfid
 		if len(wnames) == 0 {
 			break

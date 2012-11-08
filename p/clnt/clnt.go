@@ -164,7 +164,7 @@ func (clnt *Clnt) recv() {
 			b = nil
 		}
 
-		n, oerr := clnt.conn.Read(buf[pos:len(buf)])
+		n, oerr := clnt.conn.Read(buf[pos:])
 		if oerr != nil || n == 0 {
 			err = &p.Error{oerr.Error(), p.EIO}
 			clnt.Lock()
@@ -320,7 +320,7 @@ func (clnt *Clnt) send() {
 					break
 				}
 
-				buf = buf[n:len(buf)]
+				buf = buf[n:]
 			}
 		}
 	}

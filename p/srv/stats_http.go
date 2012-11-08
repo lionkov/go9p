@@ -122,7 +122,7 @@ func StatsHandler(c http.ResponseWriter, r *http.Request) {
 }
 
 // StartStatsServer initializes and starts an http server displaying useful debugging
-// information about the available servers, the clients connected to them and 
+// information about the available servers, the clients connected to them and
 // statistics about the data transferred on each connection. It listens by default on
 // port :6060 and serves subdirectories under /go9p/
 //
