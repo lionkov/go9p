@@ -335,6 +335,7 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 	clnt.Dotu = dotu
 	clnt.Debuglevel = DefaultDebuglevel
 	clnt.Log = DefaultLogger
+	clnt.Id = c.RemoteAddr().String() + ":"
 	clnt.tagpool = newPool(uint32(p.NOTAG))
 	clnt.fidpool = newPool(p.NOFID)
 	clnt.reqout = make(chan *Req)
@@ -368,7 +369,6 @@ func NewClnt(c net.Conn, msize uint32, dotu bool) *Clnt {
 // connection. Returns a Clnt object, or Error.
 func Connect(c net.Conn, msize uint32, dotu bool) (*Clnt, error) {
 	clnt := NewClnt(c, msize, dotu)
-	clnt.Id = c.RemoteAddr().String() + ":"
 	ver := "9P2000"
 	if clnt.Dotu {
 		ver = "9P2000.u"
