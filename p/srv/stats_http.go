@@ -1,3 +1,6 @@
+
+// +build httpstats
+
 package srv
 
 import (
