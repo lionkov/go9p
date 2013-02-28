@@ -12,6 +12,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/user"
 	"strconv"
 	"strings"
 	"syscall"
@@ -157,16 +158,49 @@ func dir2Npmode(d os.FileInfo, dotu bool) uint32 {
 	return ret
 }
 
+// Dir is an instantiation of the p.Dir structure
+// that can act as a receiver for local methods.
+type Dir struct {
+	p.Dir
+}
+
 func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
 	sysMode := d.Sys().(*syscall.Stat_t)
 
-	dir := new(p.Dir)
+	dir := new(Dir)
 	dir.Qid = *dir2Qid(d)
 	dir.Mode = dir2Npmode(d, dotu)
 	dir.Atime = uint32(atime(sysMode).Unix())
 	dir.Mtime = uint32(d.ModTime().Unix())
 	dir.Length = uint64(d.Size())
+	dir.Name = path[strings.LastIndex(path, "/")+1:]
 
+	if dotu {
+		dir.dotu(path, d, upool, sysMode)
+		return &dir.Dir
+	}
+
+	unixUid := int(sysMode.Uid)
+	unixGid := int(sysMode.Gid)
+	dir.Uid = strconv.Itoa(unixUid)
+	dir.Gid = strconv.Itoa(unixGid)
+	dir.Muid = "none"
+
+	// BUG(akumar): LookupId will never find names for
+	// groups, as it only operates on user ids.
+	u, err := user.LookupId(dir.Uid)
+	if err == nil {
+		dir.Uid = u.Username
+	}
+	g, err := user.LookupId(dir.Gid)
+	if err == nil {
+		dir.Gid = g.Username
+	}
+
+	return &dir.Dir
+}
+
+func (dir *Dir) dotu(path string, d os.FileInfo, upool p.Users, sysMode *syscall.Stat_t) {
 	u := upool.Uid2User(int(sysMode.Uid))
 	g := upool.Gid2Group(int(sysMode.Gid))
 	dir.Uid = u.Name()
@@ -180,25 +214,20 @@ func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
 	}
 	dir.Muid = "none"
 	dir.Ext = ""
-	if dotu {
-		dir.Uidnum = uint32(u.Id())
-		dir.Gidnum = uint32(g.Id())
-		dir.Muidnum = p.NOUID
-		if d.Mode()&os.ModeSymlink != 0 {
-			var err error
-			dir.Ext, err = os.Readlink(path)
-			if err != nil {
-				dir.Ext = ""
-			}
-		} else if isBlock(d) {
-			dir.Ext = fmt.Sprintf("b %d %d", sysMode.Rdev>>24, sysMode.Rdev&0xFFFFFF)
-		} else if isChar(d) {
-			dir.Ext = fmt.Sprintf("c %d %d", sysMode.Rdev>>24, sysMode.Rdev&0xFFFFFF)
+	dir.Uidnum = uint32(u.Id())
+	dir.Gidnum = uint32(g.Id())
+	dir.Muidnum = p.NOUID
+	if d.Mode()&os.ModeSymlink != 0 {
+		var err error
+		dir.Ext, err = os.Readlink(path)
+		if err != nil {
+			dir.Ext = ""
 		}
+	} else if isBlock(d) {
+		dir.Ext = fmt.Sprintf("b %d %d", sysMode.Rdev>>24, sysMode.Rdev&0xFFFFFF)
+	} else if isChar(d) {
+		dir.Ext = fmt.Sprintf("c %d %d", sysMode.Rdev>>24, sysMode.Rdev&0xFFFFFF)
 	}
-
-	dir.Name = path[strings.LastIndex(path, "/")+1:]
-	return dir
 }
 
 func (*Ufs) ConnOpened(conn *srv.Conn) {
@@ -500,9 +529,26 @@ func (*Ufs) Stat(req *srv.Req) {
 	req.RespondRstat(st)
 }
 
-func (*Ufs) Wstat(req *srv.Req) {
-	var uid, gid uint32
+func lookup(uid string, group bool) (uint32, *p.Error) {
+	if uid == "" {
+		return p.NOUID, nil
+	}
+	usr, e := user.Lookup(uid)
+	if e != nil {
+		return p.NOUID, toError(e)
+	}
+	conv := usr.Uid
+	if group {
+		conv = usr.Gid
+	}
+	u, e := strconv.Atoi(conv)
+	if e != nil {
+		return p.NOUID, toError(e)
+	}
+	return uint32(u), nil
+}
 
+func (*Ufs) Wstat(req *srv.Req) {
 	fid := req.Fid.Aux.(*Fid)
 	err := fid.stat()
 	if err != nil {
@@ -511,35 +557,6 @@ func (*Ufs) Wstat(req *srv.Req) {
 	}
 
 	dir := &req.Tc.Dir
-	up := req.Conn.Srv.Upool
-	if req.Conn.Dotu {
-		uid = dir.Uidnum
-		gid = dir.Gidnum
-	} else {
-		uid = p.NOUID
-		gid = p.NOUID
-	}
-
-	if uid == p.NOUID && dir.Uid != "" {
-		user := up.Uname2User(dir.Uid)
-		if user == nil {
-			req.RespondError(srv.Enouser)
-			return
-		}
-
-		uid = uint32(user.Id())
-	}
-
-	if gid == p.NOUID && dir.Gid != "" {
-		group := up.Gname2Group(dir.Gid)
-		if group == nil {
-			req.RespondError(srv.Enouser)
-			return
-		}
-
-		gid = uint32(group.Id())
-	}
-
 	if dir.Mode != 0xFFFFFFFF {
 		mode := dir.Mode & 0777
 		if req.Conn.Dotu {
@@ -557,7 +574,31 @@ func (*Ufs) Wstat(req *srv.Req) {
 		}
 	}
 
-	if gid != 0xFFFFFFFF || uid != 0xFFFFFFFF {
+	uid, gid := p.NOUID, p.NOUID
+	if req.Conn.Dotu {
+		uid = dir.Uidnum
+		gid = dir.Gidnum
+	}
+
+	// Try to find local uid, gid by name.
+	if (dir.Uid != "" || dir.Gid != "") && !req.Conn.Dotu {
+		uid, err = lookup(dir.Uid, false)
+		if err != nil {
+			req.RespondError(err)
+			return
+		}
+
+		// BUG(akumar): Lookup will never find gids
+		// corresponding to group names, because
+		// it only operates on user names.
+		gid, err = lookup(dir.Gid, true)
+		if err != nil {
+			req.RespondError(err)
+			return
+		}
+	}
+
+	if uid != p.NOUID || gid != p.NOUID {
 		e := os.Chown(fid.path, int(uid), int(gid))
 		if e != nil {
 			req.RespondError(toError(e))
@@ -617,7 +658,10 @@ func main() {
 	ufs.Id = "ufs"
 	ufs.Debuglevel = *debug
 	ufs.Start(ufs)
-	srv.StartStatsServer()
+
+	// determined by build tags
+	extraFuncs()
+
 	err := ufs.StartNetListener("tcp", *addr)
 	if err != nil {
 		log.Println(err)
