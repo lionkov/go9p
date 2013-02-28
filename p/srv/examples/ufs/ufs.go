@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
 
 type Fid struct {
@@ -576,6 +577,30 @@ func (*Ufs) Wstat(req *srv.Req) {
 
 	if dir.Length != 0xFFFFFFFFFFFFFFFF {
 		e := os.Truncate(fid.path, int64(dir.Length))
+		if e != nil {
+			req.RespondError(toError(e))
+			return
+		}
+	}
+
+	// If either mtime or atime need to be changed, then
+	// we must change both.
+	if dir.Mtime != ^uint32(0) || dir.Atime != ^uint32(0) {
+		mt, at := time.Unix(int64(dir.Mtime), 0), time.Unix(int64(dir.Atime), 0)
+		if cmt, cat := (dir.Mtime == ^uint32(0)), (dir.Atime == ^uint32(0)); cmt || cat {
+			st, e := os.Stat(fid.path)
+			if e != nil {
+				req.RespondError(toError(e))
+				return
+			}
+			switch cmt {
+			case true:
+				mt = st.ModTime()
+			default:
+				at = atime(st.Sys().(*syscall.Stat_t))
+			}
+		}
+		e := os.Chtimes(fid.path, at, mt)
 		if e != nil {
 			req.RespondError(toError(e))
 			return
