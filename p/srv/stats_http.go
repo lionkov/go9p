@@ -1,4 +1,3 @@
-
 // +build httpstats
 
 package srv
@@ -42,14 +41,15 @@ func (srv *Srv) ServeHTTP(c http.ResponseWriter, r *http.Request) {
 	// connections
 	io.WriteString(c, "<h2>Connections</h2><p>")
 	srv.Lock()
-	if srv.connlist == nil {
+	defer srv.Unlock()
+	if len(srv.conns) == 0 {
 		io.WriteString(c, "none")
+		return
 	}
 
-	for conn := srv.connlist; conn != nil; conn = conn.next {
+	for _, conn := range srv.conns {
 		io.WriteString(c, fmt.Sprintf("<a href='/go9p/srv/%s/conn/%s'>%s</a><br>", srv.Id, conn.Id, conn.Id))
 	}
-	srv.Unlock()
 }
 
 func (conn *Conn) statsRegister() {
