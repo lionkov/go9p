@@ -23,11 +23,12 @@ func (srv *Srv) NewConn(c net.Conn) {
 	conn.reqout = make(chan *Req, srv.Maxpend)
 	conn.done = make(chan bool)
 	conn.rchan = make(chan *p.Fcall, 64)
-	conn.prev = nil
 
 	srv.Lock()
-	conn.next = srv.connlist
-	srv.connlist = conn
+	if srv.conns == nil {
+		srv.conns = make(map[*Conn]*Conn)
+	}
+	srv.conns[conn] = conn
 	srv.Unlock()
 
 	conn.Id = c.RemoteAddr().String()
@@ -41,6 +42,27 @@ func (srv *Srv) NewConn(c net.Conn) {
 
 	go conn.recv()
 	go conn.send()
+}
+
+func (conn *Conn) close() {
+	conn.done <- true
+	conn.Srv.Lock()
+	delete(conn.Srv.conns, conn)
+	conn.Srv.Unlock()
+
+	if sop, ok := (interface{}(conn)).(StatsOps); ok {
+		sop.statsUnregister()
+	}
+	if op, ok := (conn.Srv.ops).(ConnOps); ok {
+		op.ConnClosed(conn)
+	}
+
+	/* call FidDestroy for all remaining fids */
+	if op, ok := (conn.Srv.ops).(FidOps); ok {
+		for _, fid := range conn.fidpool {
+			op.FidDestroy(fid)
+		}
+	}
 }
 
 func (conn *Conn) recv() {
@@ -59,7 +81,8 @@ func (conn *Conn) recv() {
 
 		n, err = conn.conn.Read(buf[pos:])
 		if err != nil || n == 0 {
-			goto closed
+			conn.close()
+			return
 		}
 
 		pos += n
@@ -68,7 +91,8 @@ func (conn *Conn) recv() {
 			if sz > conn.Msize {
 				log.Println("bad client connection: ", conn.conn.RemoteAddr())
 				conn.conn.Close()
-				goto closed
+				conn.close()
+				return
 			}
 			if pos < int(sz) {
 				if len(buf) < int(sz) {
@@ -84,7 +108,8 @@ func (conn *Conn) recv() {
 			if err != nil {
 				log.Println(fmt.Sprintf("invalid packet : %v %v", err, buf))
 				conn.conn.Close()
-				goto closed
+				conn.close()
+				return
 			}
 
 			tag := fc.Tag
@@ -126,11 +151,7 @@ func (conn *Conn) recv() {
 			}
 			conn.Unlock()
 			if process {
-				if conn.Srv.Ngoroutines == 0 {
-					go req.process()
-				} else {
-					conn.Srv.Reqin <- req
-				}
+				go req.process()
 			}
 
 			buf = buf[fcsize:]
@@ -138,33 +159,7 @@ func (conn *Conn) recv() {
 		}
 	}
 
-closed:
-	conn.done <- true
-	conn.Srv.Lock()
-	if conn.prev != nil {
-		conn.prev.next = conn.next
-	} else {
-		conn.Srv.connlist = conn.next
-	}
-
-	if conn.next != nil {
-		conn.next.prev = conn.prev
-	}
-	conn.Srv.Unlock()
-	if sop, ok := (interface{}(conn)).(StatsOps); ok {
-		sop.statsUnregister()
-	}
-
-	if op, ok := (conn.Srv.ops).(ConnOps); ok {
-		op.ConnClosed(conn)
-	}
-
-	/* call FidDestroy for all remaining fids */
-	if op, ok := (conn.Srv.ops).(FidOps); ok {
-		for _, fid := range conn.fidpool {
-			op.FidDestroy(fid)
-		}
-	}
+	panic("unreached")
 }
 
 func (conn *Conn) send() {
@@ -209,6 +204,8 @@ func (conn *Conn) send() {
 			}
 		}
 	}
+
+	panic("unreached")
 }
 
 func (conn *Conn) RemoteAddr() net.Addr {

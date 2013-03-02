@@ -144,19 +144,16 @@ type StatsOps interface {
 // that implements the file server operations.
 type Srv struct {
 	sync.Mutex
-	Id          string    // Used for debugging and stats
-	Msize       uint32    // Maximum size of the 9P2000 messages supported by the server
-	Dotu        bool      // If true, the server supports the 9P2000.u extension
-	Debuglevel  int       // debug level
-	Upool       p.Users   // Interface for finding users and groups known to the file server
-	Maxpend     int       // Maximum pending outgoing requests
-	Ngoroutines int       // Number of goroutines handling requests, if 0, create a gorotine for each request
-	Reqin       chan *Req // Incoming requests
-	Log         *p.Logger
+	Id         string  // Used for debugging and stats
+	Msize      uint32  // Maximum size of the 9P2000 messages supported by the server
+	Dotu       bool    // If true, the server supports the 9P2000.u extension
+	Debuglevel int     // debug level
+	Upool      p.Users // Interface for finding users and groups known to the file server
+	Maxpend    int     // Maximum pending outgoing requests
+	Log        *p.Logger
 
-	ops interface{} // operations
-
-	connlist *Conn // List of connections
+	ops   interface{}     // operations
+	conns map[*Conn]*Conn // List of connections
 }
 
 // The Conn type represents a connection from a client to the file server
@@ -172,10 +169,9 @@ type Conn struct {
 	fidpool map[uint32]*Fid
 	reqs    map[uint16]*Req // all outstanding requests
 
-	reqout     chan *Req
-	rchan      chan *p.Fcall
-	done       chan bool
-	prev, next *Conn
+	reqout chan *Req
+	rchan  chan *p.Fcall
+	done   chan bool
 
 	// stats
 	nreqs   int    // number of requests processed by the server
@@ -248,12 +244,6 @@ func (srv *Srv) Start(ops interface{}) bool {
 		srv.Log = p.NewLogger(1024)
 	}
 
-	srv.Reqin = make(chan *Req, srv.Maxpend)
-	n := srv.Ngoroutines
-	for i := 0; i < n; i++ {
-		go srv.work()
-	}
-
 	if sop, ok := (interface{}(srv)).(StatsOps); ok {
 		sop.statsRegister()
 	}
@@ -289,12 +279,6 @@ func (req *Req) process() {
 		req.status |= reqSaved
 	}
 	req.Unlock()
-}
-
-func (srv *Srv) work() {
-	for req := <-srv.Reqin; req != nil; req = <-srv.Reqin {
-		req.process()
-	}
 }
 
 // Performs the default processing of a request. Initializes
@@ -468,11 +452,7 @@ func (req *Req) Respond() {
 
 	// process the next request with the same tag (if available)
 	if nextreq != nil {
-		if conn.Srv.Ngoroutines == 0 {
-			go nextreq.process()
-		} else {
-			conn.Srv.Reqin <- nextreq
-		}
+		go nextreq.process()
 	}
 
 	// respond to the flush messages
