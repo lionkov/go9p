@@ -18,9 +18,6 @@ func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, error) {
 	if err != nil {
 		return nil, err
 	}
-	if rc.Type == p.Rerror {
-		return nil, &p.Error{rc.Error, rc.Errornum}
-	}
 
 	return &rc.Dir, nil
 }
@@ -45,13 +42,6 @@ func (clnt *Clnt) Wstat(fid *Fid, dir *p.Dir) error {
 		return err
 	}
 
-	rc, err := clnt.Rpc(tc)
-	if err != nil {
-		return err
-	}
-	if rc.Type == p.Rerror {
-		return &p.Error{rc.Error, rc.Errornum}
-	}
-
-	return nil
+	_, err = clnt.Rpc(tc)
+	return err
 }

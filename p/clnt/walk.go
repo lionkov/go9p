@@ -76,10 +76,6 @@ func (clnt *Clnt) FWalk(path string) (*Fid, error) {
 		if err != nil {
 			goto error
 		}
-		if rc.Type == p.Rerror {
-			err = &p.Error{rc.Error, rc.Errornum}
-			goto error
-		}
 
 		newfid.walked = true
 		if len(rc.Wqid) != n {

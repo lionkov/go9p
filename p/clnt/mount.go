@@ -52,9 +52,6 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, error) {
 	if err != nil {
 		return nil, err
 	}
-	if rc.Type == p.Rerror {
-		return nil, &p.Error{rc.Error, rc.Errornum}
-	}
 
 	fid.Qid = rc.Qid
 	fid.User = user

@@ -27,9 +27,6 @@ func (clnt *Clnt) Read(fid *Fid, offset uint64, count uint32) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if rc.Type == p.Rerror {
-		return nil, &p.Error{rc.Error, rc.Errornum}
-	}
 
 	return rc.Data, nil
 }
