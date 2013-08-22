@@ -8,7 +8,6 @@ package p
 
 import (
 	"fmt"
-	"syscall"
 )
 
 // 9P2000 message types
@@ -102,20 +101,18 @@ const (
 
 // Error values
 const (
-	ECONNRESET = syscall.ECONNRESET
-	EEXIST     = syscall.EEXIST
-	EINVAL     = syscall.EINVAL
-	EIO        = syscall.EIO
-	ENOTDIR    = syscall.ENOTDIR
-	ENOENT     = syscall.ENOENT
-	ENOSYS     = syscall.ENOSYS
-	EPERM      = syscall.EPERM
+	EPERM      = 1
+	ENOENT     = 2
+	EIO        = 5
+	EEXIST     = 17
+	ENOTDIR    = 20
+	EINVAL     = 22
 )
 
 // Error represents a 9P2000 (and 9P2000.u) error
 type Error struct {
 	Err      string        // textual representation of the error
-	Errornum syscall.Errno // numeric representation of the error (9P2000.u)
+	Errornum uint32	       // numeric representation of the error (9P2000.u)
 }
 
 // File identifier

@@ -35,11 +35,11 @@ var root = flag.String("root", "/", "root filesystem")
 var Enoent = &p.Error{"file not found", p.ENOENT}
 
 func toError(err error) *p.Error {
-	var ecode syscall.Errno
+	var ecode uint32
 
 	ename := err.Error()
 	if e, ok := err.(syscall.Errno); ok {
-		ecode = e
+		ecode = uint32(e)
 	} else {
 		ecode = p.EIO
 	}
@@ -592,7 +592,6 @@ func main() {
 	ufs.Id = "ufs"
 	ufs.Debuglevel = *debug
 	ufs.Start(ufs)
-	srv.StartStatsServer()
 	err := ufs.StartNetListener("tcp", *addr)
 	if err != nil {
 		log.Println(err)

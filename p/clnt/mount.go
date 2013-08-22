@@ -7,7 +7,6 @@ package clnt
 import (
 	"code.google.com/p/go9p/p"
 	"net"
-	"syscall"
 )
 
 // Creates an authentication fid for the specified user. Returns the fid, if
@@ -54,7 +53,7 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, error) {
 		return nil, err
 	}
 	if rc.Type == p.Rerror {
-		return nil, &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
+		return nil, &p.Error{rc.Error, rc.Errornum}
 	}
 
 	fid.Qid = rc.Qid
@@ -92,7 +91,7 @@ func MountConn(c net.Conn, aname string, user p.User) (*Clnt, error) {
 // Closes the connection to the file sever.
 func (clnt *Clnt) Unmount() {
 	clnt.Lock()
-	clnt.err = &p.Error{"connection closed", p.ECONNRESET}
+	clnt.err = &p.Error{"connection closed", p.EIO}
 	clnt.conn.Close()
 	clnt.Unlock()
 }
