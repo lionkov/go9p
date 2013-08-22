@@ -240,8 +240,6 @@ func main() {
 	rsrv.srv.Id = "ramfs"
 	rsrv.srv.Log = l
 
-	srv.StartStatsServer()
-
 	err = rsrv.srv.StartNetListener("tcp", *addr)
 	if err != nil {
 		goto error
