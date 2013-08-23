@@ -370,6 +370,7 @@ func (*Fsrv) Open(req *Req) {
 		err := op.Open(fid, tc.Mode)
 		if err != nil {
 			req.RespondError(err)
+			return
 		}
 	}
 	req.RespondRopen(&fid.F.Qid, 0)
