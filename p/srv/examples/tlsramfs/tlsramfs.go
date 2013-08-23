@@ -246,7 +246,6 @@ func main() {
 	rsrv.srv.Start(rsrv.srv)
 	rsrv.srv.Id = "ramfs"
 	rsrv.srv.Log = l
-	srv.StartStatsServer()
 
 	cert := make([]tls.Certificate, 1)
 	cert[0].Certificate = [][]byte{testCertificate}

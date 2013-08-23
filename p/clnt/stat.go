@@ -5,7 +5,6 @@
 package clnt
 
 import "code.google.com/p/go9p/p"
-import "syscall"
 
 // Returns the metadata for the file associated with the Fid, or an Error.
 func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, error) {
@@ -18,9 +17,6 @@ func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, error) {
 	rc, err := clnt.Rpc(tc)
 	if err != nil {
 		return nil, err
-	}
-	if rc.Type == p.Rerror {
-		return nil, &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
 	}
 
 	return &rc.Dir, nil
@@ -46,13 +42,6 @@ func (clnt *Clnt) Wstat(fid *Fid, dir *p.Dir) error {
 		return err
 	}
 
-	rc, err := clnt.Rpc(tc)
-	if err != nil {
-		return err
-	}
-	if rc.Type == p.Rerror {
-		return &p.Error{rc.Error, syscall.Errno(rc.Errornum)}
-	}
-
-	return nil
+	_, err = clnt.Rpc(tc)
+	return err
 }
