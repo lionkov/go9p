@@ -303,7 +303,7 @@ func (req *Req) Process() {
 
 	switch req.Tc.Type {
 	default:
-		req.RespondError(&p.Error{"unknown message type", p.ENOSYS})
+		req.RespondError(&p.Error{"unknown message type", p.EINVAL})
 
 	case p.Tversion:
 		srv.version(req)

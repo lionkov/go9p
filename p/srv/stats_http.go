@@ -12,6 +12,7 @@ import (
 
 var mux sync.RWMutex
 var stat map[string]http.Handler
+var once sync.Once
 
 func register(s string, h http.Handler) {
 	mux.Lock()
@@ -27,6 +28,11 @@ func register(s string, h http.Handler) {
 	mux.Unlock()
 }
 func (srv *Srv) statsRegister() {
+	once.Do(func() {
+		http.HandleFunc("/go9p/", StatsHandler)
+		go http.ListenAndServe(":6060", nil)
+	}
+		
 	register("/go9p/srv/"+srv.Id, srv)
 }
 
@@ -122,16 +128,4 @@ func StatsHandler(c http.ResponseWriter, r *http.Request) {
 		io.WriteString(c, "</body></html>")
 	}
 	mux.RUnlock()
-}
-
-// StartStatsServer initializes and starts an http server displaying useful debugging
-// information about the available servers, the clients connected to them and
-// statistics about the data transferred on each connection. It listens by default on
-// port :6060 and serves subdirectories under /go9p/
-//
-// If StartStatsServer isn't called the interface is not initialized. The StartStatsServer
-// function can be called at any time. Information about the available servers is kept up-to-date.
-func StartStatsServer() {
-	http.HandleFunc("/go9p/", StatsHandler)
-	go http.ListenAndServe(":6060", nil)
 }
