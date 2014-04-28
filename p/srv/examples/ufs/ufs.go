@@ -659,8 +659,6 @@ func main() {
 	ufs.Debuglevel = *debug
 	ufs.Start(ufs)
 
-	// determined by build tags
-	extraFuncs()
 	err := ufs.StartNetListener("tcp", *addr)
 	if err != nil {
 		log.Println(err)
