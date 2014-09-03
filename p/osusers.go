@@ -4,31 +4,36 @@
 
 package p
 
-import "sync"
+import (
+	"os/user"
+	"strconv"
+	"sync"
+)
 
 var once sync.Once
 
 type osUser struct {
+	*user.User
 	uid int
+	gid int
 }
 
 type osUsers struct {
-	users  map[int]*osUser
 	groups map[int]*osGroup
 	sync.Mutex
 }
 
-// Simple Users implementation that fakes looking up users and groups
-// by uid only. The names and groups memberships are empty
+// Simple Users implementation that defers to os/user and fakes
+// looking up groups by gid only.
 var OsUsers *osUsers
 
-func (u *osUser) Name() string { return "" }
+func (u *osUser) Name() string { return u.Username }
 
 func (u *osUser) Id() int { return u.uid }
 
-func (u *osUser) Groups() []Group { return nil }
+func (u *osUser) Groups() []Group { return []Group{OsUsers.Gid2Group(u.gid)} }
 
-func (u *osUser) IsMember(g Group) bool { return false }
+func (u *osUser) IsMember(g Group) bool { return u.gid == g.Id() }
 
 type osGroup struct {
 	gid int
@@ -42,28 +47,33 @@ func (g *osGroup) Members() []User { return nil }
 
 func initOsusers() {
 	OsUsers = new(osUsers)
-	OsUsers.users = make(map[int]*osUser)
 	OsUsers.groups = make(map[int]*osGroup)
 }
 
-func (up *osUsers) Uid2User(uid int) User {
-	once.Do(initOsusers)
-	OsUsers.Lock()
-	defer OsUsers.Unlock()
-	user, present := OsUsers.users[uid]
-	if present {
-		return user
+func newUser(u *user.User) *osUser {
+	uid, uerr := strconv.Atoi(u.Uid)
+	gid, gerr := strconv.Atoi(u.Gid)
+	if uerr != nil || gerr != nil {
+		/* non-numeric uid/gid => unsupported system */
+		return nil
 	}
+	return &osUser{u, uid, gid}
+}
 
-	user = new(osUser)
-	user.uid = uid
-	OsUsers.users[uid] = user
-	return user
+func (up *osUsers) Uid2User(uid int) User {
+	u, err := user.LookupId(strconv.Itoa(uid))
+	if err != nil {
+		return nil
+	}
+	return newUser(u)
 }
 
 func (up *osUsers) Uname2User(uname string) User {
-	// unimplemented
-	return nil
+	u, err := user.Lookup(uname)
+	if err != nil {
+		return nil
+	}
+	return newUser(u)
 }
 
 func (up *osUsers) Gid2Group(gid int) Group {
