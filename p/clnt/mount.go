@@ -24,6 +24,7 @@ func (clnt *Clnt) Auth(user p.User, aname string) (*Fid, error) {
 		return nil, err
 	}
 
+	fid.Iounit = clnt.Msize - p.IOHDRSZ
 	fid.User = user
 	fid.walked = true
 	return fid, nil
