@@ -454,6 +454,10 @@ func NewFile(f *Fid, offset uint64) *File {
     return &File{f, offset}
 }
 
+func (f *File) Fid() *Fid {
+	return f.fid
+}
+
 func (clnt *Clnt) logFcall(fc *p.Fcall) {
 	if clnt.Debuglevel&DbgLogPackets != 0 {
 		pkt := make([]byte, len(fc.Pkt))
