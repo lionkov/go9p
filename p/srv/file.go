@@ -88,7 +88,7 @@ type File struct {
 	Parent        *File // parent
 	next, prev    *File // siblings, guarded by parent.Lock
 	cfirst, clast *File // children (if directory)
-	ops           interface{}
+	Ops           interface{}
 }
 
 type FFid struct {
@@ -180,7 +180,7 @@ func (f *File) Add(dir *File, name string, uid p.User, gid p.Group, mode uint32,
 		f.Parent = f
 	}
 
-	f.ops = ops
+	f.Ops = ops
 	return nil
 }
 
@@ -366,7 +366,7 @@ func (*Fsrv) Open(req *Req) {
 		return
 	}
 
-	if op, ok := (fid.F.ops).(FOpenOp); ok {
+	if op, ok := (fid.F.Ops).(FOpenOp); ok {
 		err := op.Open(fid, tc.Mode)
 		if err != nil {
 			req.RespondError(err)
@@ -386,7 +386,7 @@ func (*Fsrv) Create(req *Req) {
 		return
 	}
 
-	if cop, ok := (dir.ops).(FCreateOp); ok {
+	if cop, ok := (dir.Ops).(FCreateOp); ok {
 		f, err := cop.Create(fid, tc.Name, tc.Perm)
 		if err != nil {
 			req.RespondError(err)
@@ -447,7 +447,7 @@ func (*Fsrv) Read(req *Req) {
 		fid.dirs = fid.dirs[i:]
 	} else {
 		// file
-		if rop, ok := f.ops.(FReadOp); ok {
+		if rop, ok := f.Ops.(FReadOp); ok {
 			n, err = rop.Read(fid, rc.Data, tc.Offset)
 			if err != nil {
 				req.RespondError(err)
@@ -468,7 +468,7 @@ func (*Fsrv) Write(req *Req) {
 	f := fid.F
 	tc := req.Tc
 
-	if wop, ok := (f.ops).(FWriteOp); ok {
+	if wop, ok := (f.Ops).(FWriteOp); ok {
 		n, err := wop.Write(fid, tc.Data, tc.Offset)
 		if err != nil {
 			req.RespondError(err)
@@ -484,7 +484,7 @@ func (*Fsrv) Write(req *Req) {
 func (*Fsrv) Clunk(req *Req) {
 	fid := req.Fid.Aux.(*FFid)
 
-	if op, ok := (fid.F.ops).(FClunkOp); ok {
+	if op, ok := (fid.F.Ops).(FClunkOp); ok {
 		err := op.Clunk(fid)
 		if err != nil {
 			req.RespondError(err)
@@ -504,7 +504,7 @@ func (*Fsrv) Remove(req *Req) {
 	}
 	f.Unlock()
 
-	if rop, ok := (f.ops).(FRemoveOp); ok {
+	if rop, ok := (f.Ops).(FRemoveOp); ok {
 		err := rop.Remove(fid)
 		if err != nil {
 			req.RespondError(err)
@@ -522,7 +522,7 @@ func (*Fsrv) Stat(req *Req) {
 	fid := req.Fid.Aux.(*FFid)
 	f := fid.F
 
-	if sop, ok := (f.ops).(FStatOp); ok {
+	if sop, ok := (f.Ops).(FStatOp); ok {
 		err := sop.Stat(fid)
 		if err != nil {
 			req.RespondError(err)
@@ -539,7 +539,7 @@ func (*Fsrv) Wstat(req *Req) {
 	fid := req.Fid.Aux.(*FFid)
 	f := fid.F
 
-	if wop, ok := (f.ops).(FWstatOp); ok {
+	if wop, ok := (f.Ops).(FWstatOp); ok {
 		err := wop.Wstat(fid, &tc.Dir)
 		if err != nil {
 			req.RespondError(err)
@@ -562,7 +562,7 @@ func (*Fsrv) FidDestroy(ffid *Fid) {
 		return // otherwise errs in bad walks
 	}
 
-	if op, ok := (f.ops).(FDestroyOp); ok {
+	if op, ok := (f.Ops).(FDestroyOp); ok {
 		op.FidDestroy(fid)
 	}
 }
