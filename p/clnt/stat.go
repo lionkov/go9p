@@ -4,7 +4,7 @@
 
 package clnt
 
-import "code.google.com/p/go9p/p"
+import "github.com/lionkov/go9p/p"
 
 // Returns the metadata for the file associated with the Fid, or an Error.
 func (clnt *Clnt) Stat(fid *Fid) (*p.Dir, error) {

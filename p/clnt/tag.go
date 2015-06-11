@@ -4,7 +4,7 @@
 
 package clnt
 
-import "code.google.com/p/go9p/p"
+import "github.com/lionkov/go9p/p"
 
 type Tag struct {
 	clnt     *Clnt

@@ -5,7 +5,7 @@
 package clnt
 
 import (
-	"code.google.com/p/go9p/p"
+	"github.com/lionkov/go9p/p"
 	"net"
 )
 

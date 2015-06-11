@@ -7,8 +7,8 @@
 package main
 
 import (
-	"code.google.com/p/go9p/p"
-	"code.google.com/p/go9p/p/srv"
+	"github.com/lionkov/go9p/p"
+	"github.com/lionkov/go9p/p/srv"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
