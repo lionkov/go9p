@@ -17,7 +17,7 @@ var testunpackbytes = []byte{
 func TestUnpackDir(t *testing.T) {
 	for _, b := range [][]byte{testunpackbytes,} {
 		var err error
-		if _, err = UnpackDir(b, true); err != nil {
+		if _, _, err = UnpackDir(b, true); err != nil {
 			t.Errorf("Unpackdir: %v", err)
 		}
 	}

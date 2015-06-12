@@ -101,18 +101,18 @@ const (
 
 // Error values
 const (
-	EPERM      = 1
-	ENOENT     = 2
-	EIO        = 5
-	EEXIST     = 17
-	ENOTDIR    = 20
-	EINVAL     = 22
+	EPERM   = 1
+	ENOENT  = 2
+	EIO     = 5
+	EEXIST  = 17
+	ENOTDIR = 20
+	EINVAL  = 22
 )
 
 // Error represents a 9P2000 (and 9P2000.u) error
 type Error struct {
-	Err      string        // textual representation of the error
-	Errornum uint32	       // numeric representation of the error (9P2000.u)
+	Err      string // textual representation of the error
+	Errornum uint32 // numeric representation of the error (9P2000.u)
 }
 
 // File identifier
@@ -462,8 +462,8 @@ func PackDir(d *Dir, buf []byte, dotu bool) int {
 // Converts the on-the-wire representation of a stat to Stat value.
 // Returns an error if the conversion is impossible, otherwise
 // a pointer to a Stat value.
-func UnpackDir(buf []byte, dotu bool) (d *Dir, err error) {
-	sz := 2 + 2 + 4 + 13 + 4 + /* size[2] type[2] dev[4] qid[13] mode[4] */
+func UnpackDir(buf []byte, dotu bool) (d *Dir, sz int, err error) {
+	sz = 2 + 2 + 4 + 13 + 4 + /* size[2] type[2] dev[4] qid[13] mode[4] */
 		4 + 4 + 8 + /* atime[4] mtime[4] length[8] */
 		2 + 2 + 2 + 2 /* name[s] uid[s] gid[s] muid[s] */
 
@@ -481,10 +481,10 @@ func UnpackDir(buf []byte, dotu bool) (d *Dir, err error) {
 		goto szerror
 	}
 
-	return d, nil
+	return d, sz, nil
 
 szerror:
-	return nil, &Error{"short buffer", EINVAL}
+	return nil, -1, &Error{"short buffer", EINVAL}
 
 }
 

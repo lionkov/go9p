@@ -100,12 +100,12 @@ func (file *File) Readdir(num int) ([]*p.Dir, error) {
 		}
 
 		for b := buf[0:n]; len(b) > 0; {
-			d, perr := p.UnpackDir(b, file.fid.Clnt.Dotu)
+			d, sz, perr := p.UnpackDir(b, file.fid.Clnt.Dotu)
 			if perr != nil {
 				return nil, perr
 			}
 
-			b = b[d.Size+2:]
+			b = b[sz:]
 			if pos >= len(dirs) {
 				s := make([]*p.Dir, len(dirs)+32)
 				copy(s, dirs)
