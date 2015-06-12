@@ -419,7 +419,6 @@ func statsz(d *Dir, dotu bool) int {
 	if dotu {
 		sz += 2 + 4 + 4 + 4 + len(d.Ext)
 	}
-
 	return sz
 }
 
@@ -463,6 +462,9 @@ func PackDir(d *Dir, buf []byte, dotu bool) int {
 // Returns an error if the conversion is impossible, otherwise
 // a pointer to a Stat value.
 func UnpackDir(buf []byte, dotu bool) (d *Dir, sz int, err error) {
+	// NOTE: THIS IS WRONG. 
+	// It does not count the strings. So, this test doesn't test
+	// anything.
 	sz = 2 + 2 + 4 + 13 + 4 + /* size[2] type[2] dev[4] qid[13] mode[4] */
 		4 + 4 + 8 + /* atime[4] mtime[4] length[8] */
 		2 + 2 + 2 + 2 /* name[s] uid[s] gid[s] muid[s] */
@@ -481,7 +483,7 @@ func UnpackDir(buf []byte, dotu bool) (d *Dir, sz int, err error) {
 		goto szerror
 	}
 
-	return d, sz, nil
+	return d, int(d.Size + 2), nil
 
 szerror:
 	return nil, -1, &Error{"short buffer", EINVAL}

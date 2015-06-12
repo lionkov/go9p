@@ -16,7 +16,7 @@ import (
 
 var addr = flag.String("addr", ":5640", "network address")
 var pipefsaddr = flag.String("pipefsaddr", ":5641", "pipefs network address")
-var debug = flag.Int("debug", 0, "print debug messages")
+var debug = flag.Int("debug", 255, "print debug messages")
 
 func TestAttachOpenReaddir(t *testing.T) {
 	var err error
@@ -67,7 +67,6 @@ func TestAttachOpenReaddir(t *testing.T) {
 	if b, err = clnt.Read(dirfid, 0, 64*1024); err != nil {
 		t.Fatalf("%v", err)
 	}
-	if false {
 	for b != nil && len(b) > 0 {
 		t.Logf("len(b) %v\n", len(b))
 		if d, sz, err := p.UnpackDir(b, ufs.Dotu); err != nil {
@@ -76,7 +75,6 @@ func TestAttachOpenReaddir(t *testing.T) {
 			t.Logf("Unpacked: %d \n", d)
 			b = b[sz:]
 		}
-	}
 	}
 	// now test partial reads.
 	// Read 128 bytes at a time. Remember the last successful offset.
