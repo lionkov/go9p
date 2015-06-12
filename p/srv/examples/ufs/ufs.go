@@ -9,7 +9,6 @@ import (
 	"log"
 
 	"github.com/lionkov/go9p/p/srv/ufs"
-	"github.com/lionkov/go9p/p/clnt"
 )
 
 var (
