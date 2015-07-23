@@ -411,7 +411,7 @@ func (clnt *Clnt) NewFcall() *p.Fcall {
 }
 
 func (clnt *Clnt) FreeFcall(fc *p.Fcall) {
-	if fc != nil && len(fc.Buf) >= int(clnt.Msize) {
+	if false && fc != nil && len(fc.Buf) >= int(clnt.Msize) {
 		select {
 		case clnt.tchan <- fc:
 			break
