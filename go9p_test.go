@@ -10,13 +10,59 @@ import (
 	"testing"
 
 	"github.com/lionkov/go9p/p"
-	"github.com/lionkov/go9p/p/srv/ufs"
 	"github.com/lionkov/go9p/p/clnt"
+	"github.com/lionkov/go9p/p/srv/ufs"
 )
 
 var addr = flag.String("addr", ":5640", "network address")
 var pipefsaddr = flag.String("pipefsaddr", ":5641", "pipefs network address")
-var debug = flag.Int("debug", 255, "print debug messages")
+var attachaddr = flag.String("attachaddr", ":5642", "attach test network address")
+var debug = flag.Int("debug", 0, "print debug messages")
+
+func TestAttach(t *testing.T) {
+	var err error
+	flag.Parse()
+	ufs := new(ufs.Ufs)
+	ufs.Dotu = false
+	ufs.Id = "ufs"
+	ufs.Debuglevel = *debug
+	ufs.Start(ufs)
+
+	t.Log("ufs starting\n")
+	// determined by build tags
+	//extraFuncs()
+	go func() {
+		if err = ufs.StartNetListener("tcp", *attachaddr); err != nil {
+			t.Fatalf("Can not start listener: %v", err)
+		}
+	}()
+	/* this may take a few tries ... */
+	var conn net.Conn
+	for i := 0; i < 16; i++ {
+		if conn, err = net.Dial("tcp", *attachaddr); err != nil {
+			t.Logf("Try go connect, %d'th try, %v", i, err)
+		} else {
+			t.Logf("Got a conn, %v\n", conn)
+			break
+		}
+	}
+	if err != nil {
+		t.Fatalf("Connect failed after many tries ...")
+	}
+
+	root := p.OsUsers.Uid2User(0)
+	clnt := clnt.NewClnt(conn, 8192, false)
+	// run enough attaches to maybe let the race detector trip.
+	for i := 0; i < 65536; i++ {
+		_, err := clnt.Attach(nil, root, "/tmp")
+
+		if err != nil {
+			t.Fatalf("Connect failed: %v\n", err)
+		}
+		defer clnt.Unmount()
+
+	}
+}
 
 func TestAttachOpenReaddir(t *testing.T) {
 	var err error
@@ -105,4 +151,3 @@ func TestAttachOpenReaddir(t *testing.T) {
 		}
 	}
 }
-
