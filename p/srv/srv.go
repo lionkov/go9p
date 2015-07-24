@@ -166,10 +166,10 @@ type Conn struct {
 	Debuglevel int
 
 	conn    net.Conn
-	fidpool map[uint32]*Fid
-	reqs    map[uint16]*Req // all outstanding requests
+	Fidpool map[uint32]*Fid
+	Reqs    map[uint16]*Req // all outstanding requests
 
-	reqout chan *Req
+	Reqout chan *Req
 	rchan  chan *p.Fcall
 	done   chan bool
 
@@ -435,7 +435,7 @@ func (req *Req) Respond() {
 
 		flushreqs = nil
 	} else {
-		delete(conn.reqs, req.Tc.Tag)
+		delete(conn.Reqs, req.Tc.Tag)
 		flushreqs = req.flushreq
 	}
 	conn.Unlock()
@@ -447,7 +447,7 @@ func (req *Req) Respond() {
 	}
 
 	if (status & reqFlush) == 0 {
-		conn.reqout <- req
+		conn.Reqout <- req
 	}
 
 	// process the next request with the same tag (if available)
@@ -478,7 +478,7 @@ func (req *Req) Flush() {
 // longer needs it.
 func (conn *Conn) FidGet(fidno uint32) *Fid {
 	conn.Lock()
-	fid, present := conn.fidpool[fidno]
+	fid, present := conn.Fidpool[fidno]
 	conn.Unlock()
 	if present {
 		fid.IncRef()
@@ -492,7 +492,7 @@ func (conn *Conn) FidGet(fidno uint32) *Fid {
 // has reference count set to 1.
 func (conn *Conn) FidNew(fidno uint32) *Fid {
 	conn.Lock()
-	_, present := conn.fidpool[fidno]
+	_, present := conn.Fidpool[fidno]
 	if present {
 		conn.Unlock()
 		return nil
@@ -502,7 +502,7 @@ func (conn *Conn) FidNew(fidno uint32) *Fid {
 	fid.fid = fidno
 	fid.refcount = 1
 	fid.Fconn = conn
-	conn.fidpool[fidno] = fid
+	conn.Fidpool[fidno] = fid
 	conn.Unlock()
 
 	return fid
@@ -533,7 +533,7 @@ func (fid *Fid) DecRef() {
 
 	conn := fid.Fconn
 	conn.Lock()
-	delete(conn.fidpool, fid.fid)
+	delete(conn.Fidpool, fid.fid)
 	conn.Unlock()
 
 	if fop, ok := (conn.Srv.ops).(FidOps); ok {

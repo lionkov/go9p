@@ -18,9 +18,9 @@ func (srv *Srv) NewConn(c net.Conn) {
 	conn.Dotu = srv.Dotu
 	conn.Debuglevel = srv.Debuglevel
 	conn.conn = c
-	conn.fidpool = make(map[uint32]*Fid)
-	conn.reqs = make(map[uint16]*Req)
-	conn.reqout = make(chan *Req, srv.Maxpend)
+	conn.Fidpool = make(map[uint32]*Fid)
+	conn.Reqs = make(map[uint16]*Req)
+	conn.Reqout = make(chan *Req, srv.Maxpend)
 	conn.done = make(chan bool)
 	conn.rchan = make(chan *p.Fcall, 64)
 
@@ -59,7 +59,7 @@ func (conn *Conn) close() {
 
 	/* call FidDestroy for all remaining fids */
 	if op, ok := (conn.Srv.ops).(FidOps); ok {
-		for _, fid := range conn.fidpool {
+		for _, fid := range conn.Fidpool {
 			op.FidDestroy(fid)
 		}
 	}
@@ -143,8 +143,8 @@ func (conn *Conn) recv() {
 				conn.maxpend = conn.npend
 			}
 
-			req.next = conn.reqs[tag]
-			conn.reqs[tag] = req
+			req.next = conn.Reqs[tag]
+			conn.Reqs[tag] = req
 			process := req.next == nil
 			if req.next != nil {
 				req.next.prev = req
@@ -168,7 +168,7 @@ func (conn *Conn) send() {
 		case <-conn.done:
 			return
 
-		case req := <-conn.reqout:
+		case req := <-conn.Reqout:
 			p.SetTag(req.Rc, req.Tc.Tag)
 			conn.Lock()
 			conn.rsz += uint64(req.Rc.Size)

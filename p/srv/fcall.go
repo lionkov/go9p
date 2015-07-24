@@ -29,7 +29,7 @@ func (srv *Srv) version(req *Req) {
 
 	/* make sure that the responses of all current requests will be ignored */
 	conn.Lock()
-	for tag, r := range conn.reqs {
+	for tag, r := range conn.Reqs {
 		if tag == p.NOTAG {
 			continue
 		}
@@ -150,7 +150,7 @@ func (srv *Srv) flush(req *Req) {
 	tag := req.Tc.Oldtag
 	p.PackRflush(req.Rc)
 	conn.Lock()
-	r := conn.reqs[tag]
+	r := conn.Reqs[tag]
 	if r != nil {
 		req.flushreq = r.flushreq
 		r.flushreq = req
