@@ -61,17 +61,17 @@ func (clnt *Clnt) Attach(afid *Fid, user p.User, aname string) (*Fid, error) {
 }
 
 // Connects to a file server and attaches to it as the specified user.
-func Mount(ntype, addr, aname string, user p.User) (*Clnt, error) {
+func Mount(ntype, addr, aname string, msize uint32, user p.User) (*Clnt, error) {
 	c, e := net.Dial(ntype, addr)
 	if e != nil {
 		return nil, &p.Error{e.Error(), p.EIO}
 	}
 
-	return MountConn(c, aname, user)
+	return MountConn(c, aname, msize, user)
 }
 
-func MountConn(c net.Conn, aname string, user p.User) (*Clnt, error) {
-	clnt, err := Connect(c, 8192+p.IOHDRSZ, true)
+func MountConn(c net.Conn, aname string, msize uint32, user p.User) (*Clnt, error) {
+	clnt, err := Connect(c, msize+p.IOHDRSZ, true)
 	if err != nil {
 		return nil, err
 	}
