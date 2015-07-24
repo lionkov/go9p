@@ -279,7 +279,7 @@ func (*Ufs) FidDestroy(sfid *srv.Fid) {
 	}
 }
 
-func (*Ufs) Attach(req *srv.Req) {
+func (u *Ufs) Attach(req *srv.Req) {
 	if req.Afid != nil {
 		req.RespondError(srv.Enoauth)
 		return
@@ -291,7 +291,7 @@ func (*Ufs) Attach(req *srv.Req) {
 	// You can think of the ufs.Root as a 'chroot' of a sort.
 	// client attaches are not allowed to go outside the
 	// directory represented by ufs.Root
-	fid.path = path.Join(*root, tc.Aname)
+	fid.path = path.Join(u.Root, tc.Aname)
 
 	req.Fid.Aux = fid
 	err := fid.stat()
