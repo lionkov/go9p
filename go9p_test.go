@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"strconv"
 	"testing"
 
 	"github.com/lionkov/go9p/p"
@@ -149,7 +150,8 @@ func TestAttachOpenReaddir(t *testing.T) {
 	var i, amt int
 	var offset uint64
 	err = nil
-
+	found := make([]int, *numDir)
+	fail := false
 	for err == nil {
 		if b, err = clnt.Read(dirfid, offset, 64*1024); err != nil {
 			t.Fatalf("%v", err)
@@ -169,11 +171,23 @@ func TestAttachOpenReaddir(t *testing.T) {
 				}
 				i++
 				offset += uint64(amt)
+				ix, err := strconv.Atoi(d.Name)
+				if err != nil {
+					t.Errorf("File name %v is wrong; %v (dirent %v)", d.Name, err, d)
+					continue
+				}
+				if found[ix] > 0 {
+					t.Errorf("Element %d already returned %d times", ix, found[ix])
+				}
+				found[ix]++
 			}
 		}
 	}
 	if i != *numDir {
 		t.Fatalf("Reading %v: got %d entries, wanted %d, err %v", tmpDir, i, *numDir, err)
+	}
+	if fail {
+		t.Fatalf("I give up")
 	}
 
 	t.Logf("-----------------------------> Alternate form, using readdir and File")
@@ -186,14 +200,28 @@ func TestAttachOpenReaddir(t *testing.T) {
 	err = nil
 	passes := 0
 
+	found = make([]int, *numDir)
+	fail = false
 	for err == nil {
 		d, err := dirfile.Readdir(*numDir)
 		if err != nil && err != io.EOF {
 			t.Errorf("%v", err)
 		}
 
+		t.Logf("d is %v", d)
 		if len(d) == 0 {
 			break
+		}
+		for _, v := range d {
+			ix, err := strconv.Atoi(v.Name)
+			if err != nil {
+				t.Errorf("File name %v is wrong; %v (dirent %v)", v.Name, err, v)
+				continue
+			}
+			if found[ix] > 0 {
+				t.Errorf("Element %d already returned %d times", ix, found[ix])
+			}
+			found[ix]++
 		}
 		i += len(d)
 		if i >= *numDir {
