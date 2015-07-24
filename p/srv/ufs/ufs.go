@@ -20,13 +20,13 @@ import (
 )
 
 type Fid struct {
-	path      string
-	file      *os.File
-	dirs      []os.FileInfo
-	diroffset uint64
+	path       string
+	file       *os.File
+	dirs       []os.FileInfo
+	diroffset  uint64
 	direntends []int
 	dirents    []byte
-	st        os.FileInfo
+	st         os.FileInfo
 }
 
 type Ufs struct {
@@ -435,7 +435,8 @@ func (*Ufs) Create(req *srv.Req) {
 	req.RespondRcreate(dir2Qid(fid.st), 0)
 }
 
-func (*Ufs) Read(req *srv.Req) {
+func (u *Ufs) Read(req *srv.Req) {
+	dbg := u.Debuglevel&srv.DbgLogFcalls != 0
 	fid := req.Fid.Aux.(*Fid)
 	tc := req.Tc
 	rc := req.Rc
@@ -464,18 +465,30 @@ func (*Ufs) Read(req *srv.Req) {
 				return
 			}
 
+			if dbg {
+				log.Printf("Read: read %d entries", len(fid.dirs))
+			}
 			fid.dirents = nil
 			fid.direntends = nil
 			for i := 0; i < len(fid.dirs); i++ {
 				path := fid.path + "/" + fid.dirs[i].Name()
-				st, _ := dir2Dir(path, fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
-				if st == nil {
+				st, err := dir2Dir(path, fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
+				if err != nil {
+					if dbg {
+						log.Printf("dbg: stat of %v: %v", path, err)
+					}
 					continue
+				}
+				if dbg {
+					log.Printf("Stat: %v is %v", path, st)
 				}
 				b := p.PackDir(st, req.Conn.Dotu)
 				fid.dirents = append(fid.dirents, b...)
 				count += len(b)
 				fid.direntends = append(fid.direntends, count)
+				if dbg {
+					log.Printf("fid.direntends is %v\n", fid.direntends)
+				}
 			}
 		}
 
@@ -488,6 +501,9 @@ func (*Ufs) Read(req *srv.Req) {
 			count = len(fid.dirents[tc.Offset:])
 		}
 
+		if dbg {
+			log.Printf("readdir: count %v @ offset %v", count, tc.Offset)
+		}
 		nextend := sort.SearchInts(fid.direntends, int(tc.Offset)+count)
 		if nextend < len(fid.direntends) {
 			if fid.direntends[nextend] > int(tc.Offset)+count {
@@ -498,11 +514,14 @@ func (*Ufs) Read(req *srv.Req) {
 				}
 			}
 		}
+		if dbg {
+			log.Printf("readdir: count adjusted %v @ offset %v", count, tc.Offset)
+		}
 		if count == 0 && int(tc.Offset) < len(fid.dirents) && len(fid.dirents) > 0 {
 			req.RespondError(&p.Error{"too small read size for dir entry", p.EINVAL})
 			return
 		}
-
+		copy(rc.Data, fid.dirents[tc.Offset:int(tc.Offset)+count])
 	} else {
 		count, e = fid.file.ReadAt(rc.Data, int64(tc.Offset))
 		if e != nil && e != io.EOF {
@@ -586,7 +605,7 @@ func lookup(uid string, group bool) (uint32, *p.Error) {
 	return uint32(u), nil
 }
 
-func (u*Ufs) Wstat(req *srv.Req) {
+func (u *Ufs) Wstat(req *srv.Req) {
 	fid := req.Fid.Aux.(*Fid)
 	err := fid.stat()
 	if err != nil {
@@ -701,7 +720,6 @@ func (u*Ufs) Wstat(req *srv.Req) {
 	req.RespondRwstat()
 }
 
-func New() (*Ufs) {
-	return &Ufs{Root: *root,}
+func New() *Ufs {
+	return &Ufs{Root: *root}
 }
-

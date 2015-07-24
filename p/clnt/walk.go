@@ -48,6 +48,9 @@ func (clnt *Clnt) FWalk(path string) (*Fid, error) {
 	wnames := strings.Split(path, "/")
 	newfid := clnt.FidAlloc()
 	fid := clnt.Root
+	if fid == nil {
+		panic("clnt.Root is nil")
+	}
 	newfid.User = fid.User
 
 	/* get rid of the empty names */

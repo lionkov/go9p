@@ -6,6 +6,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -18,6 +20,7 @@ import (
 )
 
 var debug = flag.Int("debug", 0, "print debug messages")
+var numDir = flag.Int("numdir", 16384, "Number of directory entries for readdir testing")
 
 // Two files, dotu was true.
 var testunpackbytes = []byte{
@@ -86,15 +89,14 @@ func TestAttachOpenReaddir(t *testing.T) {
 	ufs.Id = "ufs"
 	ufs.Debuglevel = *debug
 	ufs.Start(ufs)
-	var offset uint64
 	tmpDir, err := ioutil.TempDir("", "go9")
 	if err != nil {
 		t.Fatal("Can't create temp directory")
 	}
-	defer os.RemoveAll(tmpDir)
+	//defer os.RemoveAll(tmpDir)
 	ufs.Root = tmpDir
 
-	t.Log("ufs starting\n")
+	t.Logf("ufs starting in %v\n", tmpDir)
 	// determined by build tags
 	//extraFuncs()
 	l, err := net.Listen("tcp", "")
@@ -116,6 +118,8 @@ func TestAttachOpenReaddir(t *testing.T) {
 	}
 
 	clnt := clnt.NewClnt(conn, 8192, false)
+	// packet debugging on clients is broken.
+	clnt.Debuglevel = 0 // *debug
 	root := p.OsUsers.Uid2User(0)
 	rootfid, err := clnt.Attach(nil, root, tmpDir)
 	if err != nil {
@@ -126,6 +130,15 @@ func TestAttachOpenReaddir(t *testing.T) {
 	if _, err = clnt.Walk(rootfid, dirfid, []string{"."}); err != nil {
 		t.Fatalf("%v", err)
 	}
+
+	// Now create a whole bunch of files to test readdir
+	for i := 0; i < *numDir; i++ {
+		f := fmt.Sprintf(path.Join(tmpDir, fmt.Sprintf("%d", i)))
+		if err := ioutil.WriteFile(f, []byte(f), 0600); err != nil {
+			t.Fatalf("Create %v: got %v, want nil", f, err)
+		}
+	}
+
 	if err = clnt.Open(dirfid, 0); err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -133,41 +146,66 @@ func TestAttachOpenReaddir(t *testing.T) {
 	if b, err = clnt.Read(dirfid, 0, 64*1024); err != nil {
 		t.Fatalf("%v", err)
 	}
-	var amt int
-	for b != nil && len(b) > 0 {
-		t.Logf("len(b) %v\n", len(b))
-		if _, b, amt, err = p.UnpackDir(b, ufs.Dotu); err != nil {
-			break
-		} else {
-			offset += uint64(amt)
-		}
-	}
-	// now test partial reads.
-	// Read 128 bytes at a time. Remember the last successful offset.
-	// if UnpackDir fails, read again from that offset
-	t.Logf("NOW TRY PARTIAL")
+	var i, amt int
+	var offset uint64
+	err = nil
 
-	for {
-		var b []byte
-		if b, err = clnt.Read(dirfid, offset, 128); err != nil {
+	for err == nil {
+		if b, err = clnt.Read(dirfid, offset, 64*1024); err != nil {
 			t.Fatalf("%v", err)
 		}
+		t.Logf("clnt.Read returns [%v,%v]", len(b), err)
 		if len(b) == 0 {
 			break
 		}
-		t.Logf("b %v\n", b)
 		for b != nil && len(b) > 0 {
-			t.Logf("len(b) %v\n", len(b))
-			if d, _, amt, err := p.UnpackDir(b, ufs.Dotu); err != nil {
-				// this error is expected ...
-				t.Logf("unpack failed (it's ok!). retry at offset %v\n",
-					offset)
+			var d *p.Dir
+			if d, b, amt, err = p.UnpackDir(b, ufs.Dotu); err != nil {
+				t.Errorf("UnpackDir returns %v", err)
 				break
 			} else {
-				t.Logf("d %v\n", d)
+				if *debug > 128 {
+					t.Logf("Entry %d: %v", i, d)
+				}
+				i++
 				offset += uint64(amt)
 			}
 		}
+	}
+	if i != *numDir {
+		t.Fatalf("Reading %v: got %d entries, wanted %d, err %v", tmpDir, i, *numDir, err)
+	}
+
+	t.Logf("-----------------------------> Alternate form, using readdir and File")
+	// Alternate form, using readdir and File
+	dirfile, err := clnt.FOpen(".", p.OREAD)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	i, amt, offset = 0, 0, 0
+	err = nil
+	passes := 0
+
+	for err == nil {
+		d, err := dirfile.Readdir(*numDir)
+		if err != nil && err != io.EOF {
+			t.Errorf("%v", err)
+		}
+
+		if len(d) == 0 {
+			break
+		}
+		i += len(d)
+		if i >= *numDir {
+			break
+		}
+		if passes > *numDir {
+			t.Fatalf("%d iterations, %d read: no progress", passes, i)
+		}
+		passes++
+	}
+	if i != *numDir {
+		t.Fatalf("Readdir %v: got %d entries, wanted %d", tmpDir, i, *numDir)
 	}
 }
 
@@ -185,7 +223,7 @@ func TestRename(t *testing.T) {
 	if err != nil {
 		t.Fatal("Can't create temp directory")
 	}
-	//defer os.RemoveAll(tmpDir)
+	defer os.RemoveAll(tmpDir)
 	ufs.Root = tmpDir
 	t.Log("ufs starting in %v", tmpDir)
 	// determined by build tags

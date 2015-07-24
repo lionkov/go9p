@@ -5,8 +5,8 @@
 package clnt
 
 import (
-	"io"
 	"github.com/lionkov/go9p/p"
+	"io"
 )
 
 // Reads count bytes starting from offset from the file associated with the fid.
@@ -87,7 +87,7 @@ func (file *File) Readn(buf []byte, offset uint64) (int, error) {
 // an Error.
 func (file *File) Readdir(num int) ([]*p.Dir, error) {
 	buf := make([]byte, file.fid.Clnt.Msize-p.IOHDRSZ)
-	dirs := make([]*p.Dir, 32)
+	dirs := make([]*p.Dir, 0)
 	pos := 0
 	offset := uint64(0)
 	defer func() {
@@ -96,11 +96,11 @@ func (file *File) Readdir(num int) ([]*p.Dir, error) {
 	for {
 		n, err := file.Read(buf)
 		if err != nil && err != io.EOF {
-			return nil, err
+			return dirs[0:pos], err
 		}
 
 		if n == 0 {
-			break
+			return dirs[0:pos], io.EOF
 		}
 
 		for b := buf[0:n]; len(b) > 0; {
@@ -114,7 +114,6 @@ func (file *File) Readdir(num int) ([]*p.Dir, error) {
 				return nil, perr
 			}
 
-			b = b[d.Size+2:]
 			offset += uint64(d.Size + 2)
 			if pos >= len(dirs) {
 				s := make([]*p.Dir, len(dirs)+32)
@@ -129,6 +128,5 @@ func (file *File) Readdir(num int) ([]*p.Dir, error) {
 			}
 		}
 	}
-
 	return dirs[0:pos], nil
 }
