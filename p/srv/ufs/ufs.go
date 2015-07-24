@@ -45,13 +45,21 @@ func toError(err error) *p.Error {
 
 // IsBlock reports if the file is a block device
 func isBlock(d os.FileInfo) bool {
-	stat := d.Sys().(*syscall.Stat_t)
+	sysif := d.Sys()
+	if sysif == nil {
+		return false
+	}
+	stat := sysif.(*syscall.Stat_t)
 	return (stat.Mode & syscall.S_IFMT) == syscall.S_IFBLK
 }
 
 // IsChar reports if the file is a character device
 func isChar(d os.FileInfo) bool {
-	stat := d.Sys().(*syscall.Stat_t)
+	sysif := d.Sys()
+	if sysif == nil {
+		return false
+	}
+	stat := sysif.(*syscall.Stat_t)
 	return (stat.Mode & syscall.S_IFMT) == syscall.S_IFCHR
 }
 
@@ -95,8 +103,13 @@ func omode2uflags(mode uint8) int {
 
 func dir2Qid(d os.FileInfo) *p.Qid {
 	var qid p.Qid
+	sysif := d.Sys()
+	if sysif == nil {
+		return nil
+	}
+	stat := sysif.(*syscall.Stat_t)
 
-	qid.Path = d.Sys().(*syscall.Stat_t).Ino
+	qid.Path = stat.Ino
 	qid.Version = uint32(d.ModTime().UnixNano() / 1000000)
 	qid.Type = dir2QidType(d)
 
@@ -159,7 +172,12 @@ type Dir struct {
 }
 
 func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
-	sysMode := d.Sys().(*syscall.Stat_t)
+	sysif := d.Sys()
+	if sysif == nil {
+		return nil
+	}
+	sysMode := sysif.(*syscall.Stat_t)
+
 
 	dir := new(Dir)
 	dir.Qid = *dir2Qid(d)
