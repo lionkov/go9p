@@ -426,6 +426,7 @@ func (*Fsrv) Read(req *Req) {
 
 		n = 0
 		b := rc.Data
+		// only return whole entries.
 		for i = 0; i < len(fid.dirs); i++ {
 			g := fid.dirs[i]
 			g.Lock()
@@ -434,14 +435,15 @@ func (*Fsrv) Read(req *Req) {
 				continue
 			}
 
-			sz := p.PackDir(&g.Dir, b, req.Conn.Dotu)
+			nd := p.PackDir(&g.Dir, req.Conn.Dotu)
 			g.Unlock()
-			if sz == 0 {
+
+			if len(nd) > len(b) {
 				break
 			}
-
-			b = b[sz:]
-			n += sz
+			copy(b, nd)
+			b = b[len(nd):]
+			n += len(nd)
 		}
 		fid.dirs = fid.dirs[i:]
 	} else {

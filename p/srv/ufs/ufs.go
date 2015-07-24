@@ -9,6 +9,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -23,6 +24,8 @@ type Fid struct {
 	file      *os.File
 	dirs      []os.FileInfo
 	diroffset uint64
+	direntends []int
+	dirents    []byte
 	st        os.FileInfo
 }
 
@@ -446,52 +449,60 @@ func (*Ufs) Read(req *srv.Req) {
 	var count int
 	var e error
 	if fid.st.IsDir() {
-		b := rc.Data
 		if tc.Offset == 0 {
+			var e error
+			// If we got here, it was open. Can't really seek
+			// in most cases, just close and reopen it.
 			fid.file.Close()
-			fid.file, e = os.OpenFile(fid.path, omode2uflags(req.Fid.Omode), 0)
-			if e != nil {
+			if fid.file, e = os.OpenFile(fid.path, omode2uflags(req.Fid.Omode), 0); e != nil {
 				req.RespondError(toError(e))
 				return
 			}
-		}
 
-		for len(b) > 0 {
-			if fid.dirs == nil {
-				fid.dirs, e = fid.file.Readdir(16)
-				if e != nil && e != io.EOF {
-					req.RespondError(toError(e))
-					return
-				}
-
-				if len(fid.dirs) == 0 {
-					break
-				}
+			if fid.dirs, e = fid.file.Readdir(-1); e != nil {
+				req.RespondError(toError(e))
+				return
 			}
 
-			var i int
-			for i = 0; i < len(fid.dirs); i++ {
+			fid.dirents = nil
+			fid.direntends = nil
+			for i := 0; i < len(fid.dirs); i++ {
 				path := fid.path + "/" + fid.dirs[i].Name()
-				st, err := dir2Dir(path, fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
-				if err != nil {
+				st, _ := dir2Dir(path, fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
+				if st == nil {
 					continue
 				}
-				sz := p.PackDir(st, b, req.Conn.Dotu)
-				if sz == 0 {
-					break
-				}
-
-				b = b[sz:]
-				count += sz
-			}
-
-			if i < len(fid.dirs) {
-				fid.dirs = fid.dirs[i:]
-				break
-			} else {
-				fid.dirs = nil
+				b := p.PackDir(st, req.Conn.Dotu)
+				fid.dirents = append(fid.dirents, b...)
+				count += len(b)
+				fid.direntends = append(fid.direntends, count)
 			}
 		}
+
+		switch {
+		case tc.Offset > uint64(len(fid.dirents)):
+			count = 0
+		case len(fid.dirents[tc.Offset:]) > int(tc.Count):
+			count = int(tc.Count)
+		default:
+			count = len(fid.dirents[tc.Offset:])
+		}
+
+		nextend := sort.SearchInts(fid.direntends, int(tc.Offset)+count)
+		if nextend < len(fid.direntends) {
+			if fid.direntends[nextend] > int(tc.Offset)+count {
+				if nextend > 0 {
+					count = fid.direntends[nextend-1] - int(tc.Offset)
+				} else {
+					count = 0
+				}
+			}
+		}
+		if count == 0 && int(tc.Offset) < len(fid.dirents) && len(fid.dirents) > 0 {
+			req.RespondError(&p.Error{"too small read size for dir entry", p.EINVAL})
+			return
+		}
+
 	} else {
 		count, e = fid.file.ReadAt(rc.Data, int64(tc.Offset))
 		if e != nil && e != io.EOF {
