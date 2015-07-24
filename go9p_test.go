@@ -72,6 +72,7 @@ func TestAttachOpenReaddir(t *testing.T) {
 	ufs.Id = "ufs"
 	ufs.Debuglevel = *debug
 	ufs.Start(ufs)
+	var offset uint64
 
 	t.Log("ufs starting\n")
 	// determined by build tags
@@ -113,20 +114,20 @@ func TestAttachOpenReaddir(t *testing.T) {
 	if b, err = clnt.Read(dirfid, 0, 64*1024); err != nil {
 		t.Fatalf("%v", err)
 	}
+	var amt int
 	for b != nil && len(b) > 0 {
 		t.Logf("len(b) %v\n", len(b))
-		if d, sz, err := p.UnpackDir(b, ufs.Dotu); err != nil {
-			t.Fatalf("Unpackdir: %v", err)
+		if _, b, amt, err = p.UnpackDir(b, ufs.Dotu); err != nil {
+			break
 		} else {
-			t.Logf("Unpacked: %d \n", d)
-			b = b[sz:]
+			offset += uint64(amt)
 		}
 	}
 	// now test partial reads.
 	// Read 128 bytes at a time. Remember the last successful offset.
 	// if UnpackDir fails, read again from that offset
 	t.Logf("NOW TRY PARTIAL")
-	offset := uint64(0)
+
 	for {
 		var b []byte
 		if b, err = clnt.Read(dirfid, offset, 128); err != nil {
@@ -138,7 +139,7 @@ func TestAttachOpenReaddir(t *testing.T) {
 		t.Logf("b %v\n", b)
 		for b != nil && len(b) > 0 {
 			t.Logf("len(b) %v\n", len(b))
-			if d, amt, err := p.UnpackDir(b, ufs.Dotu); err != nil {
+			if d, _, amt, err := p.UnpackDir(b, ufs.Dotu); err != nil {
 				// this error is expected ...
 				t.Logf("unpack failed (it's ok!). retry at offset %v\n",
 					offset)
@@ -146,7 +147,6 @@ func TestAttachOpenReaddir(t *testing.T) {
 			} else {
 				t.Logf("d %v\n", d)
 				offset += uint64(amt)
-				b = b[amt:]
 			}
 		}
 	}

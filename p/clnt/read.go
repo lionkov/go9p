@@ -89,6 +89,10 @@ func (file *File) Readdir(num int) ([]*p.Dir, error) {
 	buf := make([]byte, file.fid.Clnt.Msize-p.IOHDRSZ)
 	dirs := make([]*p.Dir, 32)
 	pos := 0
+	offset := uint64(0)
+	defer func() {
+		file.offset = offset
+	}()
 	for {
 		n, err := file.Read(buf)
 		if err != nil && err != io.EOF {
@@ -100,12 +104,18 @@ func (file *File) Readdir(num int) ([]*p.Dir, error) {
 		}
 
 		for b := buf[0:n]; len(b) > 0; {
-			d, sz, perr := p.UnpackDir(b, file.fid.Clnt.Dotu)
+			d, _, _, perr := p.UnpackDir(b, file.Fid().Clnt.Dotu)
 			if perr != nil {
+				// If we have unpacked anything, it is almost certainly
+				// a too-short buffer. So return what we got.
+				if pos > 0 {
+					return dirs[0:pos], nil
+				}
 				return nil, perr
 			}
 
-			b = b[sz:]
+			b = b[d.Size+2:]
+			offset += uint64(d.Size + 2)
 			if pos >= len(dirs) {
 				s := make([]*p.Dir, len(dirs)+32)
 				copy(s, dirs)
