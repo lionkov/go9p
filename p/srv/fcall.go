@@ -334,8 +334,13 @@ func (srv *Srv) read(req *Req) {
 		if tc.Offset == 0 {
 			fid.Diroffset = 0
 		} else if tc.Offset != fid.Diroffset {
-			req.RespondError(Ebadoffset)
-			return
+			// This used to be an error, at this
+			// level. But maybe the provider can handle
+			// offsets that change. In one version of 9p
+			// we were able to support arbitrary
+			// offsets. At the least, we're going to let
+			// the provider decide if this is an error.
+			fid.Diroffset = tc.Offset
 		}
 	}
 

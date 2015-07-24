@@ -16,6 +16,7 @@ import (
 	"github.com/lionkov/go9p/p"
 	"github.com/lionkov/go9p/p/srv"
 )
+
 type Fid struct {
 	path      string
 	file      *os.File
@@ -172,13 +173,18 @@ type Dir struct {
 	p.Dir
 }
 
-func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
+func dir2Dir(s string, d os.FileInfo, dotu bool, upool p.Users) (*p.Dir, error) {
 	sysif := d.Sys()
 	if sysif == nil {
-		return nil
+		return nil, &os.PathError{"dir2Dir", s, nil}
 	}
-	sysMode := sysif.(*syscall.Stat_t)
-
+	var sysMode *syscall.Stat_t
+	switch t := sysif.(type) {
+	case *syscall.Stat_t:
+		sysMode = t
+	default:
+		return nil, &os.PathError{"dir2Dir: sysif has wrong type", s, nil}
+	}
 
 	dir := new(Dir)
 	dir.Qid = *dir2Qid(d)
@@ -186,11 +192,11 @@ func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
 	dir.Atime = uint32(atime(sysMode).Unix())
 	dir.Mtime = uint32(d.ModTime().Unix())
 	dir.Length = uint64(d.Size())
-	dir.Name = path[strings.LastIndex(path, "/")+1:]
+	dir.Name = s[strings.LastIndex(s, "/")+1:]
 
 	if dotu {
-		dir.dotu(path, d, upool, sysMode)
-		return &dir.Dir
+		dir.dotu(s, d, upool, sysMode)
+		return &dir.Dir, nil
 	}
 
 	unixUid := int(sysMode.Uid)
@@ -210,7 +216,7 @@ func dir2Dir(path string, d os.FileInfo, dotu bool, upool p.Users) *p.Dir {
 		dir.Gid = g.Username
 	}
 
-	return &dir.Dir
+	return &dir.Dir, nil
 }
 
 func (dir *Dir) dotu(path string, d os.FileInfo, upool p.Users, sysMode *syscall.Stat_t) {
@@ -464,7 +470,10 @@ func (*Ufs) Read(req *srv.Req) {
 			var i int
 			for i = 0; i < len(fid.dirs); i++ {
 				path := fid.path + "/" + fid.dirs[i].Name()
-				st := dir2Dir(path, fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
+				st, err := dir2Dir(path, fid.dirs[i], req.Conn.Dotu, req.Conn.Srv.Upool)
+				if err != nil {
+					continue
+				}
 				sz := p.PackDir(st, b, req.Conn.Dotu)
 				if sz == 0 {
 					break
@@ -532,13 +541,16 @@ func (*Ufs) Remove(req *srv.Req) {
 
 func (*Ufs) Stat(req *srv.Req) {
 	fid := req.Fid.Aux.(*Fid)
-	err := fid.stat()
-	if err != nil {
+	if err := fid.stat(); err != nil {
 		req.RespondError(err)
 		return
 	}
 
-	st := dir2Dir(fid.path, fid.st, req.Conn.Dotu, req.Conn.Srv.Upool)
+	st, err := dir2Dir(fid.path, fid.st, req.Conn.Dotu, req.Conn.Srv.Upool)
+	if err != nil {
+		req.RespondError(err)
+		return
+	}
 	req.RespondRstat(st)
 }
 
@@ -663,4 +675,3 @@ func (*Ufs) Wstat(req *srv.Req) {
 
 	req.RespondRwstat()
 }
-

@@ -443,7 +443,6 @@ func (*Fsrv) Read(req *Req) {
 			b = b[sz:]
 			n += sz
 		}
-
 		fid.dirs = fid.dirs[i:]
 	} else {
 		// file
