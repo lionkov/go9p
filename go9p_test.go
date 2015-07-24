@@ -92,6 +92,7 @@ func TestAttachOpenReaddir(t *testing.T) {
 		t.Fatal("Can't create temp directory")
 	}
 	defer os.RemoveAll(tmpDir)
+	ufs.Root = tmpDir
 
 	t.Log("ufs starting\n")
 	// determined by build tags
@@ -184,8 +185,9 @@ func TestRename(t *testing.T) {
 	if err != nil {
 		t.Fatal("Can't create temp directory")
 	}
-	defer os.RemoveAll(tmpDir)
-	t.Log("ufs starting\n")
+	//defer os.RemoveAll(tmpDir)
+	ufs.Root = tmpDir
+	t.Log("ufs starting in %v", tmpDir)
 	// determined by build tags
 	//extraFuncs()
 	l, err := net.Listen("tcp", "")
@@ -246,23 +248,25 @@ func TestRename(t *testing.T) {
 	// It's not guaranteed to work on all servers, but it is hugely useful
 	// on those that can do it -- which is almost all of them, save Plan 9
 	// of course.
-	d.Name = path.Join(tmpDir, "c")
+	from = to
+	d.Name = "/c"
 	if err = clnt.Wstat(f, d); err != nil {
 		t.Errorf("%v", err)
 	}
 
 	// the old one should be gone, and the new one should be there.
-	if _, err = ioutil.ReadFile(to); err == nil {
-		t.Errorf("ReadFile(%v): got nil, want err", to)
+	if _, err = ioutil.ReadFile(from); err == nil {
+		t.Errorf("ReadFile(%v): got nil, want err", from)
 	}
 
-	if _, err = ioutil.ReadFile(d.Name); err != nil {
-		t.Errorf("ReadFile(%v): got %v, want nil", d.Name, err)
+	to = path.Join(tmpDir, d.Name)
+	if _, err = ioutil.ReadFile(to); err != nil {
+		t.Errorf("ReadFile(%v): got %v, want nil", to, err)
 	}
 
-	// And, finally, make sure they can't walk out of the root.
+	// Make sure they can't walk out of the root.
 
-	from = d.Name
+	from = to
 	d.Name = "../../../../d"
 	if err = clnt.Wstat(f, d); err != nil {
 		t.Errorf("%v", err)

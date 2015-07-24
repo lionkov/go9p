@@ -28,6 +28,7 @@ type Fid struct {
 
 type Ufs struct {
 	srv.Srv
+	Root string
 }
 
 var root = flag.String("root", "/", "root filesystem")
@@ -574,7 +575,7 @@ func lookup(uid string, group bool) (uint32, *p.Error) {
 	return uint32(u), nil
 }
 
-func (*Ufs) Wstat(req *srv.Req) {
+func (u*Ufs) Wstat(req *srv.Req) {
 	fid := req.Fid.Aux.(*Fid)
 	err := fid.stat()
 	if err != nil {
@@ -637,12 +638,13 @@ func (*Ufs) Wstat(req *srv.Req) {
 		// the fid path, that ensures nobody gets to walk out of the
 		// root of this server.
 		newname := path.Join(path.Dir(fid.path), path.Join("/", dir.Name))
+
 		// absolute renaming. Ufs can do this, so let's support it.
 		// We'll allow an absolute path in the Name and, if it is,
 		// we will make it relative to root. This is a gigantic performance
 		// improvement in systems that allow it.
 		if filepath.IsAbs(dir.Name) {
-			newname = path.Join(*root, dir.Name)
+			newname = path.Join(u.Root, dir.Name)
 		}
 
 		err := syscall.Rename(fid.path, newname)
@@ -687,3 +689,8 @@ func (*Ufs) Wstat(req *srv.Req) {
 
 	req.RespondRwstat()
 }
+
+func New() (*Ufs) {
+	return &Ufs{Root: *root,}
+}
+
