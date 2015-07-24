@@ -14,9 +14,6 @@ import (
 	"github.com/lionkov/go9p/p/srv/ufs"
 )
 
-var addr = flag.String("addr", ":5640", "network address")
-var pipefsaddr = flag.String("pipefsaddr", ":5641", "pipefs network address")
-var attachaddr = flag.String("attachaddr", ":5642", "attach test network address")
 var debug = flag.Int("debug", 0, "print debug messages")
 
 // Two files, dotu was true.
@@ -46,23 +43,22 @@ func TestAttach(t *testing.T) {
 	t.Log("ufs starting\n")
 	// determined by build tags
 	//extraFuncs()
+	l, err := net.Listen("tcp", "")
+	if err != nil {
+		t.Fatalf("Can not start listener: %v", err)
+	}
+	srvAddr := l.Addr().String()
+	t.Logf("Server is at %v", srvAddr)
 	go func() {
-		if err = ufs.StartNetListener("tcp", *attachaddr); err != nil {
+		if err = ufs.StartListener(l); err != nil {
 			t.Fatalf("Can not start listener: %v", err)
 		}
 	}()
-	/* this may take a few tries ... */
 	var conn net.Conn
-	for i := 0; i < 16; i++ {
-		if conn, err = net.Dial("tcp", *attachaddr); err != nil {
-			t.Logf("Try go connect, %d'th try, %v", i, err)
-		} else {
-			t.Logf("Got a conn, %v\n", conn)
-			break
-		}
-	}
-	if err != nil {
-		t.Fatalf("Connect failed after many tries ...")
+	if conn, err = net.Dial("tcp", srvAddr); err != nil {
+		t.Fatalf("%v", err)
+	} else {
+		t.Logf("Got a conn, %v\n", conn)
 	}
 
 	root := p.OsUsers.Uid2User(0)
@@ -92,23 +88,22 @@ func TestAttachOpenReaddir(t *testing.T) {
 	t.Log("ufs starting\n")
 	// determined by build tags
 	//extraFuncs()
+	l, err := net.Listen("tcp", "")
+	if err != nil {
+		t.Fatalf("Can not start listener: %v", err)
+	}
+	srvAddr := l.Addr().String()
+	t.Logf("Server is at %v", srvAddr)
 	go func() {
-		if err = ufs.StartNetListener("tcp", *addr); err != nil {
+		if err = ufs.StartListener(l); err != nil {
 			t.Fatalf("Can not start listener: %v", err)
 		}
 	}()
-	/* this may take a few tries ... */
 	var conn net.Conn
-	for i := 0; i < 16; i++ {
-		if conn, err = net.Dial("tcp", *addr); err != nil {
-			t.Logf("%v", err)
-		} else {
-			t.Logf("Got a conn, %v\n", conn)
-			break
-		}
-	}
-	if err != nil {
-		t.Fatalf("Connect failed after many tries ...")
+	if conn, err = net.Dial("tcp", srvAddr); err != nil {
+		t.Fatalf("%v", err)
+	} else {
+		t.Logf("Got a conn, %v\n", conn)
 	}
 
 	clnt := clnt.NewClnt(conn, 8192, false)
