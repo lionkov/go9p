@@ -6,7 +6,10 @@ package main
 
 import (
 	"flag"
+	"io/ioutil"
 	"net"
+	"os"
+	"path"
 	"testing"
 
 	"github.com/lionkov/go9p/p"
@@ -84,6 +87,11 @@ func TestAttachOpenReaddir(t *testing.T) {
 	ufs.Debuglevel = *debug
 	ufs.Start(ufs)
 	var offset uint64
+	tmpDir, err := ioutil.TempDir("", "go9")
+	if err != nil {
+		t.Fatal("Can't create temp directory")
+	}
+	defer os.RemoveAll(tmpDir)
 
 	t.Log("ufs starting\n")
 	// determined by build tags
@@ -108,7 +116,7 @@ func TestAttachOpenReaddir(t *testing.T) {
 
 	clnt := clnt.NewClnt(conn, 8192, false)
 	root := p.OsUsers.Uid2User(0)
-	rootfid, err := clnt.Attach(nil, root, "/tmp")
+	rootfid, err := clnt.Attach(nil, root, tmpDir)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -160,4 +168,114 @@ func TestAttachOpenReaddir(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestRename(t *testing.T) {
+	var err error
+	flag.Parse()
+	ufs := new(ufs.Ufs)
+	ufs.Dotu = false
+	ufs.Id = "ufs"
+	ufs.Debuglevel = *debug
+	ufs.Msize = 8192
+	ufs.Start(ufs)
+
+	tmpDir, err := ioutil.TempDir("", "go9")
+	if err != nil {
+		t.Fatal("Can't create temp directory")
+	}
+	defer os.RemoveAll(tmpDir)
+	t.Log("ufs starting\n")
+	// determined by build tags
+	//extraFuncs()
+	l, err := net.Listen("tcp", "")
+	if err != nil {
+		t.Fatalf("Can not start listener: %v", err)
+	}
+	srvAddr := l.Addr().String()
+	t.Logf("Server is at %v", srvAddr)
+	go func() {
+		if err = ufs.StartListener(l); err != nil {
+			t.Fatalf("Can not start listener: %v", err)
+		}
+	}()
+	var conn net.Conn
+	if conn, err = net.Dial("tcp", srvAddr); err != nil {
+		t.Fatalf("%v", err)
+	} else {
+		t.Logf("Got a conn, %v\n", conn)
+	}
+
+	clnt := clnt.NewClnt(conn, 8192, false)
+	root := p.OsUsers.Uid2User(0)
+	rootfid, err := clnt.Attach(nil, root, tmpDir)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	t.Logf("attached, rootfid %v\n", rootfid)
+	// OK, create a file behind go9ps back and then rename it.
+	b := make([]byte, 0)
+	from := path.Join(tmpDir, "a")
+	to := path.Join(tmpDir, "b")
+	if err = ioutil.WriteFile(from, b, 0666); err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	f := clnt.FidAlloc()
+	if _, err = clnt.Walk(rootfid, f, []string{"a"}); err != nil {
+		t.Fatalf("%v", err)
+	}
+	d, err := clnt.Stat(f)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	d.Name = "b"
+	if err = clnt.Wstat(f, d); err != nil {
+		t.Errorf("%v", err)
+	}
+	// the old one should be gone, and the new one should be there.
+	if _, err = ioutil.ReadFile(from); err == nil {
+		t.Errorf("ReadFile(%v): got nil, want err", from)
+	}
+
+	if _, err = ioutil.ReadFile(to); err != nil {
+		t.Errorf("ReadFile(%v): got %v, want nil", from, err)
+	}
+
+	// now try with an absolute path, which is supported on ufs servers.
+	// It's not guaranteed to work on all servers, but it is hugely useful
+	// on those that can do it -- which is almost all of them, save Plan 9
+	// of course.
+	d.Name = path.Join(tmpDir, "c")
+	if err = clnt.Wstat(f, d); err != nil {
+		t.Errorf("%v", err)
+	}
+
+	// the old one should be gone, and the new one should be there.
+	if _, err = ioutil.ReadFile(to); err == nil {
+		t.Errorf("ReadFile(%v): got nil, want err", to)
+	}
+
+	if _, err = ioutil.ReadFile(d.Name); err != nil {
+		t.Errorf("ReadFile(%v): got %v, want nil", d.Name, err)
+	}
+
+	// And, finally, make sure they can't walk out of the root.
+
+	from = d.Name
+	d.Name = "../../../../d"
+	if err = clnt.Wstat(f, d); err != nil {
+		t.Errorf("%v", err)
+	}
+
+	// the old one should be gone, and the new one should be there.
+	if _, err = ioutil.ReadFile(from); err == nil {
+		t.Errorf("ReadFile(%v): got nil, want err", from)
+	}
+
+	to = path.Join(tmpDir, "d")
+	if _, err = ioutil.ReadFile(to); err != nil {
+		t.Errorf("ReadFile(%v): got %v, want nil", to, err)
+	}
+
 }

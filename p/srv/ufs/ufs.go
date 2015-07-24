@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -632,13 +633,24 @@ func (*Ufs) Wstat(req *srv.Req) {
 	}
 
 	if dir.Name != "" {
-		path := fid.path[0:strings.LastIndex(fid.path, "/")+1] + "/" + dir.Name
-		err := syscall.Rename(fid.path, path)
+		// If we path.Join dir.Name to / before adding it to
+		// the fid path, that ensures nobody gets to walk out of the
+		// root of this server.
+		newname := path.Join(path.Dir(fid.path), path.Join("/", dir.Name))
+		// absolute renaming. Ufs can do this, so let's support it.
+		// We'll allow an absolute path in the Name and, if it is,
+		// we will make it relative to root. This is a gigantic performance
+		// improvement in systems that allow it.
+		if filepath.IsAbs(dir.Name) {
+			newname = path.Join(*root, dir.Name)
+		}
+
+		err := syscall.Rename(fid.path, newname)
 		if err != nil {
 			req.RespondError(toError(err))
 			return
 		}
-		fid.path = path
+		fid.path = newname
 	}
 
 	if dir.Length != 0xFFFFFFFFFFFFFFFF {
