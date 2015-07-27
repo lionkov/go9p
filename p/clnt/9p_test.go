@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package clnt
 
 import (
 	"flag"
@@ -14,29 +14,12 @@ import (
 	"path"
 	"strconv"
 	"testing"
-
 	"github.com/lionkov/go9p/p"
-	"github.com/lionkov/go9p/p/clnt"
 	"github.com/lionkov/go9p/p/srv/ufs"
 )
 
 var debug = flag.Int("debug", 0, "print debug messages")
 var numDir = flag.Int("numdir", 16384, "Number of directory entries for readdir testing")
-
-// Two files, dotu was true.
-var testunpackbytes = []byte{
-	79, 0, 0, 0, 0, 0, 0, 0, 0, 228, 193, 233, 248, 44, 145, 3, 0, 0, 0, 0, 0, 164, 1, 0, 0, 0, 0, 0, 0, 47, 117, 180, 83, 102, 3, 0, 0, 0, 0, 0, 0, 6, 0, 112, 97, 115, 115, 119, 100, 4, 0, 110, 111, 110, 101, 4, 0, 110, 111, 110, 101, 4, 0, 110, 111, 110, 101, 0, 0, 232, 3, 0, 0, 232, 3, 0, 0, 255, 255, 255, 255, 78, 0, 0, 0, 0, 0, 0, 0, 0, 123, 171, 233, 248, 42, 145, 3, 0, 0, 0, 0, 0, 164, 1, 0, 0, 0, 0, 0, 0, 41, 117, 180, 83, 195, 0, 0, 0, 0, 0, 0, 0, 5, 0, 104, 111, 115, 116, 115, 4, 0, 110, 111, 110, 101, 4, 0, 110, 111, 110, 101, 4, 0, 110, 111, 110, 101, 0, 0, 232, 3, 0, 0, 232, 3, 0, 0, 255, 255, 255, 255,
-}
-
-func TestUnpackDir(t *testing.T) {
-	b := testunpackbytes
-	for len(b) > 0 {
-		var err error
-		if _, b, _, err = p.UnpackDir(b, true); err != nil {
-			t.Fatalf("Unpackdir: %v", err)
-		}
-	}
-}
 
 func TestAttach(t *testing.T) {
 	var err error
@@ -69,7 +52,7 @@ func TestAttach(t *testing.T) {
 	}
 
 	root := p.OsUsers.Uid2User(0)
-	clnt := clnt.NewClnt(conn, 8192, false)
+	clnt := NewClnt(conn, 8192, false)
 	// run enough attaches to maybe let the race detector trip.
 	for i := 0; i < 65536; i++ {
 		_, err := clnt.Attach(nil, root, "/tmp")
@@ -118,11 +101,11 @@ func TestAttachOpenReaddir(t *testing.T) {
 		t.Logf("Got a conn, %v\n", conn)
 	}
 
-	clnt := clnt.NewClnt(conn, 8192, false)
+	clnt := NewClnt(conn, 8192, false)
 	// packet debugging on clients is broken.
 	clnt.Debuglevel = 0 // *debug
 	root := p.OsUsers.Uid2User(0)
-	rootfid, err := clnt.Attach(nil, root, tmpDir)
+	rootfid, err := clnt.Attach(nil, root, "/")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -253,7 +236,7 @@ func TestRename(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 	ufs.Root = tmpDir
-	t.Log("ufs starting in %v", tmpDir)
+	t.Logf("ufs starting in %v", tmpDir)
 	// determined by build tags
 	//extraFuncs()
 	l, err := net.Listen("tcp", "")
@@ -274,13 +257,13 @@ func TestRename(t *testing.T) {
 		t.Logf("Got a conn, %v\n", conn)
 	}
 
-	clnt := clnt.NewClnt(conn, 8192, false)
+	clnt := NewClnt(conn, 8192, false)
 	root := p.OsUsers.Uid2User(0)
-	rootfid, err := clnt.Attach(nil, root, tmpDir)
+	rootfid, err := clnt.Attach(nil, root, "/")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
-	t.Logf("attached, rootfid %v\n", rootfid)
+	t.Logf("attached to %v, rootfid %v\n", tmpDir, rootfid)
 	// OK, create a file behind go9ps back and then rename it.
 	b := make([]byte, 0)
 	from := path.Join(tmpDir, "a")
@@ -293,6 +276,7 @@ func TestRename(t *testing.T) {
 	if _, err = clnt.Walk(rootfid, f, []string{"a"}); err != nil {
 		t.Fatalf("%v", err)
 	}
+	t.Logf("Walked to a")
 	d, err := clnt.Stat(f)
 	if err != nil {
 		t.Fatalf("%v", err)
