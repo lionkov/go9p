@@ -20,7 +20,7 @@ var cmdfile = flag.String("file", "", "read commands from file")
 var prompt = flag.String("prompt", "9p> ", "prompt for interactive client")
 var debug = flag.Bool("d", false, "enable debugging (fcalls)")
 var debugall = flag.Bool("D", false, "enable debugging (raw packets)")
-var msize = flag.Int("m", 8192, "Msize for 9p")
+var msize = flag.Uint("m", 8192, "Msize for 9p")
 
 var cwd = "/"
 var cfid *clnt.Fid
@@ -459,7 +459,7 @@ func main() {
 	if strings.LastIndex(naddr, ":") == -1 {
 		naddr = naddr + ":5640"
 	}
-	c, err = clnt.Mount("tcp", naddr, "", *msize, user)
+	c, err = clnt.Mount("tcp", naddr, "", uint32(*msize), user)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error mounting %s: %s\n", naddr, err)
 		os.Exit(1)

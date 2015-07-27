@@ -14,7 +14,7 @@ import (
 
 var debuglevel = flag.Int("d", 0, "debuglevel")
 var addr = flag.String("addr", "127.0.0.1:5640", "network address")
-var msize = flag.Int("m", 8192, "Msize for 9p")
+var msize = flag.Uint("m", 8192, "Msize for 9p")
 
 func main() {
 	var user p.User
@@ -33,7 +33,7 @@ func main() {
 		return
 	}
 
-	clnt, err := clnt.MountConn(c, "", *msize, user)
+	clnt, err := clnt.MountConn(c, "", uint32(*msize), user)
 	if err != nil {
 		goto error
 	}

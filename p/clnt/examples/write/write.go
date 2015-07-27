@@ -11,7 +11,7 @@ import (
 
 var debuglevel = flag.Int("d", 0, "debuglevel")
 var addr = flag.String("addr", "127.0.0.1:5640", "network address")
-var msize = flag.Int("m", 8192, "Msize for 9p")
+var msize = flag.Uint("m", 8192, "Msize for 9p")
 
 func main() {
 	var n, m int
@@ -24,7 +24,7 @@ func main() {
 	flag.Parse()
 	user = p.OsUsers.Uid2User(os.Geteuid())
 	clnt.DefaultDebuglevel = *debuglevel
-	c, err = clnt.Mount("tcp", *addr, "", *msize, user)
+	c, err = clnt.Mount("tcp", *addr, "", uint32(*msize), user)
 	if err != nil {
 		goto error
 	}
