@@ -33,7 +33,7 @@ func TestAttach(t *testing.T) {
 	t.Log("ufs starting\n")
 	// determined by build tags
 	//extraFuncs()
-	l, err := net.Listen("tcp", "")
+	l, err := net.Listen("unix", "")
 	if err != nil {
 		t.Fatalf("Can not start listener: %v", err)
 	}
@@ -45,7 +45,7 @@ func TestAttach(t *testing.T) {
 		}
 	}()
 	var conn net.Conn
-	if conn, err = net.Dial("tcp", srvAddr); err != nil {
+	if conn, err = net.Dial("unix", srvAddr); err != nil {
 		t.Fatalf("%v", err)
 	} else {
 		t.Logf("Got a conn, %v\n", conn)
@@ -83,7 +83,7 @@ func TestAttachOpenReaddir(t *testing.T) {
 	t.Logf("ufs starting in %v\n", tmpDir)
 	// determined by build tags
 	//extraFuncs()
-	l, err := net.Listen("tcp", "")
+	l, err := net.Listen("unix", "")
 	if err != nil {
 		t.Fatalf("Can not start listener: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestAttachOpenReaddir(t *testing.T) {
 		}
 	}()
 	var conn net.Conn
-	if conn, err = net.Dial("tcp", srvAddr); err != nil {
+	if conn, err = net.Dial("unix", srvAddr); err != nil {
 		t.Fatalf("%v", err)
 	} else {
 		t.Logf("Got a conn, %v\n", conn)
@@ -239,7 +239,7 @@ func TestRename(t *testing.T) {
 	t.Logf("ufs starting in %v", tmpDir)
 	// determined by build tags
 	//extraFuncs()
-	l, err := net.Listen("tcp", "")
+	l, err := net.Listen("unix", "")
 	if err != nil {
 		t.Fatalf("Can not start listener: %v", err)
 	}
@@ -251,7 +251,7 @@ func TestRename(t *testing.T) {
 		}
 	}()
 	var conn net.Conn
-	if conn, err = net.Dial("tcp", srvAddr); err != nil {
+	if conn, err = net.Dial("unix", srvAddr); err != nil {
 		t.Fatalf("%v", err)
 	} else {
 		t.Logf("Got a conn, %v\n", conn)
