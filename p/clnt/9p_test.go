@@ -277,10 +277,10 @@ func TestRename(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	t.Logf("Walked to a")
-	d, err := clnt.Stat(f)
-	if err != nil {
+	if _, err := clnt.Stat(f); err != nil {
 		t.Fatalf("%v", err)
 	}
+	d := p.NewWstatDir()
 	d.Name = "b"
 	if err = clnt.Wstat(f, d); err != nil {
 		t.Errorf("%v", err)

@@ -525,3 +525,24 @@ func (err *Error) Error() string {
 
 	return ""
 }
+
+// NewWstatDir creates a dir struct with all
+// entries set to 'off', i.e. the server Wstat
+// operation will be a no op unless you change
+// something. It will be correct for both 9p2000
+// and 9p2000.u
+func NewWstatDir() *Dir {
+	return &Dir{
+		Mode: ^uint32(0),
+		Length: ^uint64(0),
+		Atime:  ^uint32(0),
+		Mtime:  ^uint32(0),
+		Name: "",
+		Uid: "",
+		Gid: "",
+		Muid: "",
+		Uidnum:^uint32(0),
+		Gidnum:^uint32(0),
+		Muidnum: ^uint32(0),
+	}
+}
