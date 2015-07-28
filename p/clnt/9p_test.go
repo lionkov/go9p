@@ -20,7 +20,7 @@ import (
 
 var debug = flag.Int("debug", 0, "print debug messages")
 var numDir = flag.Int("numdir", 16384, "Number of directory entries for readdir testing")
-var numAttach = flag.Int("numattach", 1024, "Number of attaches in make in TestAttach")
+var numAttach = flag.Int("numattach", 65536, "Number of attaches in make in TestAttach")
 
 func TestAttach(t *testing.T) {
 	var err error
