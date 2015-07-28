@@ -51,11 +51,11 @@ func TestAttach(t *testing.T) {
 		t.Logf("Got a conn, %v\n", conn)
 	}
 
-	root := p.OsUsers.Uid2User(0)
+	user := p.OsUsers.Uid2User(os.Geteuid())
 	clnt := NewClnt(conn, 8192, false)
 	// run enough attaches to maybe let the race detector trip.
 	for i := 0; i < 65536; i++ {
-		_, err := clnt.Attach(nil, root, "/tmp")
+		_, err := clnt.Attach(nil, user, "/tmp")
 
 		if err != nil {
 			t.Fatalf("Connect failed: %v\n", err)
@@ -104,8 +104,8 @@ func TestAttachOpenReaddir(t *testing.T) {
 	clnt := NewClnt(conn, 8192, false)
 	// packet debugging on clients is broken.
 	clnt.Debuglevel = 0 // *debug
-	root := p.OsUsers.Uid2User(0)
-	rootfid, err := clnt.Attach(nil, root, "/")
+	user := p.OsUsers.Uid2User(os.Geteuid())
+	rootfid, err := clnt.Attach(nil, user, "/")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -258,8 +258,8 @@ func TestRename(t *testing.T) {
 	}
 
 	clnt := NewClnt(conn, 8192, false)
-	root := p.OsUsers.Uid2User(0)
-	rootfid, err := clnt.Attach(nil, root, "/")
+	user := p.OsUsers.Uid2User(os.Geteuid())
+	rootfid, err := clnt.Attach(nil, user, "/")
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
