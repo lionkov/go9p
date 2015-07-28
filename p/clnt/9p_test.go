@@ -20,6 +20,7 @@ import (
 
 var debug = flag.Int("debug", 0, "print debug messages")
 var numDir = flag.Int("numdir", 16384, "Number of directory entries for readdir testing")
+var numAttach = flag.Int("numattach", 1024, "Number of attaches in make in TestAttach")
 
 func TestAttach(t *testing.T) {
 	var err error
@@ -54,7 +55,9 @@ func TestAttach(t *testing.T) {
 	user := p.OsUsers.Uid2User(os.Geteuid())
 	clnt := NewClnt(conn, 8192, false)
 	// run enough attaches to maybe let the race detector trip.
-	for i := 0; i < 65536; i++ {
+	// The default, 1024, is lower than I'd like, but some environments don't
+	// let you do a huge number, as they throttle the accept rate.
+	for i := 0; i < *numAttach; i++ {
 		_, err := clnt.Attach(nil, user, "/tmp")
 
 		if err != nil {
