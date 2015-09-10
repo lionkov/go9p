@@ -45,8 +45,8 @@ const (
 
 const (
 	MSIZE   = 1048576 + IOHDRSZ // default message size (1048576+IOHdrSz)
-	IOHDRSZ = 24             // the non-data size of the Twrite messages
-	PORT    = 564            // default port for 9P file servers
+	IOHDRSZ = 24                // the non-data size of the Twrite messages
+	PORT    = 564               // default port for 9P file servers
 )
 
 // Qid types
@@ -104,7 +104,7 @@ const (
 	EPERM   = 1
 	ENOENT  = 2
 	EIO     = 5
-	EACCESS = 13
+	EACCES  = 13
 	EEXIST  = 17
 	ENOTDIR = 20
 	EINVAL  = 22
@@ -534,16 +534,16 @@ func (err *Error) Error() string {
 // and 9p2000.u
 func NewWstatDir() *Dir {
 	return &Dir{
-		Mode: ^uint32(0),
-		Length: ^uint64(0),
-		Atime:  ^uint32(0),
-		Mtime:  ^uint32(0),
-		Name: "",
-		Uid: "",
-		Gid: "",
-		Muid: "",
-		Uidnum:^uint32(0),
-		Gidnum:^uint32(0),
+		Mode:    ^uint32(0),
+		Length:  ^uint64(0),
+		Atime:   ^uint32(0),
+		Mtime:   ^uint32(0),
+		Name:    "",
+		Uid:     "",
+		Gid:     "",
+		Muid:    "",
+		Uidnum:  ^uint32(0),
+		Gidnum:  ^uint32(0),
 		Muidnum: ^uint32(0),
 	}
 }

@@ -724,7 +724,7 @@ func (u *Ufs) Wstat(req *srv.Req) {
 		}
 	}
 
-	if ! changed  && fid.file != nil{
+	if !changed && fid.file != nil {
 		fid.file.Sync()
 	}
 	req.RespondRwstat()
