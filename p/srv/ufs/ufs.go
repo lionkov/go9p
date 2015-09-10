@@ -606,6 +606,7 @@ func lookup(uid string, group bool) (uint32, *p.Error) {
 }
 
 func (u *Ufs) Wstat(req *srv.Req) {
+	var changed bool
 	fid := req.Fid.Aux.(*Fid)
 	err := fid.stat()
 	if err != nil {
@@ -615,6 +616,7 @@ func (u *Ufs) Wstat(req *srv.Req) {
 
 	dir := &req.Tc.Dir
 	if dir.Mode != 0xFFFFFFFF {
+		changed = true
 		mode := dir.Mode & 0777
 		if req.Conn.Dotu {
 			if dir.Mode&p.DMSETUID > 0 {
@@ -639,6 +641,7 @@ func (u *Ufs) Wstat(req *srv.Req) {
 
 	// Try to find local uid, gid by name.
 	if (dir.Uid != "" || dir.Gid != "") && !req.Conn.Dotu {
+		changed = true
 		uid, err = lookup(dir.Uid, false)
 		if err != nil {
 			req.RespondError(err)
@@ -656,6 +659,7 @@ func (u *Ufs) Wstat(req *srv.Req) {
 	}
 
 	if uid != p.NOUID || gid != p.NOUID {
+		changed = true
 		e := os.Chown(fid.path, int(uid), int(gid))
 		if e != nil {
 			req.RespondError(toError(e))
@@ -664,6 +668,7 @@ func (u *Ufs) Wstat(req *srv.Req) {
 	}
 
 	if dir.Name != "" {
+		changed = true
 		// If we path.Join dir.Name to / before adding it to
 		// the fid path, that ensures nobody gets to walk out of the
 		// root of this server.
@@ -686,6 +691,7 @@ func (u *Ufs) Wstat(req *srv.Req) {
 	}
 
 	if dir.Length != 0xFFFFFFFFFFFFFFFF {
+		changed = true
 		e := os.Truncate(fid.path, int64(dir.Length))
 		if e != nil {
 			req.RespondError(toError(e))
@@ -696,6 +702,7 @@ func (u *Ufs) Wstat(req *srv.Req) {
 	// If either mtime or atime need to be changed, then
 	// we must change both.
 	if dir.Mtime != ^uint32(0) || dir.Atime != ^uint32(0) {
+		changed = true
 		mt, at := time.Unix(int64(dir.Mtime), 0), time.Unix(int64(dir.Atime), 0)
 		if cmt, cat := (dir.Mtime == ^uint32(0)), (dir.Atime == ^uint32(0)); cmt || cat {
 			st, e := os.Stat(fid.path)
@@ -717,6 +724,9 @@ func (u *Ufs) Wstat(req *srv.Req) {
 		}
 	}
 
+	if ! changed  && fid.file != nil{
+		fid.file.Sync()
+	}
 	req.RespondRwstat()
 }
 
