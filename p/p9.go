@@ -104,6 +104,7 @@ const (
 	EPERM   = 1
 	ENOENT  = 2
 	EIO     = 5
+	EACCESS = 13
 	EEXIST  = 17
 	ENOTDIR = 20
 	EINVAL  = 22
