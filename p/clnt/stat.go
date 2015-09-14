@@ -45,3 +45,16 @@ func (clnt *Clnt) Wstat(fid *Fid, dir *p.Dir) error {
 	_, err = clnt.Rpc(tc)
 	return err
 }
+
+// FSync syncs the file for a fid. It does this by sending a NewWstatDir, i.e. a
+// Dir with all fields set to 'not set'.
+func (clnt *Clnt) FSync(fid *Fid) error {
+	return clnt.Wstat(fid, p.NewWstatDir())
+}
+
+// Rename renames the file for a fid.
+func (clnt *Clnt) Rename(fid *Fid, name string) error {
+	d := p.NewWstatDir()
+	d.Name = name
+	return clnt.Wstat(fid, d)
+}

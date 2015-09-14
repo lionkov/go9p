@@ -1,13 +1,13 @@
-
 // +build httpstats
 
 package clnt
 
 import (
-	"github.com/lionkov/go9p/p"
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/lionkov/go9p/p"
 )
 
 func (clnt *Clnt) ServeHTTP(c http.ResponseWriter, r *http.Request) {

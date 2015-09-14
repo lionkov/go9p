@@ -7,8 +7,8 @@
 package clnt
 
 import (
-	"github.com/lionkov/go9p/p"
 	"fmt"
+	"github.com/lionkov/go9p/p"
 	"log"
 	"net"
 	"sync"
@@ -455,7 +455,7 @@ func (clnt *Clnt) ReqFree(req *Req) {
 }
 
 func NewFile(f *Fid, offset uint64) *File {
-    return &File{f, offset}
+	return &File{f, offset}
 }
 
 func (f *File) Fid() *Fid {

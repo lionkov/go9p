@@ -14,6 +14,7 @@ import (
 	"path"
 	"strconv"
 	"testing"
+
 	"github.com/lionkov/go9p/p"
 	"github.com/lionkov/go9p/p/srv/ufs"
 )
@@ -283,9 +284,10 @@ func TestRename(t *testing.T) {
 	if _, err := clnt.Stat(f); err != nil {
 		t.Fatalf("%v", err)
 	}
-	d := p.NewWstatDir()
-	d.Name = "b"
-	if err = clnt.Wstat(f, d); err != nil {
+	if err := clnt.FSync(f); err != nil {
+		t.Fatalf("%v", err)
+	}
+	if err = clnt.Rename(f, "b"); err != nil {
 		t.Errorf("%v", err)
 	}
 	// the old one should be gone, and the new one should be there.
@@ -302,8 +304,7 @@ func TestRename(t *testing.T) {
 	// on those that can do it -- which is almost all of them, save Plan 9
 	// of course.
 	from = to
-	d.Name = "/c"
-	if err = clnt.Wstat(f, d); err != nil {
+	if err = clnt.Rename(f, "c"); err != nil {
 		t.Errorf("%v", err)
 	}
 
@@ -312,7 +313,7 @@ func TestRename(t *testing.T) {
 		t.Errorf("ReadFile(%v): got nil, want err", from)
 	}
 
-	to = path.Join(tmpDir, d.Name)
+	to = path.Join(tmpDir, "c")
 	if _, err = ioutil.ReadFile(to); err != nil {
 		t.Errorf("ReadFile(%v): got %v, want nil", to, err)
 	}
@@ -320,8 +321,7 @@ func TestRename(t *testing.T) {
 	// Make sure they can't walk out of the root.
 
 	from = to
-	d.Name = "../../../../d"
-	if err = clnt.Wstat(f, d); err != nil {
+	if err = clnt.Rename(f, "../../../../d"); err != nil {
 		t.Errorf("%v", err)
 	}
 
