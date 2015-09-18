@@ -487,6 +487,43 @@ func UnpackDir(buf []byte, dotu bool) (d *Dir, b []byte, amt int, err error) {
 
 }
 
+// ChangeMode returns true if Dir contains a mode change value. This should be used in
+// conjunction with Twstat and Rwstat.
+func (d *Dir) ChangeMode() bool {
+	return d.Mode != ^uint32(0)
+}
+
+// ChangeTime returns true if Dir contains an mtime change value. This should be used in
+// conjunction with Twstat and Rwstat.
+func (d *Dir) ChangeMtime() bool {
+	return d.Mtime != ^uint32(0)
+}
+
+// ChangeLength returns true if Dir contains a length change value. This should be used in
+// conjunction with Twstat and Rwstat.
+func (d *Dir) ChangeLength() bool {
+	return d.Length != ^uint64(0)
+}
+
+// ChangeName returns true if Dir contains a name change value. This should be used in
+// conjunction with Twstat and Rwstat to implement rename.
+func (d *Dir) ChangeName() bool {
+	return d.Name != ""
+}
+
+// ChangeGID returns true if Dir contains a gid change value. This should be used in
+// conjunction with Twstat and Rwstat.
+func (d *Dir) ChangeGID() bool {
+	return d.Gid != ""
+}
+
+// ChangeIllegalFields returns true if Dir contains values that would request illegal fields to be
+// changed; these are type, dev, and qid.  The size field is ignored because it's not kept in tact.
+// Any 9p server should return error to a Wstat request when this method returns true.
+func (d *Dir) ChangeIllegalFields() bool {
+	return d.Type != ^uint16(0) || d.Dev != ^uint32(0) || d.Qid.Type != ^uint8(0) || d.Qid.Version != ^uint32(0) || d.Qid.Path != ^uint64(0) || d.Atime != ^uint32(0) || d.Uid != "" || d.Muid != ""
+}
+
 // Allocates a new Fcall.
 func NewFcall(sz uint32) *Fcall {
 	fc := new(Fcall)
