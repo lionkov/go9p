@@ -533,7 +533,13 @@ func (err *Error) Error() string {
 // something. It will be correct for both 9p2000
 // and 9p2000.u
 func NewWstatDir() *Dir {
+	// Ignore Size, and 9p servers should too,
+	// because this field isn't kept in tact: a
+	// maximal value is truncated.
 	return &Dir{
+		Type:    ^uint16(0),
+		Dev:     ^uint32(0),
+		Qid:     Qid{Type: ^uint8(0), Version: ^uint32(0), Path: ^uint64(0)},
 		Mode:    ^uint32(0),
 		Length:  ^uint64(0),
 		Atime:   ^uint32(0),
