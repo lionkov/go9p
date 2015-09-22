@@ -331,6 +331,7 @@ func (srv *Srv) read(req *Req) {
 	}
 
 	if (fid.Type & p.QTDIR) != 0 {
+		fid.Lock()
 		if tc.Offset == 0 {
 			fid.Diroffset = 0
 		} else if tc.Offset != fid.Diroffset {
@@ -342,6 +343,7 @@ func (srv *Srv) read(req *Req) {
 			// the provider decide if this is an error.
 			fid.Diroffset = tc.Offset
 		}
+		fid.Unlock()
 	}
 
 	(req.Conn.Srv.ops).(ReqOps).Read(req)
@@ -349,7 +351,9 @@ func (srv *Srv) read(req *Req) {
 
 func (srv *Srv) readPost(req *Req) {
 	if req.Rc != nil && req.Rc.Type == p.Rread && (req.Fid.Type&p.QTDIR) != 0 {
+		req.Fid.Lock()
 		req.Fid.Diroffset += uint64(req.Rc.Count)
+		req.Fid.Unlock()
 	}
 }
 

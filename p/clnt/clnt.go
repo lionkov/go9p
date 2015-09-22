@@ -224,18 +224,23 @@ func (clnt *Clnt) recv() {
 			}
 
 			r.Rc = fc
-			if r.prev != nil {
-				r.prev.next = r.next
-				r.prev = nil
-			} else {
-				clnt.reqfirst = r.next
-			}
-
-			if r.next != nil {
-				r.next.prev = r.prev
-				r.next = nil
-			} else {
+			switch {
+			case r.next == nil && r.prev == nil:
+				clnt.reqlast = nil
+				clnt.reqfirst = nil
+			case r.next == nil:
 				clnt.reqlast = r.prev
+				r.prev.next = nil
+				r.prev = nil
+			case r.prev == nil:
+				clnt.reqfirst = r.next
+				r.next.prev = nil
+				r.next = nil
+			default:
+				r.next.prev = r.prev
+				r.prev.next = r.next
+				r.next = nil
+				r.prev = nil
 			}
 			clnt.Unlock()
 

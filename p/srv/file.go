@@ -411,9 +411,9 @@ func (*Fsrv) Read(req *Req) {
 
 	if f.Mode&p.DMDIR != 0 {
 		// directory
+		f.Lock()
 		if tc.Offset == 0 {
 			var g *File
-			f.Lock()
 			for n, g = 0, f.cfirst; g != nil; n, g = n+1, g.next {
 			}
 
@@ -421,7 +421,6 @@ func (*Fsrv) Read(req *Req) {
 			for n, g = 0, f.cfirst; g != nil; n, g = n+1, g.next {
 				fid.dirs[n] = g
 			}
-			f.Unlock()
 		}
 
 		n = 0
@@ -446,6 +445,7 @@ func (*Fsrv) Read(req *Req) {
 			n += len(nd)
 		}
 		fid.dirs = fid.dirs[i:]
+		f.Unlock()
 	} else {
 		// file
 		if rop, ok := f.Ops.(FReadOp); ok {
