@@ -226,12 +226,14 @@ func (clnt *Clnt) recv() {
 			r.Rc = fc
 			if r.prev != nil {
 				r.prev.next = r.next
+				r.prev = nil
 			} else {
 				clnt.reqfirst = r.next
 			}
 
 			if r.next != nil {
 				r.next.prev = r.prev
+				r.next = nil
 			} else {
 				clnt.reqlast = r.prev
 			}
@@ -270,22 +272,28 @@ closed:
 		err = clnt.err
 	}
 	clnt.Unlock()
-	for ; r != nil; r = r.next {
+	for r != nil {
+		next := r.next
 		r.Err = err
+		r.next = nil
+		r.prev = nil
 		if r.Done != nil {
 			r.Done <- r
 		}
+		r = next
 	}
 
 	clnts.Lock()
 	if clnt.prev != nil {
 		clnt.prev.next = clnt.next
+		clnt.prev = nil
 	} else {
 		clnts.clntList = clnt.next
 	}
 
 	if clnt.next != nil {
 		clnt.next.prev = clnt.prev
+		clnt.next = nil
 	} else {
 		clnts.clntLast = clnt.prev
 	}
@@ -443,8 +451,6 @@ func (clnt *Clnt) ReqFree(req *Req) {
 	req.Rc = nil
 	req.Err = nil
 	req.Done = nil
-	req.next = nil
-	req.prev = nil
 
 	select {
 	case clnt.reqchan <- req:
