@@ -476,7 +476,7 @@ func main() {
 
 	if file != nil {
 		//process(c)
-		fmt.Sprint(os.Stderr, "file reading unimplemented\n")
+		fmt.Fprint(os.Stderr, "file reading unimplemented\n")
 	} else if flag.NArg() > 0 {
 		flags := flag.Args()
 		for _, uc := range flags {
