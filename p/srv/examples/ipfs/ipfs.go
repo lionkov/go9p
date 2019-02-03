@@ -11,6 +11,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/lionkov/go9p/p"
 	"github.com/lionkov/go9p/p/srv"
@@ -26,14 +27,19 @@ type rootOps struct {
 	srv.File
 }
 
-// Find implements srv.FFindOp. If the children node is not found, we will
-// try to resolve the given host and create a synthetic file for it, containing
-// its IP addresses. (This is only to have an example for srv.FFindOp, and must
-// not be used for DNS resolution, since data here is cached forever!)
+// Find implements srv.FFindOp. If the child node is not found, we will try to
+// resolve the given host and create a synthetic file for it, containing its IP
+// addresses. If it is found and is older than one minute, we unlink the child
+// from the directory and resolve it again. (This does not respect the caching
+// times for DNS, it's just an example.)
 func (d *rootOps) Find(host string) (*srv.File, error) {
+	now := time.Now()
 	f := d.File.Find(host)
 	if f != nil {
-		return f, nil
+		if now.Sub(f.Ops.(*fileOps).whenResolved) < time.Minute {
+			return f, nil
+		}
+		f.Remove()
 	}
 	addrs, err := net.LookupHost(host)
 	if err != nil {
@@ -43,6 +49,7 @@ func (d *rootOps) Find(host string) (*srv.File, error) {
 	if err := ops.File.Add(&d.File, host, ipfs.user, ipfs.group, 0444, ops); err != nil {
 		return nil, fmt.Errorf("could not add %q: %v", host, err)
 	}
+	ops.whenResolved = now
 	ops.data = []byte(strings.Join(addrs, "\n") + "\n")
 	ops.Length = uint64(len(ops.data))
 	return &ops.File, nil
@@ -50,7 +57,8 @@ func (d *rootOps) Find(host string) (*srv.File, error) {
 
 type fileOps struct {
 	srv.File
-	data []byte
+	whenResolved time.Time
+	data         []byte
 }
 
 func (f *fileOps) Read(fid *srv.FFid, buf []byte, offset uint64) (int, error) {
