@@ -61,6 +61,10 @@ type FRemoveOp interface {
 	Remove(*FFid) error
 }
 
+type FFindOp interface {
+	Find(child string) (*File, error)
+}
+
 type FOpenOp interface {
 	Open(fid *FFid, mode uint8) error
 }
@@ -320,7 +324,20 @@ func (*Fsrv) Walk(req *Req) {
 			}
 		}
 
-		p := f.Find(tc.Wname[i])
+		var p *File
+
+		fop, ok := f.Ops.(FFindOp)
+		if ok {
+			var err error
+			p , err = fop.Find(tc.Wname[i])
+			if err != nil {
+				req.RespondError(err)
+				return
+			}
+		} else {
+			p = f.Find(tc.Wname[i])
+		}
+
 		if p == nil {
 			break
 		}
@@ -553,7 +570,7 @@ func (*Fsrv) Wstat(req *Req) {
 }
 
 func (*Fsrv) Flush(req *Req) {
-        req.Flush()
+	req.Flush()
 }
 
 func (*Fsrv) FidDestroy(ffid *Fid) {
