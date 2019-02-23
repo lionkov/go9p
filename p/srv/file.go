@@ -489,6 +489,7 @@ func (*Fsrv) Clunk(req *Req) {
 		err := op.Clunk(fid)
 		if err != nil {
 			req.RespondError(err)
+			return
 		}
 	}
 	req.RespondRclunk()
