@@ -428,7 +428,7 @@ func (srv *Srv) clunk(req *Req) {
 }
 
 func (srv *Srv) clunkPost(req *Req) {
-	if req.Rc != nil && req.Rc.Type == p.Rclunk && req.Fid != nil {
+	if req.Rc != nil && (req.Rc.Type == p.Rclunk || req.Rc.Type == p.Rerror) && req.Fid != nil {
 		req.Fid.DecRef()
 	}
 }
