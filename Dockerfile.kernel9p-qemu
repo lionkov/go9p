@@ -1,0 +1,168 @@
+## QEMU + upstream Linux kernel + kernel 9p client smoke test.
+##
+## This builds:
+## - a recent Linux kernel with virtio + 9p enabled
+## - a tiny initramfs containing busybox, an init script, and the test binary
+## - then boots QEMU and runs the smoke test against a virtio-9p export
+##
+## Usage (from repo root):
+##   docker build -f Dockerfile.kernel9p-qemu --target kernel9p-test .
+##
+## Override kernel version:
+##   docker build -f Dockerfile.kernel9p-qemu --target kernel9p-test --build-arg LINUX_VERSION=7.0 .
+
+ARG GO_VERSION=1.26.0
+ARG LINUX_VERSION=7.0
+ARG KERNEL_ARCH=amd64
+
+FROM golang:${GO_VERSION}-bookworm AS gotools
+ARG KERNEL_ARCH
+WORKDIR /src
+COPY go.mod ./
+RUN go mod download
+COPY . .
+
+# Build a static-ish linux binary to run inside the guest.
+RUN case "${KERNEL_ARCH}" in \
+      amd64) GOARCH=amd64 ;; \
+      arm64) GOARCH=arm64 ;; \
+      *) echo "unsupported KERNEL_ARCH=${KERNEL_ARCH}" >&2; exit 2 ;; \
+    esac \
+  && CGO_ENABLED=0 GOOS=linux GOARCH="${GOARCH}" go build -o /out/kernel9p-smoke ./cmd/kernel9p-smoke \
+  && CGO_ENABLED=0 GOOS=linux GOARCH="${GOARCH}" go build -o /out/go9p-ufs ./p/srv/examples/ufs
+
+FROM debian:bookworm AS kernel
+ARG LINUX_VERSION
+ARG KERNEL_ARCH
+WORKDIR /work
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates git curl xz-utils \
+    build-essential bc bison flex \
+    libssl-dev libelf-dev \
+    cpio gzip \
+  && rm -rf /var/lib/apt/lists/*
+
+# Fetch kernel source via shallow git checkout of the target tag.
+# This is generally more resilient in CI than downloading large tarballs.
+RUN git clone --depth 1 --branch "v${LINUX_VERSION}" --single-branch \
+    https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git linux
+
+WORKDIR /work/linux
+
+# Configure a minimal kernel suitable for QEMU + virtio + 9p.
+RUN if [ "${KERNEL_ARCH}" = "arm64" ]; then \
+      make ARCH=arm64 defconfig ; \
+    else \
+      make defconfig ; \
+    fi \
+  && ./scripts/config --enable CONFIG_BLK_DEV_INITRD \
+  && ./scripts/config --enable CONFIG_DEVTMPFS \
+  && ./scripts/config --enable CONFIG_DEVTMPFS_MOUNT \
+  && ./scripts/config --enable CONFIG_VIRTIO_PCI \
+  && ./scripts/config --enable CONFIG_VIRTIO_BLK \
+  && ./scripts/config --enable CONFIG_VIRTIO_NET \
+  && ./scripts/config --enable CONFIG_NET_9P \
+  && ./scripts/config --enable CONFIG_NET_9P_VIRTIO \
+  && ./scripts/config --enable CONFIG_9P_FS \
+  && ./scripts/config --enable CONFIG_9P_FS_POSIX_ACL \
+  && ./scripts/config --enable CONFIG_TMPFS \
+  && ./scripts/config --enable CONFIG_TMPFS_POSIX_ACL \
+  && if [ "${KERNEL_ARCH}" = "arm64" ]; then \
+       make ARCH=arm64 olddefconfig ; \
+     else \
+       make olddefconfig ; \
+     fi
+
+RUN if [ "${KERNEL_ARCH}" = "arm64" ]; then \
+      make ARCH=arm64 -j"$(nproc)" Image ; \
+    else \
+      make -j"$(nproc)" bzImage ; \
+    fi
+
+# Prebuilt kernel from v9fs/test GitHub releases.
+FROM debian:bookworm AS kernel-v9fs
+ARG KERNEL_ARCH
+ARG V9FS_TEST_KERNEL_TAG=kernel-main
+WORKDIR /work
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/* \
+  && case "${KERNEL_ARCH}" in \
+      arm64) asset="Image" ;; \
+      amd64) asset="bzImage" ;; \
+      *) echo "unsupported KERNEL_ARCH=${KERNEL_ARCH}" >&2; exit 2 ;; \
+    esac \
+  && curl -fsSL "https://github.com/v9fs/test/releases/download/${V9FS_TEST_KERNEL_TAG}/${asset}" -o "/work/${asset}" \
+  # Ensure both paths exist so downstream COPY steps don't need conditionals.
+  && if [ "${asset}" = "Image" ]; then : > /work/bzImage; else : > /work/Image; fi
+
+FROM debian:bookworm AS initramfs
+WORKDIR /work
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    busybox-static cpio gzip \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=gotools /out/kernel9p-smoke /rootfs/kernel9p-smoke
+COPY scripts/kernel9p-init /rootfs/init
+
+RUN chmod +x /rootfs/init /rootfs/kernel9p-smoke \
+  && mkdir -p /rootfs/bin /rootfs/sbin /rootfs/proc /rootfs/sys /rootfs/dev /rootfs/mnt/9p \
+  && ln -s /bin/busybox /rootfs/bin/sh \
+  && (cd /rootfs && /bin/busybox --install -s bin) \
+  && (cd /rootfs && find . -print0 | cpio --null -ov --format=newc) > /out.cpio \
+  && gzip -9 < /out.cpio > /out.cpio.gz
+
+FROM debian:bookworm AS kernel9p-runtime
+ARG KERNEL_ARCH
+# Pinned u9fs commit (unofficial-mirror/u9fs) for reproducible builds.
+ARG U9FS_COMMIT=d65923fd17e8b158350d3ccd6a4e32b89b15014a
+WORKDIR /work
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    qemu-system-x86 qemu-system-arm \
+    diod socat \
+    ca-certificates git make gcc libc6-dev \
+  && rm -rf /var/lib/apt/lists/* \
+  && git init /tmp/u9fs \
+  && cd /tmp/u9fs \
+  && git remote add origin https://github.com/unofficial-mirror/u9fs.git \
+  && git fetch --depth 1 origin "${U9FS_COMMIT}" \
+  && git checkout FETCH_HEAD \
+  && make \
+  && install -m0755 u9fs /usr/local/bin/u9fs \
+  && rm -rf /tmp/u9fs
+
+COPY --from=initramfs /out.cpio /work/initramfs.cpio
+COPY --from=initramfs /out.cpio.gz /work/initramfs.cpio.gz
+COPY scripts/kernel9p-qemu-run.sh /work/run.sh
+COPY --from=gotools /out/go9p-ufs /work/go9p-ufs
+
+RUN chmod +x /work/run.sh /work/go9p-ufs
+
+# The QEMU virtio-9p export directory (server side).
+RUN mkdir -p /work/share
+
+ENV OUT_DIR=/work/out
+ENV KERNEL_ARCH=${KERNEL_ARCH}
+ENV INITRAMFS=/work/initramfs.cpio
+ENV SHARE_DIR=/work/share
+
+CMD ["/work/run.sh"]
+
+FROM kernel9p-runtime AS kernel9p-test
+COPY --from=kernel /work/linux/arch/x86/boot/bzImage /work/bzImage
+COPY --from=kernel /work/linux/arch/arm64/boot/Image /work/Image
+ENV KERNEL_BZIMAGE=/work/bzImage
+ENV KERNEL_IMAGE=/work/Image
+
+FROM kernel9p-runtime AS kernel9p-test-v9fs
+ARG KERNEL_ARCH
+ARG V9FS_TEST_KERNEL_TAG=kernel-main
+
+COPY --from=kernel-v9fs /work/Image /work/Image
+COPY --from=kernel-v9fs /work/bzImage /work/bzImage
+ENV KERNEL_BZIMAGE=/work/bzImage
+ENV KERNEL_IMAGE=/work/Image
+
