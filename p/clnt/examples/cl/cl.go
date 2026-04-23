@@ -363,7 +363,8 @@ func cmdput(c *clnt.Clnt, s []string) {
 	}
 }
 
-func cmdpwd(c *clnt.Clnt, s []string) { fmt.Fprintf(os.Stdout, cwd+"\n") }
+func cmdpwd(c *clnt.Clnt, s []string) { fmt.Fprintln(os.Stdout, cwd) }
+
 
 // Remove f from remote server
 func rmone(c *clnt.Clnt, f string) {
