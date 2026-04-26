@@ -79,6 +79,13 @@ p
 README.md
 ```
 
+### Example servers and clients
+
+More detailed documentation for the example programs lives alongside the code:
+
+- Server examples: `p/srv/examples/README.md`
+- Client examples: `p/clnt/examples/README.md`
+
 ## Testing
 
 ```bash
@@ -126,8 +133,21 @@ This fork also includes a `github.com/v9fs/test`-style harness that runs inside 
 docker run --rm --privileged --platform linux/arm64 \
   -v "$PWD:/opt/v9fs/go9p" -w /opt/v9fs/go9p \
   ghcr.io/v9fs/docker:v2.0.0 \
-  bash /opt/v9fs/go9p/scripts/v9fs/ci-e2e.sh
+  bash /opt/v9fs/go9p/scripts/v9fs/ci-e2e-fs.sh ufs
 ```
+
+You can also run the kernel-client harness against other example servers:
+
+```bash
+docker run --rm --privileged --platform linux/arm64 \
+  -v "$PWD:/opt/v9fs/go9p" -w /opt/v9fs/go9p \
+  ghcr.io/v9fs/docker:v2.0.0 \
+  bash /opt/v9fs/go9p/scripts/v9fs/ci-e2e-fs.sh ramfs
+```
+
+Supported `ci-e2e-fs.sh` filesystem arguments: `ufs`, `ramfs`, `clonefs`, `timefs`.
+
+Note: `tlsramfs` is **TLS-only** and is exercised via userspace (Go) tests rather than a Linux kernel mount.
 
 ## Repository layout
 
