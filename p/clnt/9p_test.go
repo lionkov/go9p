@@ -5,6 +5,7 @@
 package clnt
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -12,7 +13,9 @@ import (
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/lionkov/go9p/p"
@@ -35,16 +38,22 @@ func TestAttach(t *testing.T) {
 	t.Log("ufs starting\n")
 	// determined by build tags
 	//extraFuncs()
-	l, err := net.Listen("unix", "")
+	tmpDir := t.TempDir()
+	sockPath := filepath.Join(tmpDir, "go9p.sock")
+	_ = os.Remove(sockPath)
+	l, err := net.Listen("unix", sockPath)
 	if err != nil {
 		t.Fatalf("Can not start listener: %v", err)
 	}
+	defer func() {
+		_ = l.Close()
+		_ = os.Remove(sockPath)
+	}()
 	srvAddr := l.Addr().String()
 	t.Logf("Server is at %v", srvAddr)
+	errCh := make(chan error, 1)
 	go func() {
-		if err = ufs.StartListener(l); err != nil {
-			t.Fatalf("Can not start listener: %v", err)
-		}
+		errCh <- ufs.StartListener(l)
 	}()
 	var conn net.Conn
 	if conn, err = net.Dial("unix", srvAddr); err != nil {
@@ -52,9 +61,11 @@ func TestAttach(t *testing.T) {
 	} else {
 		t.Logf("Got a conn, %v\n", conn)
 	}
+	defer func() { _ = conn.Close() }()
 
 	user := p.OsUsers.Uid2User(os.Geteuid())
 	clnt := NewClnt(conn, 8192, false)
+	defer clnt.Unmount()
 	// run enough attaches to maybe let the race detector trip.
 	// The default, 1024, is lower than I'd like, but some environments don't
 	// let you do a huge number, as they throttle the accept rate.
@@ -64,8 +75,11 @@ func TestAttach(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Connect failed: %v\n", err)
 		}
-		defer clnt.Unmount()
+	}
 
+	_ = l.Close()
+	if err := <-errCh; err != nil && !errors.Is(err, net.ErrClosed) && !strings.Contains(err.Error(), "use of closed network connection") {
+		t.Fatalf("server returned error: %v", err)
 	}
 }
 
@@ -87,16 +101,22 @@ func TestAttachOpenReaddir(t *testing.T) {
 	t.Logf("ufs starting in %v\n", tmpDir)
 	// determined by build tags
 	//extraFuncs()
-	l, err := net.Listen("unix", "")
+	sockDir := t.TempDir()
+	sockPath := filepath.Join(sockDir, "go9p.sock")
+	_ = os.Remove(sockPath)
+	l, err := net.Listen("unix", sockPath)
 	if err != nil {
 		t.Fatalf("Can not start listener: %v", err)
 	}
+	defer func() {
+		_ = l.Close()
+		_ = os.Remove(sockPath)
+	}()
 	srvAddr := l.Addr().String()
 	t.Logf("Server is at %v", srvAddr)
+	errCh := make(chan error, 1)
 	go func() {
-		if err = ufs.StartListener(l); err != nil {
-			t.Fatalf("Can not start listener: %v", err)
-		}
+		errCh <- ufs.StartListener(l)
 	}()
 	var conn net.Conn
 	if conn, err = net.Dial("unix", srvAddr); err != nil {
@@ -104,8 +124,10 @@ func TestAttachOpenReaddir(t *testing.T) {
 	} else {
 		t.Logf("Got a conn, %v\n", conn)
 	}
+	defer func() { _ = conn.Close() }()
 
 	clnt := NewClnt(conn, 8192, false)
+	defer clnt.Unmount()
 	// packet debugging on clients is broken.
 	clnt.Debuglevel = 0 // *debug
 	user := p.OsUsers.Uid2User(os.Geteuid())
@@ -121,7 +143,7 @@ func TestAttachOpenReaddir(t *testing.T) {
 
 	// Now create a whole bunch of files to test readdir
 	for i := 0; i < *numDir; i++ {
-		f := fmt.Sprintf(path.Join(tmpDir, fmt.Sprintf("%d", i)))
+		f := path.Join(tmpDir, fmt.Sprintf("%d", i))
 		if err := ioutil.WriteFile(f, []byte(f), 0600); err != nil {
 			t.Fatalf("Create %v: got %v, want nil", f, err)
 		}
@@ -222,6 +244,11 @@ func TestAttachOpenReaddir(t *testing.T) {
 	if i != *numDir {
 		t.Fatalf("Readdir %v: got %d entries, wanted %d", tmpDir, i, *numDir)
 	}
+
+	_ = l.Close()
+	if err := <-errCh; err != nil && !errors.Is(err, net.ErrClosed) && !strings.Contains(err.Error(), "use of closed network connection") {
+		t.Fatalf("server returned error: %v", err)
+	}
 }
 
 func TestRename(t *testing.T) {
@@ -243,16 +270,22 @@ func TestRename(t *testing.T) {
 	t.Logf("ufs starting in %v", tmpDir)
 	// determined by build tags
 	//extraFuncs()
-	l, err := net.Listen("unix", "")
+	sockDir := t.TempDir()
+	sockPath := filepath.Join(sockDir, "go9p.sock")
+	_ = os.Remove(sockPath)
+	l, err := net.Listen("unix", sockPath)
 	if err != nil {
 		t.Fatalf("Can not start listener: %v", err)
 	}
+	defer func() {
+		_ = l.Close()
+		_ = os.Remove(sockPath)
+	}()
 	srvAddr := l.Addr().String()
 	t.Logf("Server is at %v", srvAddr)
+	errCh := make(chan error, 1)
 	go func() {
-		if err = ufs.StartListener(l); err != nil {
-			t.Fatalf("Can not start listener: %v", err)
-		}
+		errCh <- ufs.StartListener(l)
 	}()
 	var conn net.Conn
 	if conn, err = net.Dial("unix", srvAddr); err != nil {
@@ -260,8 +293,10 @@ func TestRename(t *testing.T) {
 	} else {
 		t.Logf("Got a conn, %v\n", conn)
 	}
+	defer func() { _ = conn.Close() }()
 
 	clnt := NewClnt(conn, 8192, false)
+	defer clnt.Unmount()
 	user := p.OsUsers.Uid2User(os.Geteuid())
 	rootfid, err := clnt.Attach(nil, user, "/")
 	if err != nil {
@@ -335,4 +370,8 @@ func TestRename(t *testing.T) {
 		t.Errorf("ReadFile(%v): got %v, want nil", to, err)
 	}
 
+	_ = l.Close()
+	if err := <-errCh; err != nil && !errors.Is(err, net.ErrClosed) && !strings.Contains(err.Error(), "use of closed network connection") {
+		t.Fatalf("server returned error: %v", err)
+	}
 }
