@@ -8,12 +8,12 @@
 - A reference **Unix filesystem server** in `p/srv/ufs` (`package ufs`)
 - Small example programs in `p/clnt/examples` and `p/srv/examples`
 
-This repository is the upstream `github.com/lionkov/go9p`.
+This repository is `github.com/lionkov/go9p`.
 
 ## Status / Compatibility
 
 - **Protocol**: 9P2000 with optional 9P2000.u fields (see `Dotu` usage in server/client code).
-- **Go**: This forked branch adds a Go module and is intended to work with modern Go toolchains.
+- **Go**: A Go module is provided so the code builds with modern Go toolchains.
 
 ### 9P2000 vs 9P2000.u (`Dotu`)
 
@@ -26,7 +26,7 @@ In this codebase you’ll see a boolean called **`Dotu`** on both client and ser
 - **Client**: `Clnt.Dotu` indicates the client *wants* to speak 9P2000.u.
 - The negotiated connection behavior is exposed as `Conn.Dotu` (server side) based on the `Tversion`/`Rversion` handshake.
 
-If you’re targeting the **Linux kernel 9p client**, it most commonly uses the `9p2000.L` family (a different dialect from 9P2000.u). This repository’s code supports 9P2000 and 9P2000.u; the QEMU kernel-client harness in this fork validates kernel-client behavior against QEMU’s virtio-9p server rather than validating dialect parity with go9p itself.
+If you’re targeting the **Linux kernel 9p client**, it most commonly uses the `9p2000.L` family (a different dialect from 9P2000.u). This repository’s code supports 9P2000 and 9P2000.u; the QEMU kernel-client harness validates kernel-client behavior against QEMU’s virtio-9p server rather than validating dialect parity with go9p itself.
 
 ## Install (module mode)
 
@@ -269,7 +269,7 @@ docker build -f Dockerfile.kernel9p-qemu --target kernel9p-test \
   .
 ```
 
-This fork also includes a `github.com/v9fs/test`-style harness that runs inside the prebuilt
+This repository also includes a `github.com/v9fs/test`-style harness that runs inside the prebuilt
 `ghcr.io/v9fs/docker:v2.0.0` image (no custom Dockerfile) and uses a u-root initrd + chroot flow:
 
 ```bash
