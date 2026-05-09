@@ -308,6 +308,10 @@ func gstr(buf []byte) (string, []byte) {
 	if buf == nil {
 		return "", nil
 	}
+	// Need at least a uint16 length prefix.
+	if len(buf) < 2 {
+		return "", nil
+	}
 
 	n, buf = gint16(buf)
 	if int(n) > len(buf) {
